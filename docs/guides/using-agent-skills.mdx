@@ -1,0 +1,438 @@
+---
+title: "Using agent skills"
+description: "Install Reactive Resume's eight agent skills in Claude, Codex, Cursor and other AI agents, and learn which skill to use at each step of a job search."
+---
+
+Reactive Resume publishes eight agent skills that teach an AI agent how to help with a job search: building a resume, deciding what belongs on it, writing bullets, tailoring it to a posting, tracking applications, preparing for and practising interviews, and negotiating an offer. This guide explains what skills are, how to install them, what each one does and which one to use when.
+
+<CardGroup cols={2}>
+  <Card title="resume-builder" icon="file-plus" href="#resume-builder">
+    Builds a new resume as Reactive Resume JSON you can import.
+  </Card>
+  <Card title="resume-content-guide" icon="list-checks" href="#resume-content-guide">
+    Decides what goes on your resume and audits the one you have.
+  </Card>
+  <Card title="resume-bullet-writer" icon="pen-line" href="#resume-bullet-writer">
+    Turns duties into truthful impact bullets.
+  </Card>
+  <Card title="resume-tailor" icon="target" href="#resume-tailor">
+    Fits one resume to one job posting.
+  </Card>
+  <Card title="job-application-manager" icon="kanban" href="#job-application-manager">
+    Tracks applications, follow-ups and messages.
+  </Card>
+  <Card title="interview-prep" icon="clipboard-list" href="#interview-prep">
+    Prepares you for a specific interview, then debriefs it.
+  </Card>
+  <Card title="mock-interview" icon="messages-square" href="#mock-interview">
+    Plays the interviewer and scores your answers.
+  </Card>
+  <Card title="offer-negotiation" icon="handshake" href="#offer-negotiation">
+    Evaluates an offer and drafts your counter.
+  </Card>
+</CardGroup>
+
+## What agent skills are
+
+A skill is a folder with a `SKILL.md` file of instructions, plus reference files the agent reads only when it needs them. Your agent sees each skill's short description and loads the full instructions when your request matches it. You don't run a skill like a program: you ask in plain language ("tailor my resume to this job"), and the agent follows the skill's workflow.
+
+Skills, the [MCP server](/guides/using-the-mcp-server) and the in-app [assistant](/guides/using-the-assistant) do different jobs:
+
+|                                       | Agent skills                                                    | MCP server                                                                 | In-app assistant                                |
+| ------------------------------------- | --------------------------------------------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------- |
+| What it is                            | Instructions for a workflow                                     | Tools that read and change your Reactive Resume data                       | A chat panel beside your document in the editor |
+| Where it runs                         | Your agent: Claude Code, the Claude apps, Codex, Cursor, others | Any MCP client                                                             | Reactive Resume                                 |
+| Needs a Reactive Resume account       | No                                                              | Yes                                                                        | Yes                                             |
+| Which AI does the work                | Your agent's model                                              | Your client's model; a few tools use the AI provider you set up in the app | The AI provider you connect in Reactive Resume  |
+| How it changes your resume or tracker | Through MCP tools, after you approve                            | When the client calls a write tool                                         | Only the edits you accept                       |
+
+Skills work on their own: paste your resume or a job posting and you get text, a table or a JSON file back. When your agent is also connected to the MCP server, the skills use its tools to read your resumes and applications and, after you say yes, write changes back. The skills ask before using a Reactive Resume tool that sends your data to your AI provider, such as match scores, the AI-tailored summary and drafted letters.
+
+## Install the skills
+
+The skills live in the [`plugins/reactive-resume/skills` folder](https://github.com/reactive-resume/reactive-resume/tree/main/plugins/reactive-resume/skills) of the Reactive Resume repository, one folder per skill. Install all eight if you can: each skill hands off to the others, and when one is missing it does a lighter version of that work itself and tells you so.
+
+<Note>Keep each skill's folder whole. The `references` folder inside it holds detail the skill reads on demand.</Note>
+
+### As a plugin (Claude Code and Codex)
+
+The Reactive Resume plugin installs all eight skills and connects the [MCP server](/guides/using-the-mcp-server) in one step. Your agent asks you to sign in to Reactive Resume the first time a skill needs your data.
+
+<Tabs>
+  <Tab title="Claude Code">
+    ```sh
+    claude plugin install reactive-resume --marketplace reactive-resume/reactive-resume
+    ```
+
+    Or, inside a session, run `/plugin marketplace add reactive-resume/reactive-resume`, then `/plugin install reactive-resume@reactive-resume`. Plugin skills are namespaced, so you call one directly as `/reactive-resume:resume-tailor`. Run `/mcp` to sign in to the server.
+
+  </Tab>
+  <Tab title="Codex">
+    ```sh
+    codex plugin marketplace add reactive-resume/reactive-resume
+    codex plugin add reactive-resume@reactive-resume
+    codex mcp login reactive-resume
+    ```
+
+    Start a new session afterwards. You can also browse and toggle plugins with `/plugins`.
+
+  </Tab>
+</Tabs>
+
+The plugin connects to the hosted instance at `https://rxresu.me/mcp`. If you self-host, install the skills on their own (below) and connect your own instance with `npx add-mcp <your-app-url>/mcp --name reactive-resume`.
+
+### With the skills CLI
+
+The open-source [`skills` CLI](https://github.com/vercel-labs/skills) installs skills for most coding agents, including Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI and opencode. It needs [Node.js](https://nodejs.org).
+
+```sh
+# See the skills without installing anything
+npx skills add reactive-resume/reactive-resume --list
+
+# Choose skills and agents interactively
+npx skills add reactive-resume/reactive-resume
+
+# Install one skill
+npx skills add reactive-resume/reactive-resume --skill resume-tailor
+
+# Install all eight for one agent, for your user account, without prompts
+npx skills add reactive-resume/reactive-resume --skill '*' -a claude-code -g -y
+```
+
+- `--skill` (or `-s`) picks skills by name; `'*'` means all of them.
+- `-a` picks the agent: `claude-code`, `codex`, `cursor`, `gemini-cli`, `github-copilot` or `opencode`, among others. Without it, the CLI detects the agents you have installed.
+- Without `-g`, skills install into the current project; with `-g`, they're available in every project.
+- The CLI links to one shared copy by default. Add `--copy` to copy the files instead.
+- `npx skills list`, `npx skills update` and `npx skills remove` manage what you installed.
+
+<Note>
+  The skills CLI sends anonymous usage data by default. Set `DISABLE_TELEMETRY=1` or `DO_NOT_TRACK=1` to turn it off.
+</Note>
+
+### Download the files yourself
+
+For the Claude apps, or to copy skills by hand, fetch only the skills folder. The repository is large, so use a sparse clone:
+
+```sh
+git clone --depth 1 --filter=blob:none --sparse https://github.com/reactive-resume/reactive-resume.git rr
+git -C rr sparse-checkout set plugins/reactive-resume/skills
+```
+
+The skills are now in `rr/plugins/reactive-resume/skills`.
+
+### Claude Code
+
+Use the skills CLI with `-a claude-code`, or copy the folders yourself:
+
+```sh
+mkdir -p ~/.claude/skills && cp -R rr/plugins/reactive-resume/skills/* ~/.claude/skills/
+```
+
+To update later, run `git -C rr pull` and copy the folders again.
+
+`~/.claude/skills` makes the skills available in every project. To share them with a team through a repository, put them in that repository's `.claude/skills` folder instead.
+
+Claude uses a skill automatically when your request matches its description. To call one directly, type a slash and its name, for example `/resume-tailor`. If you created the skills folder during a session, run `/reload-skills`.
+
+### Claude apps (web and desktop)
+
+<Steps>
+  <Step title="Turn on code execution">
+    On Free, Pro and Max, go to **Settings → Capabilities** and turn on **Code execution and file creation**. Skills
+    need it. On Team and Enterprise, these are organization settings: an owner turns on code execution and **Skills** in
+    **Organization settings → Plugins & skills**, on the **Policy** tab.
+  </Step>
+  <Step title="Zip each skill">
+    Download the files as shown above, then make one ZIP per skill. Keep the folder name, because it must match the
+    skill's name:
+
+    ```sh
+    cd rr/plugins/reactive-resume/skills && zip -r resume-tailor.zip resume-tailor
+    ```
+
+    To zip all of them:
+
+    ```sh
+    cd rr/plugins/reactive-resume/skills && for s in */; do zip -r "${s%/}.zip" "$s"; done
+    ```
+
+  </Step>
+  <Step title="Upload the ZIP">
+    Go to **Customize → Skills**, select **+**, then **Create skill** and **Upload a skill**, and choose the ZIP. Repeat
+    for each skill you want.
+  </Step>
+  <Step title="Turn skills on or off">Each uploaded skill has its own toggle in the skills list.</Step>
+</Steps>
+
+Menu names can change. If yours differ, follow Anthropic's [Using skills in Claude](https://support.claude.com/en/articles/12512180-using-skills-in-claude).
+
+### Other agents
+
+Copy the skill folders into one of these folders, or use the skills CLI with the matching `-a` value.
+
+| Agent          | For all your projects                             | For one project                                        | How skills start                                                    |
+| -------------- | ------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------- |
+| Codex          | `~/.agents/skills`                                | `.agents/skills`                                       | Automatically, or with `$skill-name`; restart if one doesn't appear |
+| Cursor         | `~/.cursor/skills` or `~/.agents/skills`          | `.cursor/skills` or `.agents/skills`                   | Automatically, or with `/skill-name`                                |
+| GitHub Copilot | `~/.copilot/skills` or `~/.agents/skills`         | `.github/skills`, `.agents/skills` or `.claude/skills` | Automatically, or with `/skill-name`                                |
+| Gemini CLI     | `~/.gemini/skills` or `~/.agents/skills`          | `.gemini/skills` or `.agents/skills`                   | The model asks to activate a skill and you approve                  |
+| opencode       | `~/.config/opencode/skills` or `~/.agents/skills` | `.opencode/skills` or `.agents/skills`                 | Loaded on demand                                                    |
+
+`~/.agents/skills` is read by Codex, Cursor, GitHub Copilot, Gemini CLI and opencode, so one copy there covers all five.
+
+Gemini CLI can also install one skill straight from the repository:
+
+```sh
+gemini skills install https://github.com/reactive-resume/reactive-resume.git --path plugins/reactive-resume/skills/resume-tailor
+```
+
+### Connect the MCP server (optional)
+
+To let the skills read and update your resumes and applications, connect your agent to the Reactive Resume MCP server:
+
+```sh
+npx add-mcp https://rxresu.me/mcp --name reactive-resume
+```
+
+If you self-host, use your own instance's `/mcp` address. Then sign in from your agent; [Using the MCP server](/guides/using-the-mcp-server) has the steps for each client. Without the server, the skills work from what you paste into the chat.
+
+## The skills
+
+### resume-builder
+
+Builds a complete resume from scratch as Reactive Resume JSON. It asks for your contact details, then each section you want (experience, education, skills, projects and others), then a template and page size (A4 or Letter). It asks for anything missing instead of inventing it, and produces valid JSON with structured dates and formatted descriptions.
+
+- **Use it when** you're starting from nothing, want your work history turned into Reactive Resume JSON, or have a question about the resume schema, sections, templates or layout.
+- **You get** a JSON file you can [import](/guides/importing-resumes) into Reactive Resume.
+- **It needs** your real details: names, dates, employers and what you did.
+- **With MCP** it offers to create the resume in your account directly, after you approve.
+
+Try:
+
+- "Build me a resume from scratch. I'm an ICU nurse with six years' experience."
+- "Turn this work history into Reactive Resume JSON I can import."
+- "How do I add a custom section in Reactive Resume JSON?"
+
+### resume-content-guide
+
+Decides what belongs on your resume or CV, what to leave off and in what order, for your target country, industry, career stage and situation, then audits the resume you have against those norms. It covers every section (contact details, photo, summary, experience, education and GPA, skills, languages, references), situations such as new graduates, career changes, gaps, layoffs, veterans, academic CVs and visa holders, and country conventions from the US and UK to Germany, the Gulf, India and Japan. Each recommendation says how strong its evidence is: law or official guidance, research, a survey, or common practice you can override.
+
+- **Use it when** you ask what to include or leave off, whether to add a photo, GPA or date of birth, how to show a gap, how long your CV should be, what to change for another country, or for a review of your whole resume.
+- **You get** a direct answer for a single question, a checklist for a situation or a move between countries, or an audit: a first-impression line, what to keep, up to 10 actions with must-fix items first, and at most three questions.
+- **It needs** your target country and role. It asks for them in one message, or states what it assumed.
+- **With MCP** it reads your resume and your Career profile, runs the app's [Check](/guides/checking-your-resume), and makes the changes you approve, on a copy for country versions and heavy cuts, hiding items rather than deleting them.
+
+Try:
+
+- "Review my resume. I'm applying for entry-level backend roles in the US."
+- "Should I put my photo and date of birth on my CV for a job in Dubai?"
+- "I'm moving from Germany to the US. What should I change on my CV?"
+
+### resume-bullet-writer
+
+Turns duties into truthful impact bullets. It questions you role by role to find what you achieved, asks for real numbers or honest ranges, and writes short bullets in a result-led, challenge-led, scope or qualitative form. It works for jobs with few numbers, such as nursing, teaching, care, trades, admin and creative work. Pick a fast pass on the bullets you paste, or a few questions per role for stronger ones.
+
+- **Use it when** your bullets read like a job description, you want them quantified, or you think you have no numbers.
+- **You get** rewritten bullets with the facts and source behind each one, a list of numbers still worth finding and where they usually live, and a facts ledger you can reuse in later sessions.
+- **It needs** your current bullets or a description of each role. Performance reviews or a brag document help.
+- **With MCP** it edits the descriptions of experience, project, volunteer and education entries after you approve each role, and offers a named restore point before large rewrites. With your permission it can save confirmed achievements to [Career Knowledge](/guides/building-career-knowledge).
+
+Try:
+
+- "Rewrite my bullets for my last two jobs."
+- "Make this stronger: 'Responsible for managing the company Instagram.'"
+- "I'm a teacher and I don't have any numbers. Help me with my experience section."
+
+### resume-tailor
+
+Tailors one resume to one job posting. It classifies and weights the posting's requirements, maps each to evidence on your resume, and reports coverage with a label: Strong, Reasonable stretch or Long shot. Gaps become questions, at most five at a time, never invented lines. Then it writes a tailored copy (headline, summary, bullet order, skills), explains how applicant tracking systems actually screen, and drafts a cover letter for that posting if you want one. It works at three depths: Quick (about 5 minutes), Standard (about 20, the default) and Deep (45 to 90).
+
+- **Use it when** you have a specific posting: "tailor my resume to this job", "what keywords am I missing", "will this get past the ATS", or "the job asks for X and I don't have it".
+- **You get** the requirement table, the tailored resume, a change log, and optionally a cover letter and truthful answers to the application form's questions.
+- **It needs** the job description as text (a link alone may not load) and your resume.
+- **With MCP** it finds the application, makes a copy of your resume for it (asking before it replaces a resume already linked), applies the approved changes to the copy, runs Check, and can save the letter. Your original changes only if you approve adding newly confirmed facts to it, and it never moves the application's stage.
+
+Try:
+
+- "Tailor my resume to this job: [paste the posting]"
+- "The job asks for Kubernetes and I've never used it. What should I do?"
+- "Will my resume get past the ATS for this data analyst role?"
+
+### job-application-manager
+
+Runs your job search as a pipeline. It adds jobs from a link or pasted posting, checks for duplicates, scam warning signs and stale postings, and sorts each into a priority tier. It keeps stages and dates accurate, records the exact resume version you sent, sets follow-up dates, and runs a weekly review of what's due, what's stale and how your search is converting. It drafts networking, referral, recruiter, follow-up, thank-you, status-check, expedite and withdrawal messages, and never sends them for you.
+
+- **Use it when** you say "add this job to my tracker", "I applied", "I got rejected", "I was ghosted", "log my offer", "do my weekly review", "what should I follow up on", "write a thank-you note", "ask for a referral" or "withdraw my application".
+- **You get** an updated record or tracker, a weekly list of numbered actions you approve before anything changes, and message drafts.
+- **It needs** the posting text or your list of jobs, and the real dates things happened.
+- **With MCP** it creates and updates your [applications](/guides/managing-applications-with-mcp), logs notes and interviews, and links the resume you sent when you mark one applied. It asks before changing existing records. Without MCP it keeps a Markdown or CSV tracker.
+
+Try:
+
+- "Add this job to my tracker: [link or posting]"
+- "I applied to Northwind Games today with my Backend v3 resume."
+- "Do my weekly review."
+- "Write a thank-you note to Dana from yesterday's hiring-manager call."
+
+### interview-prep
+
+Prepares you for one specific interview from your real experience. It works out what the round scores, builds a story bank in five parts (Situation, Task, Action, Result, Reflection) mapped to the competencies the company tests, such as Amazon's Leadership Principles, and writes a short company and role brief with a link and date for every fact. It predicts the questions, drafts your opener, why-us, weakness and salary answers with you, prepares questions to ask, and gives you a logistics checklist. After the interview it runs a debrief that feeds the next round. The depth depends on the time left: a one-screen cheat sheet when the interview is under 3 hours away, a full multi-day plan for a final loop.
+
+- **Use it when** you say "help me prepare for my interview", "I have an interview tomorrow", "build my story bank", "what will they ask me", "how do I answer tell me about yourself", "what should I ask the interviewer", "research the company" or "debrief my interview".
+- **You get** a prep pack, or a cheat sheet when time is short, and a debrief summary afterwards.
+- **It needs** the posting (or company and role), the round type, date and time, and the resume version you sent. For the brief it needs a web search tool; without one it asks you to paste the company's pages.
+- **With MCP** it reads the application, the resume version you sent and your saved stories and facts, then saves new stories, facts, questions to ask and the debrief after one yes for the batch.
+
+Try:
+
+- "Help me prepare for my hiring-manager interview at Acme on Thursday."
+- "I have an interview in 2 hours."
+- "Build my story bank for product manager roles."
+- "Debrief my interview."
+
+### mock-interview
+
+Plays the interviewer for one specific job. Choose the round (recruiter screen, hiring manager, behavioral, coding, system design, case, product sense or panel), the interviewer's style, a difficulty from 1 to 3, and a mode: **coach**, with feedback and a retry after each answer, or **realistic**, with feedback only at the end. It asks one question at a time, follows up on vague answers, and scores each answer from 1 to 4 on structure, specificity, ownership, result, relevance and length, quoting your words as evidence. Commands such as `hint`, `skip`, `retry`, `pause` and `end` work at any point.
+
+- **Use it when** you say "mock interview me", "interview me for this job", "practice interview", "grill me for this role", "run a behavioral round", "quick recruiter screen" or "system design mock".
+- **You get** practice plus a report: scores per competency with quotes, one priority for next time, and a model answer for your weakest question rebuilt only from what you said. Scores are coaching signals, not a prediction of an offer.
+- **It needs** the job description, or at least the role, level and company. Your resume and a question you dread are optional.
+- **With MCP** it loads the application, the resume version you sent, your stories and any briefing, and after the session offers to log a note and save improved stories. It needs no AI provider in Reactive Resume.
+
+Try:
+
+- "Mock interview me for this job. Behavioral round, coach mode."
+- "Run a quick recruiter screen for this role."
+- "Grill me: system design mock for a senior backend role, and make it hard."
+
+### offer-negotiation
+
+Evaluates and negotiates job offers. It decodes each part of an offer (base, bonus, equity, sign-on, level and terms), labels each one guaranteed, conditional, estimate or unknown, and keeps every offer in its own currency. Instead of one inflated total, it shows year-one cash, four years of base, and the uncertain part separately. It benchmarks against pay data you can check, sets your target and walk-away point, finds leverage that is true, and drafts one counter as an email and a call script. It can play the recruiter so you can rehearse, and it handles the salary-expectations question, deadlines and extensions, "best and final" offers, competing offers, counteroffers and the written acceptance or decline. It knows country differences such as India's CTC, 13th-month pay and public-sector pay scales.
+
+- **Use it when** you say "I got an offer of…", "is this offer good", "should I negotiate", "how do I counter", "compare my offers", "what is my equity worth", "they asked my salary expectations", "they want an answer by Friday", "can I ask for more time", "should I accept" or "practice the negotiation call".
+- **You get** a decoded offer with questions for the recruiter, your position, a counter email and call lines, a rehearsal, and the final acceptance or decline.
+- **It needs** the offer's numbers or letter (remove ID numbers and your address), the deadline, the country and currency, and what you'd do if you walked away.
+- **With MCP** it reads offer-stage applications, the offer terms you saved in the app and your Career profile, sets a follow-up before the deadline, and logs each step after you confirm it happened. For a side-by-side view, it points you to [Career → Offers](/guides/comparing-job-offers).
+
+Try:
+
+- "I got an offer of $185k base and $160k in RSUs over four years. Should I negotiate?"
+- "The recruiter asked for my salary expectations. What do I say?"
+- "Practice the negotiation call. You're the recruiter."
+
+## Which skill should I use?
+
+Your agent picks a skill from your words, so similar requests can go to different skills. Use this table to see where yours will land.
+
+| You say                                                               | Skill that runs         | Then                                                                                           |
+| --------------------------------------------------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------- |
+| "Build me a resume from scratch."                                     | resume-builder          | resume-content-guide to check what belongs                                                     |
+| "How do I add a custom section in Reactive Resume JSON?"              | resume-builder          |                                                                                                |
+| "Review my resume." / "Audit my resume." (no particular job)          | resume-content-guide    | resume-bullet-writer for the bullets it flags                                                  |
+| "Rewrite my summary." / "Fix my headline." (no particular job)        | resume-content-guide    | With a posting, resume-tailor rewrites both for that job                                       |
+| "Should I put my photo on my CV for a job in Germany?"                | resume-content-guide    |                                                                                                |
+| "How do I show a two-year gap on my resume?"                          | resume-content-guide    | interview-prep to rehearse saying it out loud                                                  |
+| "My resume sounds boring." / "Rewrite my bullets."                    | resume-bullet-writer    |                                                                                                |
+| "I'm a nurse and I don't have any numbers."                           | resume-bullet-writer    |                                                                                                |
+| "Fit my resume to this job." (with a posting)                         | resume-tailor           | job-application-manager to track the application                                               |
+| "What keywords am I missing for this posting?"                        | resume-tailor           |                                                                                                |
+| "Will my resume get past the ATS?"                                    | resume-tailor           | Without a posting it explains screening and checks parsing; paste one to tailor                |
+| "Write a cover letter for this job."                                  | resume-tailor           | Built from the same requirement table                                                          |
+| "Add this job to my tracker." (with a link)                           | job-application-manager | resume-tailor for that job                                                                     |
+| "I applied today." / "I got rejected." / "I was ghosted."             | job-application-manager |                                                                                                |
+| "What should I follow up on?" / "Do my weekly review."                | job-application-manager |                                                                                                |
+| "Why am I not getting interviews?"                                    | job-application-manager | Its weekly review checks your numbers, then points to the skill that fits, often resume-tailor |
+| "Log my interview with Globex on Tuesday."                            | job-application-manager | interview-prep to prepare for it                                                               |
+| "Ask Priya for a referral." / "Reply to this recruiter."              | job-application-manager |                                                                                                |
+| "Prepare me for my interview on Thursday."                            | interview-prep          | mock-interview to practise                                                                     |
+| "I have an interview in 2 hours."                                     | interview-prep          |                                                                                                |
+| "What questions should I ask the interviewer?"                        | interview-prep          |                                                                                                |
+| "How do I answer the salary question in my recruiter screen?"         | interview-prep          | offer-negotiation to pick the number                                                           |
+| "Interview me for this job." / "Grill me."                            | mock-interview          | interview-prep if a story is missing                                                           |
+| "Debrief my interview."                                               | interview-prep          | job-application-manager for thank-you notes                                                    |
+| "Write a thank-you note to my interviewers."                          | job-application-manager |                                                                                                |
+| "Log my offer from Initech."                                          | job-application-manager | offer-negotiation to judge it                                                                  |
+| "I got an offer of $120k. Is it good?" / "Should I negotiate?"        | offer-negotiation       | job-application-manager to log the deadline                                                    |
+| "They want an answer by Friday. Can I ask for more time?"             | offer-negotiation       |                                                                                                |
+| "Compare my two offers."                                              | offer-negotiation       | [Career → Offers](/guides/comparing-job-offers) for the side-by-side view                      |
+| "The recruiter asked my salary expectations."                         | offer-negotiation       | interview-prep keeps the line in your prep pack                                                |
+| "Practice the negotiation call."                                      | offer-negotiation       | Not mock-interview, which practises interviews only                                            |
+| "Should I accept?" / "Write my acceptance email."                     | offer-negotiation       | job-application-manager to close the rest                                                      |
+| "I accepted Initech. Update my tracker and withdraw from the others." | job-application-manager |                                                                                                |
+
+The pairs that cause most confusion:
+
+- **"Make my resume better" or "fit it to this job".** Without a posting, resume-content-guide reviews the whole resume and resume-bullet-writer improves the wording. With a posting, resume-tailor takes over and works on a copy.
+- **"Prepare me" or "interview me".** interview-prep builds your material: stories, a company brief, answers and questions to ask. mock-interview tests that material by playing the interviewer and scoring you.
+- **"I got an offer".** job-application-manager records it: the stage, the deadline, notes to other employers, and closing the rest once you accept. offer-negotiation decides what to do with it: whether it's good, what to ask for, and how to accept or decline.
+- **"What salary should I give?"** offer-negotiation chooses the number and the words, before or after an offer. interview-prep keeps that line in your prep pack with your other answers. job-application-manager drafts the reply when it's part of a recruiter message.
+
+<Tip>
+  To be sure which skill runs, name it: "Use mock-interview to run a recruiter screen." In Claude Code, Cursor or GitHub
+  Copilot you can also type `/mock-interview`; in Codex, `$mock-interview`.
+</Tip>
+
+## From first draft to signed offer
+
+Here is how the skills hand off across one search. Each skill suggests the next one when it finishes.
+
+<Steps>
+  <Step title="Build">
+    "Build me a resume from my work history." resume-builder asks for each missing detail and returns JSON to import.
+    With MCP, it creates the resume in your account.
+  </Step>
+  <Step title="Check the content">
+    "Review my resume for data analyst roles in the UK." resume-content-guide audits it against UK norms and suggests
+    what to add, cut or move. It changes nothing until you agree.
+  </Step>
+  <Step title="Strengthen the bullets">
+    "My Acme bullets sound like duties." resume-bullet-writer asks what changed because of your work and rewrites each
+    role. Its facts ledger lists what you confirmed, so later sessions can reuse it.
+  </Step>
+  <Step title="Tailor">
+    You paste a posting. resume-tailor builds the requirement table, asks about the gaps, writes a tailored copy and an
+    optional cover letter, then offers to add newly confirmed facts to your main resume.
+  </Step>
+  <Step title="Track">
+    "I applied today with the Northwind copy." job-application-manager records the application, the exact version you
+    sent and a follow-up date. The weekly review tells you what to chase.
+  </Step>
+  <Step title="Prepare">
+    "Hiring-manager interview on Thursday." interview-prep builds stories for the requirements most likely to be probed
+    (resume-tailor lists them when it finishes; paste that list in if you start a new conversation), writes the company
+    brief and your opener, and lists questions to ask.
+  </Step>
+  <Step title="Practise">
+    "Mock interview me for this round, realistic mode." mock-interview runs the round and gives you one priority. After
+    the real interview, interview-prep runs the debrief and job-application-manager drafts the thank-you notes.
+  </Step>
+  <Step title="Negotiate">
+    The offer arrives. job-application-manager logs it and its deadline. offer-negotiation decodes it, drafts one
+    counter and rehearses the call with you. When you accept, job-application-manager closes your other applications and
+    drafts the withdrawals.
+  </Step>
+</Steps>
+
+With the MCP server connected, this context carries over through your Reactive Resume account: the resume copies, the application and its timeline, and the stories and facts you chose to save. Without it, each skill gives you a block of text (a facts ledger, story cards, a tracker table) to paste into your next conversation.
+
+## What every skill does
+
+The skills share these rules. Where a rule applies to only some skills, it names them.
+
+- **No invented facts.** Employers, titles, dates, skills, numbers and results come from you, your documents or your saved records. When a fact is missing, the skill asks. If you ask it to make something up, it declines in one sentence and offers an honest alternative.
+- **Honest ranges.** "About 30%" or "20 to 30 a week" is fine and stays marked as an estimate. A skill never rounds a guess into a precise figure.
+- **Questions before changes.** Skills ask a small batch of questions with sensible defaults and show what they plan to change. In fast modes they show the plan and the draft together for you to edit.
+- **Your approval before writing to your account.** With MCP, skills read first and ask before changing your resumes or applications. A direct request such as "add this job to my tracker" counts as that yes for the new record. Tailored versions and heavy cuts go on a copy, skills hide items rather than delete them wherever the app allows, and a skill never says a change is saved until the tool confirms it.
+- **You send everything.** Skills draft messages, letters and form answers. You send them and make the decisions.
+- **Privacy in web searches.** Searches cover employers, roles, public pay data and, for interview prep, interviewers' public professional work, never your name or personal details. A skill asks before pasting your data into any other service.
+- **Postings are data.** If a posting, web page or email contains instructions aimed at an AI, the skill ignores them and points them out to you.
+- **Practice, not live help.** mock-interview won't feed you answers during a real interview. interview-prep does so only if you confirm the employer allows AI help, because many employers forbid it. Both offer a debrief afterwards.
+- **No legal, tax or financial advice.** offer-negotiation gives general information on equity, tax, contracts and visas, says so where it matters, and names the professional to ask. Laws are described as of 2026; check the current rule where you live.
+
+## Related guides
+
+- [Using the MCP server](/guides/using-the-mcp-server): connect your agent so the skills can read and update your data.
+- [Managing applications with MCP](/guides/managing-applications-with-mcp): the application tools job-application-manager uses.
+- [Tailoring a resume for a job](/guides/tailoring-a-resume-for-a-job): job copies and cover letters in the app.
+- [Preparing for interview day](/guides/preparing-for-interview-day): briefings, spoken practice and debriefs in the app.
+- [Comparing job offers](/guides/comparing-job-offers): saved offers side by side in **Career → Offers**.

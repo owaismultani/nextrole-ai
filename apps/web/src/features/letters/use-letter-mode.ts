@@ -1,0 +1,67 @@
+import { getRouteApi } from "@tanstack/react-router";
+import { useCallback, useEffect } from "react";
+import { openAssistantFrom } from "@/features/assistant/open";
+import { useEditorStore } from "@/features/resume/editor/store";
+
+export type LetterMode = "write" | "design";
+
+const routeApi = getRouteApi("/builder/letter/$coverLetterId");
+
+/** The mode lives in the URL (`?mode=design`), so refreshing keeps it. */
+export function useLetterMode() {
+	const { mode = "write" } = routeApi.useSearch();
+	const navigate = routeApi.useNavigate();
+	const setMode = useCallback(
+		(next: LetterMode) =>
+			void navigate({
+				to: ".",
+				resetScroll: false,
+				search: (current: ReturnType<typeof routeApi.useSearch>) => ({
+					...current,
+					mode: next === "write" ? undefined : next,
+				}),
+				replace: true,
+			}),
+		[navigate],
+	);
+	return [mode, setMode] as const;
+}
+
+/** `?version=` opens History on that version (the page shows it read-only), then leaves the URL. */
+export function useOpenLetterVersionFromUrl() {
+	const { version } = routeApi.useSearch();
+	const navigate = routeApi.useNavigate();
+
+	useEffect(() => {
+		if (!version) return;
+		const editor = useEditorStore.getState();
+		editor.setShareTab("history");
+		editor.setHistoryVersion(version);
+		void navigate({
+			to: ".",
+			resetScroll: false,
+			search: (current: ReturnType<typeof routeApi.useSearch>) => ({ ...current, version: undefined }),
+			replace: true,
+		});
+	}, [version, navigate]);
+}
+
+/** `?assistant=` or `?ask=` opens the assistant on that conversation or question, then leaves the URL. */
+export function useOpenLetterAssistantFromUrl() {
+	const { assistant, ask } = routeApi.useSearch();
+	const navigate = routeApi.useNavigate();
+
+	useEffect(() => {
+		if (!openAssistantFrom({ assistant, ask })) return;
+		void navigate({
+			to: ".",
+			resetScroll: false,
+			search: (current: ReturnType<typeof routeApi.useSearch>) => ({
+				...current,
+				assistant: undefined,
+				ask: undefined,
+			}),
+			replace: true,
+		});
+	}, [assistant, ask, navigate]);
+}

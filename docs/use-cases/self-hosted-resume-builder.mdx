@@ -1,0 +1,52 @@
+---
+title: "Self-hosted resume builder"
+description: "Run Reactive Resume on your own server with Docker, Kubernetes or Vercel: PostgreSQL, local or S3 storage, single sign-on, and the full v6 feature set."
+---
+
+You can run Reactive Resume on your own infrastructure instead of using [rxresu.me](https://rxresu.me). A self-hosted instance has the same features as the hosted app: resumes, cover letters, Check mode, public links, the application tracker, the AI assistant, the API and the MCP server.
+
+## When self-hosting is a good fit
+
+Self-host when you need to control where data lives, who can sign in, and which outside services the app talks to. Common reasons are a company or school that wants its own resume tool, strict data-residency rules, or a personal server you already run.
+
+If you only need a resume for yourself, the hosted app is less work.
+
+## What a deployment needs
+
+The production image runs a single Node.js process on port 3000 that serves the app, the API and the MCP server. Around it you need:
+
+- **PostgreSQL** for accounts, documents and applications. Database migrations run automatically when the server starts.
+- **File storage** for photos and uploads: a local folder, any S3-compatible service, or Vercel Blob.
+- **SMTP** for account emails. Without it, emails are written to the server log, which is fine for testing.
+- **Optional: Redis and an encryption secret.** Both are needed for saved AI providers and the assistant. Core resume features work without them.
+- **Optional: single sign-on** through Google, GitHub, LinkedIn or a custom OpenID Connect provider.
+
+Rendering PDFs needs no extra service: there is no headless browser to run.
+
+## Ways to deploy
+
+<CardGroup cols={2}>
+  <Card title="Docker" icon="docker" href="/self-hosting/docker">
+    The main path: Docker Compose with PostgreSQL.
+  </Card>
+  <Card title="Kubernetes" icon="dharmachakra" href="/self-hosting/kubernetes">
+    Run the same image in a cluster.
+  </Card>
+  <Card title="Vercel" icon="triangle" href="/self-hosting/vercel">
+    Deploy the frontend and backend as Vercel Services.
+  </Card>
+  <Card title="Examples" icon="layer-group" href="/self-hosting/examples">
+    Ready-made setups with reverse proxies and storage.
+  </Card>
+</CardGroup>
+
+Every setting is listed in [Environment variables](/self-hosting/environment-variables). For sign-in providers, see [Single sign-on](/self-hosting/sso).
+
+## Upgrading an existing instance
+
+Already running v5? Read [Migrating from v5](/self-hosting/upgrading-to-v6) before you pull the new image. It covers what changes in the database, the API and the MCP server. For older v4 instances, see [Migrating from v4](/self-hosting/migration).
+
+<Tip>
+  When you follow API, MCP or sharing examples in these docs, replace `https://rxresu.me` with your own instance's
+  address.
+</Tip>

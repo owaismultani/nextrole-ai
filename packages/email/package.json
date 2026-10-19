@@ -1,0 +1,32 @@
+{
+	"name": "@reactive-resume/email",
+	"version": "0.0.0",
+	"type": "module",
+	"private": true,
+	"exports": {
+		"./transport": "./src/transport.ts",
+		"./templates/auth": "./src/templates/auth.tsx"
+	},
+	"scripts": {
+		"dev": "email dev --dir src/templates --port 3002",
+		"typecheck": "tsgo --noEmit",
+		"test": "vitest run --passWithNoTests",
+		"test:coverage": "vitest run --coverage --passWithNoTests",
+		"test:ci": "vitest run --reporter=default --reporter=github-actions --reporter=json --reporter=junit --outputFile.json=reports/vitest-results.json --outputFile.junit=reports/vitest-junit.xml --passWithNoTests",
+		"test:agent": "vitest run --reporter=agent --reporter=json --outputFile.json=reports/vitest-results.json --passWithNoTests"
+	},
+	"dependencies": {
+		"@reactive-resume/env": "workspace:*",
+		"nodemailer": "^10.1.7",
+		"react": "catalog:",
+		"react-email": "^6.11.3"
+	},
+	"devDependencies": {
+		"@react-email/ui": "^6.11.3",
+		"@reactive-resume/config": "workspace:*",
+		"@types/nodemailer": "^8.0.2",
+		"@types/react": "catalog:",
+		"@typescript/native-preview": "catalog:",
+		"typescript": "catalog:"
+	}
+}

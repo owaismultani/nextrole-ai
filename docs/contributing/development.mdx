@@ -1,0 +1,310 @@
+---
+title: "Development setup"
+description: "Run Reactive Resume locally with Node.js 24, pnpm, and Docker, then use the everyday commands for the database, tests, linting, and pull requests."
+---
+
+This guide takes you from a fresh clone to a running local copy of Reactive Resume, then covers the commands you'll use while working on it. For how the code is organized, read [Project architecture](/contributing/architecture).
+
+## Before you start
+
+You need:
+
+- **[Node.js](https://nodejs.org/) 24.** The version is pinned in `.nvmrc` and the root `engines` field, so `nvm use` or `fnm use` picks it up.
+- **[pnpm](https://pnpm.io/installation) 12.** The root `packageManager` field pins the exact version (currently `pnpm@12.11.2`), and pnpm switches to it automatically when you run it inside the repository.
+- **[Docker](https://docs.docker.com/get-docker/) with Docker Compose** for PostgreSQL, Redis, and S3-compatible storage. Start the Docker daemon first.
+- **[Git](https://git-scm.com/).**
+
+## Set up your checkout
+
+Run every command from the repository root unless a step says otherwise.
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/reactive-resume/reactive-resume.git
+    cd reactive-resume
+    ```
+  </Step>
+
+    <Step title="Install dependencies">
+      ```bash
+      pnpm install --frozen-lockfile
+      ```
+
+      The install also sets up the [Lefthook](https://github.com/evilmartians/lefthook) Git hooks described in [Commits and pull requests](#commits-and-pull-requests).
+    </Step>
+
+    <Step title="Start the infrastructure services">
+      ```bash
+      docker compose -f compose.dev.yml up -d postgres redis seaweedfs seaweedfs_create_bucket
+      docker compose -f compose.dev.yml ps
+      ```
+
+      This starts:
+
+      | Service | Purpose | Port |
+      | --- | --- | --- |
+      | `postgres` | The database | `5432` |
+      | `redis` | Optional: shared rate limits, resumable assistant replies, live resume events, and view de-duplication | `6379` |
+      | `seaweedfs` | S3-compatible storage for uploads | `8333` |
+      | `seaweedfs_create_bucket` | Creates the `reactive-resume` bucket, then exits | — |
+
+      Wait until `ps` shows the services as healthy. PDF generation runs on the Forme engine in WebAssembly, so you don't need a Chromium or Browserless container.
+    </Step>
+
+    <Step title="Create your environment file">
+      Copy the template only if you don't have a `.env.local` yet:
+
+      ```bash
+      test -e .env.local || cp .env.example .env.local
+      ```
+
+      The template uses container hostnames. Because the app runs on your machine, change these values in `.env.local` to `localhost`:
+
+      ```dotenv
+      APP_URL=http://localhost:3000
+      DATABASE_URL=postgresql://postgres:postgres@localhost:5432/postgres
+      S3_ENDPOINT=http://localhost:8333
+      REDIS_URL=redis://localhost:6379
+      ```
+
+      Then generate the secrets:
+
+      ```bash
+      openssl rand -hex 32   # paste the output into AUTH_SECRET
+      openssl rand -hex 32   # paste the output into ENCRYPTION_SECRET
+      ```
+
+      `AUTH_SECRET` is required. `ENCRYPTION_SECRET` (at least 32 characters) is needed only for saved AI providers and the assistant, but it's easiest to set it now. Redis is optional; with it, assistant replies survive a page reload and rate limits are shared between server processes. Every variable is described in [Environment variables](/self-hosting/environment-variables).
+
+      <Tip>
+        Working on something that doesn't need uploads? Start only `postgres` and set `STORAGE_BACKEND=local`. Files then go to the `data/` folder in your checkout.
+      </Tip>
+    </Step>
+
+    <Step title="Start the app">
+      ```bash
+      pnpm dev
+      ```
+
+      Open [http://localhost:3000](http://localhost:3000). The server applies database migrations on startup, so a fresh database is ready as soon as the app loads.
+    </Step>
+
+    <Step title="Create a local account">
+      Select **Sign up** and create an account. Without SMTP settings, the app doesn't send email: verification and password-reset links are printed in the terminal running `pnpm dev`. Copy the link from there into your browser.
+    </Step>
+
+</Steps>
+
+### What `pnpm dev` runs
+
+`pnpm dev` loads `.env.local` through dotenvx and starts three processes with Turborepo:
+
+| Process        | Address                                 | Notes                                                                                             |
+| -------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Vite (web app) | `http://localhost:3000` (`PORT`)        | Hot reload. Proxies `/api`, `/mcp`, `/uploads`, `/.well-known`, and `/schema.json` to the server. |
+| Hono (server)  | `http://localhost:3001` (`SERVER_PORT`) | Restarts on change through `tsx watch`.                                                           |
+| Email preview  | `http://localhost:3002`                 | Previews the email templates in `packages/email`.                                                 |
+
+Use `pnpm dev:web` to start only Vite. API calls still need a server running.
+
+## Everyday commands
+
+| Command                          | What it does                                                                                                           |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `pnpm dev`                       | Start the web app, server, and email preview                                                                           |
+| `pnpm dev:web`                   | Start only the web app                                                                                                 |
+| `pnpm build`                     | Build the web app and server for production (regenerates PDF translations first)                                       |
+| `NODE_ENV=production pnpm start` | Run the built server on `PORT`. It reads exported variables or the root `.env`, not `.env.local`.                      |
+| `pnpm typecheck`                 | Type-check every workspace with `tsgo`                                                                                 |
+| `pnpm test`                      | Run the Vitest suites of every workspace                                                                               |
+| `pnpm test:e2e`                  | Run the Playwright browser tests (see [Browser tests](#browser-tests))                                                 |
+| `pnpm lint`                      | Check code with Oxlint; errors and warnings fail the command                                                           |
+| `pnpm lint:agent`                | The same lint check with compact coding-agent diagnostics                                                              |
+| `pnpm format:check`              | Check formatting, import order, and Tailwind class order without changing files                                        |
+| `pnpm lint:fix`                  | Apply safe lint fixes                                                                                                  |
+| `pnpm format`                    | Format files and sort imports/Tailwind classes with Oxfmt                                                              |
+| `pnpm check`                     | **Changes files:** regenerates PDF translations, applies safe lint fixes, formats, then checks remaining lint findings |
+| `pnpm exec turbo boundaries`     | Check package boundary rules                                                                                           |
+| `pnpm knip`                      | Find unused files, exports, and dependencies                                                                           |
+| `pnpm lingui:extract`            | Extract new UI strings into `apps/web/locales/*.po`                                                                    |
+| `pnpm docs:gen`                  | Regenerate the OpenAPI spec and the custom-styles CSS reference                                                        |
+
+Prefer package-scoped commands while you work. Package names come from each `package.json`: the apps are `web` and `server`, and shared packages are `@reactive-resume/<name>`.
+
+```bash
+pnpm --filter web typecheck
+pnpm --filter @reactive-resume/pdf test
+pnpm exec oxlint --deny-warnings apps/web/src/features/resume
+pnpm exec oxfmt --check apps/web/src/features/resume
+```
+
+## Work with the database
+
+| Command            | What it does                                                                |
+| ------------------ | --------------------------------------------------------------------------- |
+| `pnpm db:generate` | Generate a migration from schema changes                                    |
+| `pnpm db:migrate`  | Apply pending migrations without starting the app                           |
+| `pnpm db:studio`   | Open Drizzle Studio at [local.drizzle.studio](https://local.drizzle.studio) |
+
+All three load `.env.local` before calling Drizzle Kit, which doesn't read `.env` files by itself.
+
+To change the schema:
+
+1. Edit the tables in `packages/db/src/schema/*`.
+2. Run `pnpm db:generate`. The migration is written to the root `migrations/` folder.
+3. Read the generated SQL, then apply it with `pnpm db:migrate` or by restarting `pnpm dev`.
+
+<Warning>
+  Review every generated migration before you apply it. Don't reset the database or delete Docker volumes to work around
+  a setup error; find the cause instead.
+</Warning>
+
+## Run tests
+
+### Unit and integration tests
+
+Tests use [Vitest](https://vitest.dev/) and sit next to the code they cover as `*.test.ts(x)` or `*.spec.ts(x)`. Most packages run in Node; `packages/ui` uses `happy-dom`.
+
+PDF export text tests require Poppler's `pdftotext` to read logical Unicode text, including `/ActualText` spans for shaped scripts and emoji. Install it with `brew install poppler` on macOS or `sudo apt-get install poppler-utils` on Debian/Ubuntu. CI installs it before running the unit suites.
+
+```bash
+# One package
+pnpm --filter @reactive-resume/pdf test
+
+# One file (the path is relative to the package)
+pnpm --filter @reactive-resume/pdf test src/templates/shared/filtering.test.ts
+
+# One test by name
+pnpm --filter @reactive-resume/pdf exec vitest run src/templates/shared/filtering.test.ts -t "filterItems"
+
+# Coverage (V8, written to the package's coverage/ folder)
+pnpm --filter @reactive-resume/pdf test:coverage
+```
+
+Pass file paths straight after `test`. An extra `--` stops Vitest from filtering the run. Most test scripts use `--passWithNoTests`, so a green run with zero tests proves nothing about your change.
+
+Database integration suites need `COVER_LETTER_TEST_DATABASE_URL`, `INTEGRATIONS_TEST_DATABASE_URL`, and `OAUTH_TEST_DATABASE_URL`. The migration suite uses `COVER_LETTER_TEST_DATABASE_URL` as an administrative connection and creates and deletes its own disposable databases, so its user needs `CREATE DATABASE` permission. Give the OAuth suite its own database, because it writes signing keys. Never point test variables at a database with real data. `.github/workflows/e2e.yml` shows the full setup.
+
+### Browser tests
+
+End-to-end tests use [Playwright](https://playwright.dev/) and live in `tests/e2e/specs`, with fixtures in `tests/e2e/fixtures`. They cover sign-up and sign-in, section editing and autosave, JSON export and import, public sharing with statistics and passwords, OAuth consent for MCP clients, and the assistant against a scripted AI provider.
+
+Playwright starts the **built** server (`node apps/server/dist/index.mjs`) in production mode and waits for `/api/health`, so build first. Use a disposable database, and export the variables yourself; these scripts don't load `.env.local`.
+
+```bash
+pnpm exec playwright install chromium
+
+export APP_URL=http://localhost:3000 PORT=3000
+export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/postgres
+export AUTH_SECRET=$(openssl rand -hex 32) ENCRYPTION_SECRET=$(openssl rand -hex 32)
+export LOCAL_STORAGE_PATH="$PWD/data/e2e"
+export FLAG_DISABLE_SIGNUPS=false FLAG_DISABLE_EMAIL_AUTH=false FLAG_DISABLE_API_RATE_LIMIT=true
+export FLAG_ALLOW_UNSAFE_AI_BASE_URL=true   # lets the assistant spec reach its local stub
+
+pnpm db:migrate
+pnpm build
+pnpm test:e2e                                  # all specs
+pnpm test:e2e tests/e2e/specs/auth.spec.ts     # one spec
+pnpm test:e2e:ui                               # Playwright's interactive UI
+```
+
+Without `FLAG_ALLOW_UNSAFE_AI_BASE_URL=true`, the assistant spec skips itself. Playwright runs Chromium with no retries. Locally it reuses a server that's already running on `PORT`. See `tests/e2e/README.md` for the full recipe.
+
+<Note>
+  Keep the unsafe AI and OAuth redirect flags for isolated test installations. They relax SSRF and redirect protections.
+</Note>
+
+## Add translatable text
+
+The web app uses [Lingui](https://lingui.dev/). Wrap every user-facing string in a macro:
+
+```tsx
+import { t } from "@lingui/core/macro";
+import { Trans } from "@lingui/react/macro";
+
+const label = t`Download PDF`;
+
+<Trans>Your resume is ready.</Trans>;
+```
+
+Then run `pnpm lingui:extract`. It updates the catalogs in `apps/web/locales/*.po` and regenerates the PDF section-title catalog. You only add English strings; translators handle the rest on Crowdin. See [Contributing translations](/contributing/translations).
+
+## Code style
+
+- TypeScript is strict, including `exactOptionalPropertyTypes` and `noUncheckedIndexedAccess`. Packages type-check with `tsgo --noEmit`.
+- [Oxlint](https://oxc.rs/docs/guide/usage/linter.html) checks code, including native React Compiler and accessibility rules. [Oxfmt](https://oxc.rs/docs/guide/usage/formatter.html) formats with tabs, double quotes, and 120-column lines. It sorts imports into type, Node, test, external, workspace, and local groups, and sorts Tailwind classes in `clsx`, `cva`, and `cn`. Side-effect imports retain their order. Install the recommended Oxc editor extension for fixes and formatting on save.
+- Configure lint rules in `.oxlintrc.json` and formatting in `.oxfmtrc.json`. Generated files and byte-sensitive CSS fixtures stay excluded. Async test doubles are exempt from `require-await`; source functions still require it. The Playwright fixture adapter is exempt from `rules-of-hooks` because its `use` callback belongs to Playwright. CSS declarations are formatted, but Oxlint does not lint them.
+- [`@shadcn/lint`](https://github.com/shadcn-ui/lint) is registered with Oxlint. Design-system rules are opt-in; add your chosen rules in `.oxlintrc.json`, scoped to `apps/web` and `packages/ui`. Existing `components.json` files identify the shared component exports and Tailwind theme. See its [rules](https://github.com/shadcn-ui/lint#rules) and [configuration examples](https://github.com/shadcn-ui/lint/blob/main/docs/design-systems.md).
+- Coding agents should run `pnpm exec oxlint --fix <changed paths>`, then `pnpm exec oxfmt <changed paths>`, and finish with `pnpm lint:agent` and `pnpm format:check`. Follow the [Oxc coding-agent workflow](https://oxc.rs/docs/guide/usage/coding-agents.html); fix findings and give any necessary inline suppression a rule-specific explanation.
+- React components with explicit props use a named props type, such as `type FooProps = {...}` with `function Foo(props: FooProps)`.
+
+## Commits and pull requests
+
+The Git hooks run automatically:
+
+- **Before each commit**, Lefthook checks staged files for merge conflict markers, applies safe Oxlint fixes, runs Oxfmt, then checks remaining lint findings with warnings denied and stages the fixes.
+- **On each commit message**, commitlint enforces [Conventional Commits](https://www.conventionalcommits.org/), such as `fix(pdf): keep the timeline dot round` or `docs: update the development guide`.
+
+Before you open a pull request:
+
+1. Run the type checks and tests for the packages you changed, plus `pnpm lint` and `pnpm format:check`.
+2. Run `pnpm exec turbo boundaries` if you changed imports, exports, or shared contracts.
+3. Run `pnpm build` if you changed runtime or bundling behavior.
+4. Keep the pull request focused. Describe the problem, the new behavior, and the checks you ran, and link the related [GitHub issue](https://github.com/reactive-resume/reactive-resume/issues).
+
+Pull requests run these GitHub Actions workflows:
+
+| Workflow      | What it checks                                                                                                                |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `e2e.yml`     | Unit tests for every workspace (`turbo run test:ci --concurrency=1`), a production build, and the Playwright suite            |
+| `vercel.yml`  | Builds the Vercel artifact offline and checks the backend Function. See [Deployment checks](/contributing/deployment-checks). |
+| `autofix.yml` | Runs `pnpm knip --fix` and `pnpm check`, then pushes any fixes to your branch                                                 |
+
+Keep credentials and personal resume data out of code, logs, test fixtures, issues, and pull requests.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Port 3000 or 3001 is already in use">
+    Stop the other process, or set different values for `PORT` and `SERVER_PORT` in `.env.local` and change `APP_URL` to match. Keep port `3002` free for the email preview.
+  </Accordion>
+
+    <Accordion title="The database connection is refused">
+      Check that the containers are healthy with `docker compose -f compose.dev.yml ps`. Code on your machine connects to `localhost`; code inside a container uses the service name, such as `postgres`.
+    </Accordion>
+
+    <Accordion title="Uploads fail with S3 errors">
+      Read the storage logs:
+
+      ```bash
+      docker compose -f compose.dev.yml logs seaweedfs seaweedfs_create_bucket
+      ```
+
+      Check that `S3_ENDPOINT` is `http://localhost:8333` and the bucket exists. If you don't need S3, set `STORAGE_BACKEND=local`.
+    </Accordion>
+
+    <Accordion title="Type errors about routes after pulling or adding a route">
+      `apps/web/src/routeTree.gen.ts` is generated. Start `pnpm dev` (or run `pnpm build`) to regenerate it, and never edit it by hand.
+    </Accordion>
+
+    <Accordion title="AI providers are unavailable">
+      Saved AI providers and the assistant need `ENCRYPTION_SECRET` (at least 32 characters). Set it in `.env.local` and restart `pnpm dev`.
+    </Accordion>
+
+    <Accordion title="A server dependency fails to load on Vercel">
+      CommonJS server dependencies must be bundled. Add the package and its dependencies to `bundledInteropPackages` in `apps/server/tsdown.config.ts`. See [Deployment checks](/contributing/deployment-checks).
+    </Accordion>
+
+</AccordionGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Project architecture" icon="sitemap" href="/contributing/architecture">
+    Learn where each part of the code lives and where new code belongs.
+  </Card>
+  <Card title="GitHub repository" icon="github" href="https://github.com/reactive-resume/reactive-resume">
+    Browse the source, open issues, and send pull requests.
+  </Card>
+</CardGroup>

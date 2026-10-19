@@ -1,0 +1,474 @@
+---
+title: "Deployment examples"
+description: "Copy-ready setups for self-hosted Reactive Resume: Caddy, Traefik and nginx with HTTPS, S3 storage, Redis, local AI with Ollama, and more."
+---
+
+Each section on this page solves one common self-hosting task and builds on the two-container setup from
+[Self-hosting with Docker](/self-hosting/docker). Replace `resume.example.com` with your own domain, and keep the
+`.env` file from that guide unless a section says otherwise.
+
+## What every reverse proxy needs
+
+Whatever proxy you use, configure it so that:
+
+- **The whole site goes to the app.** The app serves pages, the API (`/api/`), the MCP server (`/mcp`), uploads and
+  assets from one address. Don't split or rewrite paths.
+- **`APP_URL` is the public address**, for example `APP_URL="https://resume.example.com"`.
+- **Client-supplied IP headers are replaced or removed.** The Node server uses its connection's remote address for
+  IP-based limits, such as sign-in attempts and public resume passwords, and ignores forwarded IP headers. Behind a
+  reverse proxy, users share the proxy's IP-based limit. Vercel uses the client address supplied by its deployment
+  adapter. The examples below also replace `X-Forwarded-For` and remove alternate IP headers at the proxy.
+- **Streaming responses aren't buffered**, and idle reads are allowed for at least 5 minutes. Assistant replies and
+  live updates stream from the server, and a single Assistant reply can take up to 4 minutes.
+- **Request bodies of at least 50 MB are accepted.** People can attach files of up to 25 MB to the Assistant, and
+  the browser sends them base64-encoded, which makes them about a third larger.
+
+<Warning>
+  Once a proxy is in front, don't publish the app's port `3000` on a public interface, or clients can bypass the proxy's
+  HTTPS and access controls. Remove the `ports` entry, or bind it to `127.0.0.1:3000:3000`.
+</Warning>
+
+## Caddy
+
+[Caddy](https://caddyserver.com/) gets and renews HTTPS certificates on its own and streams responses without extra
+settings, so it needs the least configuration.
+
+```yaml compose.yml
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  reactive-resume:
+    image: amruthpillai/reactive-resume:latest
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - reactive_resume_data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  caddy_data:
+  postgres_data:
+  reactive_resume_data:
+```
+
+```text Caddyfile
+resume.example.com {
+	request_body {
+		max_size 50MB
+	}
+	reverse_proxy reactive-resume:3000 {
+		header_up -CF-Connecting-IP
+		header_up -CF-Connecting-IPv6
+		header_up -True-Client-IP
+	}
+}
+```
+
+Point your domain's DNS at the server, set `APP_URL="https://resume.example.com"` in `.env`, and run
+`docker compose up -d`. Caddy replaces any `X-Forwarded-For` header a client sends with the real client address, and
+the `header_up` lines drop the other IP headers.
+
+## Traefik
+
+[Traefik](https://traefik.io/) reads its routes from Docker labels and gets certificates from Let's Encrypt.
+
+```yaml compose.yml lines expandable
+services:
+  traefik:
+    image: traefik:v3
+    restart: unless-stopped
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_letsencrypt:/letsencrypt
+
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  reactive-resume:
+    image: amruthpillai/reactive-resume:latest
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - reactive_resume_data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.reactive-resume.rule=Host(`resume.example.com`)"
+      - "traefik.http.routers.reactive-resume.entrypoints=websecure"
+      - "traefik.http.routers.reactive-resume.tls.certresolver=letsencrypt"
+      - "traefik.http.services.reactive-resume.loadbalancer.server.port=3000"
+      # Drop client-supplied IP headers; Traefik sets X-Forwarded-For itself.
+      - "traefik.http.middlewares.reactive-resume-ip.headers.customrequestheaders.CF-Connecting-IP="
+      - "traefik.http.middlewares.reactive-resume-ip.headers.customrequestheaders.CF-Connecting-IPv6="
+      - "traefik.http.middlewares.reactive-resume-ip.headers.customrequestheaders.True-Client-IP="
+      - "traefik.http.routers.reactive-resume.middlewares=reactive-resume-ip"
+
+volumes:
+  traefik_letsencrypt:
+  postgres_data:
+  reactive_resume_data:
+```
+
+Add `ACME_EMAIL="you@example.com"` to `.env` for Let's Encrypt notices. Traefik skips containers whose health check
+fails, so it only routes to the app once `/api/health` answers `200`.
+
+## nginx
+
+With [nginx](https://nginx.org/) you manage certificates yourself, for example with
+[Certbot](https://certbot.eff.org/). Add this service to the compose file from the Docker guide, and remove the
+`ports` entry from the `reactive-resume` service:
+
+```yaml compose.yml
+nginx:
+  image: nginx:stable-alpine
+  restart: unless-stopped
+  ports:
+    - "80:80"
+    - "443:443"
+  volumes:
+    - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    - ./certs:/etc/nginx/certs:ro
+  depends_on:
+    - reactive-resume
+```
+
+```nginx nginx.conf lines expandable
+server {
+    listen 80;
+    server_name resume.example.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name resume.example.com;
+
+    ssl_certificate     /etc/nginx/certs/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+
+    # Assistant attachments can be up to 25 MB, sent base64-encoded.
+    client_max_body_size 50m;
+
+    location / {
+        proxy_pass http://reactive-resume:3000;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Don't pass client-supplied IP headers on (an empty value removes them).
+        proxy_set_header CF-Connecting-IP   "";
+        proxy_set_header CF-Connecting-IPv6 "";
+        proxy_set_header True-Client-IP     "";
+
+        # Assistant replies and live updates stream; don't hold them back.
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+    }
+}
+```
+
+## Use an existing PostgreSQL server
+
+If you already run PostgreSQL, or use a managed database, leave out the `postgres` service and point `DATABASE_URL`
+at your server. Create an empty database and a user that owns it; the app creates its tables on first start.
+
+```bash .env
+DATABASE_URL="postgresql://reactive_resume:password@db.example.com:5432/reactive_resume?sslmode=verify-full"
+```
+
+- Use `sslmode=verify-full` (or your provider's equivalent) whenever the connection leaves the host, so the app checks
+  the server's certificate.
+- If `DATABASE_URL` points at a connection pooler, add a direct connection in `DATABASE_MIGRATION_URL` for startup
+  migrations.
+- Never expose PostgreSQL to the internet without TLS and a firewall.
+
+## Store uploads in S3-compatible storage
+
+S3 storage lets you drop the `/app/data` volume, and it's required if people attach files in the Assistant. The app
+switches to S3 once the access key, secret key and bucket are all set. The bucket can stay private: the app reads
+objects with its own credentials and serves them itself.
+
+<Tabs>
+  <Tab title="AWS S3">
+    ```bash .env
+    S3_ACCESS_KEY_ID="AKIA..."
+    S3_SECRET_ACCESS_KEY="..."
+    S3_BUCKET="my-reactive-resume"
+    S3_REGION="eu-central-1"
+    ```
+  </Tab>
+  <Tab title="Cloudflare R2">
+    ```bash .env
+    S3_ACCESS_KEY_ID="..."
+    S3_SECRET_ACCESS_KEY="..."
+    S3_BUCKET="reactive-resume"
+    S3_REGION="auto"
+    S3_ENDPOINT="https://<account-id>.r2.cloudflarestorage.com"
+    ```
+  </Tab>
+  <Tab title="MinIO or SeaweedFS">
+    ```bash .env
+    S3_ACCESS_KEY_ID="..."
+    S3_SECRET_ACCESS_KEY="..."
+    S3_BUCKET="reactive-resume"
+    S3_ENDPOINT="http://minio:9000"
+    S3_FORCE_PATH_STYLE="true"
+    ```
+  </Tab>
+</Tabs>
+
+The bucket must exist before the app starts. Check `/api/health`: its `storage` entry should show `"type": "s3"` and
+`"status": "healthy"`. Files already in `/app/data` aren't moved; copy them into the bucket, keeping their paths, if you
+switch an existing instance.
+
+## Add Redis and turn on AI
+
+Personal AI providers need `ENCRYPTION_SECRET`; [shared AI configuration](/self-hosting/job-search-and-ai) does not.
+Redis is optional on a single server, but with it an Assistant reply keeps
+streaming after a page reload. Add a Redis service to your compose file:
+
+```yaml compose.yml
+redis:
+  image: redis:8
+  restart: unless-stopped
+  command: redis-server --appendonly yes
+  volumes:
+    - redis_data:/data
+  healthcheck:
+    test: ["CMD", "redis-cli", "ping"]
+    interval: 10s
+    timeout: 5s
+    retries: 10
+```
+
+Add `redis_data:` under `volumes:`, and add `redis` to the app's `depends_on` with `condition: service_healthy`. Then
+add to `.env`:
+
+```bash .env
+# Generate with: openssl rand -hex 32. Keep it different from AUTH_SECRET.
+ENCRYPTION_SECRET="..."
+REDIS_URL="redis://redis:6379"
+```
+
+Run `docker compose up -d`. People can now add their own AI provider; see [Connecting an AI provider](/guides/using-ai)
+and [Using the Assistant](/guides/using-the-assistant).
+
+<Note>
+  Redis holds streaming Assistant replies, which include people's messages. Keep it on the private Docker network and
+  don't publish its port.
+</Note>
+
+## Use a local AI model with Ollama
+
+To keep AI requests on your own hardware, run [Ollama](https://ollama.com/) next to the app. By default the app only
+accepts public `https://` provider addresses, so you turn on a flag that allows local ones.
+
+<Warning>
+  `FLAG_ALLOW_UNSAFE_AI_BASE_URL` lets every user make your server send requests to any address on your network. Only
+  turn it on for an instance where you trust every user, such as a personal or family server.
+</Warning>
+
+<Steps>
+  <Step title="Add Ollama to compose.yml">
+    ```yaml compose.yml
+      ollama:
+        image: ollama/ollama
+        restart: unless-stopped
+        volumes:
+          - ollama_data:/root/.ollama
+    ```
+
+    Add `ollama_data:` under `volumes:`, start it, and download a model:
+
+    ```bash
+    docker compose up -d ollama
+    docker compose exec ollama ollama pull llama3.1
+    ```
+
+  </Step>
+
+  <Step title="Allow local AI addresses">
+    Add to `.env`, next to the `ENCRYPTION_SECRET` from the previous section:
+
+    ```bash .env
+    FLAG_ALLOW_UNSAFE_AI_BASE_URL="true"
+    # Local models can take a while to load on first use.
+    AI_TEST_TIMEOUT_MS="120000"
+    ```
+
+    Run `docker compose up -d` to apply it.
+
+  </Step>
+
+  <Step title="Add the provider in Reactive Resume">
+    Open **Settings**, then **AI & developer**, and select **Add provider**. Choose **Ollama** as the provider and
+    fill in:
+
+    - **API key**: leave empty for a local Ollama server that doesn't require authentication.
+    - **Model**: the model you pulled, for example `llama3.1`.
+    - **Base URL**: `http://ollama:11434/api`
+
+    Select **Save and test**. The app saves the provider once Ollama answers.
+
+    <Frame caption="The Add provider dialog set up for an Ollama container on the same Docker network">
+      <img src="/images/self-hosting/examples/add-provider-local-ollama.webp" alt="Add provider dialog with Ollama Cloud selected, model llama3.1, name Home server Ollama and base URL http://ollama:11434/api" />
+    </Frame>
+
+  </Step>
+</Steps>
+
+Any server with an OpenAI-compatible API works the same way: choose **OpenAI-compatible** and enter its address, such
+as `http://llama-server:8080/v1`.
+
+## Run a private instance
+
+For a personal or team server that nobody else can join:
+
+1. Create your own account (and your team's) first.
+2. Add `FLAG_DISABLE_SIGNUPS="true"` to `.env` and run `docker compose up -d`.
+
+New sign-ups are then refused, by email and by social sign-in. People who already have accounts sign in as usual.
+
+To allow sign-in only through your company's identity provider, set up a custom OAuth provider (see
+[Single sign-on](/self-hosting/sso)), then add `FLAG_DISABLE_EMAIL_AUTH="true"`. This removes email and password
+sign-in, along with password resets.
+
+## Show one resume at your root address
+
+To use your instance as a personal resume site, set `ROOT_RESUME_ID`. Visitors to `/` then see that resume's public
+page instead of the home page.
+
+<Steps>
+  <Step title="Make the resume public">
+    In the editor, select **Share**, and on the **Link** tab turn on **Public link**. See
+    [Sharing your resume publicly](/guides/sharing-your-resume-publicly).
+  </Step>
+
+  <Step title="Copy the resume's ID">
+    The ID is the last part of the editor's address: `https://resume.example.com/builder/<resume-id>`.
+  </Step>
+
+  <Step title="Set the variable and restart">
+    ```bash .env
+    ROOT_RESUME_ID="<resume-id>"
+    ```
+
+    Run `docker compose up -d`.
+
+  </Step>
+</Steps>
+
+- The resume's own settings still apply: a password still protects it, and **Visitors can download the PDF** still
+  controls the download button. Its usual `/<username>/<slug>` address keeps working.
+- Renaming the address or username doesn't break it; the ID stays the same.
+- If the resume is deleted or its public link is turned off, `/` shows an unavailable page, even to you.
+- Sign-in and your documents stay at their usual addresses. The root page asks search engines not to index it.
+
+Remove the variable, or leave it empty, and restart to bring back the home page.
+
+## Run several app containers
+
+To run more than one app container, for high availability or Docker Swarm, every container must share state:
+
+- **The same database, `AUTH_SECRET` and `ENCRYPTION_SECRET`.**
+- **Redis**, set in `REDIS_URL`, so rate limits, stopping an Assistant reply and live updates work across containers.
+- **S3-compatible storage** instead of `/app/data`, so every container sees the same uploads.
+- **The same `DEPLOYMENT_NAMESPACE`** (the default, `default`, is fine), or leave it unset everywhere.
+
+Migrations are safe to start in parallel: containers wait for each other, and only one applies changes. A Docker
+Swarm service then looks like this:
+
+```yaml compose-swarm.yml
+services:
+  reactive-resume:
+    image: amruthpillai/reactive-resume:v6
+    env_file: .env
+    networks:
+      - reactive_resume
+    deploy:
+      replicas: 2
+      update_config:
+        order: start-first
+        failure_action: rollback
+
+networks:
+  reactive_resume:
+    driver: overlay
+```
+
+Deploy it with `docker stack deploy -c compose-swarm.yml reactive-resume`, next to your PostgreSQL, Redis and S3
+services, and route traffic to it with your proxy.
+
+## Share your setup
+
+Have a working setup that isn't covered here, such as Podman, Portainer or Cloudflare Tunnel?
+[Open a pull request](https://github.com/reactive-resume/reactive-resume) that adds it to this page. Include when
+someone would use it, the complete configuration, and the environment variables it needs.
+
+## Related pages
+
+- [Environment variables](/self-hosting/environment-variables): every setting, with defaults.
+- [Job search and AI](/self-hosting/job-search-and-ai): connect Firecrawl, optional SearXNG and an AI provider.
+- [Self-hosting with Kubernetes](/self-hosting/kubernetes): the same setup as Kubernetes manifests.
+- [Single sign-on](/self-hosting/sso): Google, GitHub, LinkedIn and custom OAuth providers.

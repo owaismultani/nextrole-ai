@@ -1,0 +1,130 @@
+@import "@reactive-resume/ui/globals.css";
+@import "./features/homepage/landing.css";
+
+/* Check's score ring: the arc eases to a new score, so a fix visibly counts. */
+@property --ring-value {
+	syntax: "<percentage>";
+	inherits: false;
+	initial-value: 0%;
+}
+
+/* Registered so crossing 80 blends accent and warn instead of snapping. */
+@property --ring-color {
+	syntax: "<color>";
+	inherits: false;
+	initial-value: transparent;
+}
+
+@utility score-ring {
+	background: conic-gradient(var(--ring-color) 0 var(--ring-value), var(--sunken) 0);
+	transition:
+		--ring-value var(--d3) var(--ease),
+		--ring-color var(--d3) var(--ease);
+}
+
+/*
+ * The free ATS checker's first reveal: the arc fills from 0 once per checked file. 480ms is over the UI budget on
+ * purpose: it happens once per file and the fill is what explains the number. A keyframe (not @starting-style)
+ * because it must run on the element's first style; the reduced-motion rule in globals.css makes it instant.
+ */
+@utility score-ring-reveal {
+	animation: score-ring-reveal 480ms var(--ease) backwards;
+}
+
+@keyframes score-ring-reveal {
+	from {
+		--ring-value: 0%;
+	}
+}
+
+@theme {
+	/* A document made on this device lands on the grid: a fade up from 96%, once per mount. */
+	--animate-arrive: arrive var(--d2) var(--ease) backwards;
+
+	@keyframes arrive {
+		from {
+			opacity: 0;
+			scale: 0.96;
+		}
+	}
+}
+
+/* A wavy warn underline under a line of the page that has a Check issue. */
+@utility wavy-underline {
+	background-color: var(--warn);
+	mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='4' viewBox='0 0 6 4'%3E%3Cpath d='M0 3 Q1.5 0 3 3 T6 3' fill='none' stroke='black' stroke-width='1.2'/%3E%3C/svg%3E")
+		repeat-x left center / 6px 4px;
+}
+
+/*
+ * Page transitions: the router starts a view transition of type `page` when the pathname changes. The page fades
+ * out quickly and the new one fades up 6px; named navigation (app-nav, settings-nav, auth-brand) stays in place.
+ */
+@keyframes vt-page-out {
+	to {
+		opacity: 0;
+	}
+}
+
+@keyframes vt-page-in {
+	from {
+		opacity: 0;
+		translate: 0 6px;
+	}
+}
+
+html:active-view-transition-type(page)::view-transition {
+	background-color: var(--bg);
+	pointer-events: none;
+}
+
+html:active-view-transition-type(page)::view-transition-group(*) {
+	animation-duration: var(--d2);
+	animation-timing-function: var(--ease);
+}
+
+html:active-view-transition-type(page)::view-transition-old(root),
+html:active-view-transition-type(page)::view-transition-old(*):only-child {
+	animation: calc(var(--d2) * 0.7) var(--ease) both vt-page-out;
+}
+
+html:active-view-transition-type(page)::view-transition-new(root) {
+	animation: var(--d2) var(--ease) both vt-page-in;
+}
+
+/*
+ * Phones, Settings: a section pushes in from the end and Back returns to the list from the start. The links add a
+ * `forward` or `back` type next to `page`, so the page rules above still fade the old page out; these replace only
+ * the new page's entry. Same specificity as the page rules, so they must stay after them.
+ */
+@keyframes vt-push-in {
+	from {
+		opacity: 0;
+		translate: var(--vt-push) 0;
+	}
+}
+
+@keyframes vt-pop-in {
+	from {
+		opacity: 0;
+		translate: calc(var(--vt-push) * -1) 0;
+	}
+}
+
+html {
+	--vt-push: 24px;
+}
+
+html[dir="rtl"] {
+	--vt-push: -24px;
+}
+
+@media (width < 640px) {
+	html:active-view-transition-type(forward)::view-transition-new(root) {
+		animation: var(--d2) var(--ease) both vt-push-in;
+	}
+
+	html:active-view-transition-type(back)::view-transition-new(root) {
+		animation: var(--d2) var(--ease) both vt-pop-in;
+	}
+}

@@ -1,0 +1,135 @@
+name: E2E Tests
+
+on:
+  pull_request:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  APP_URL: http://localhost:3000
+  PORT: "3000"
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+  FLAG_DISABLE_SIGNUPS: "false"
+  FLAG_DISABLE_EMAIL_AUTH: "false"
+  FLAG_ENABLE_GUEST_LOGIN: "true"
+  FLAG_DISABLE_API_RATE_LIMIT: "true"
+  LOCAL_STORAGE_PATH: /tmp/reactive-resume-e2e-storage
+  # The assistant spec talks to a scripted provider on 127.0.0.1.
+  FLAG_ALLOW_UNSAFE_AI_BASE_URL: "true"
+  # Real-database unit suites. The cover-letter suite works in its own schema; the OAuth flow suite writes
+  # signing keys under its own secret, so it gets a database the e2e server never reads.
+  COVER_LETTER_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+  INTEGRATIONS_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+  OAUTH_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/oauth_test
+
+jobs:
+  e2e:
+    runs-on: ${{ vars.USE_BLACKSMITH == 'true' && 'blacksmith-32vcpu-ubuntu-2404' || 'ubuntu-latest' }}
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Repository
+        if: ${{ vars.USE_BLACKSMITH != 'true' }}
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Checkout Repository (Blacksmith)
+        if: ${{ vars.USE_BLACKSMITH == 'true' }}
+        uses: useblacksmith/checkout@v1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+
+      - name: Cache Turbo artifacts
+        uses: actions/cache@v6
+        with:
+          path: .turbo/cache
+          key: ${{ runner.os }}-${{ runner.arch }}-turbo-${{ github.workflow }}-${{ hashFiles('pnpm-lock.yaml', '.nvmrc') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-turbo-${{ github.workflow }}-${{ hashFiles('pnpm-lock.yaml', '.nvmrc') }}-
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install PDF Text Extractor
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+
+      - name: Check Package Boundaries
+        run: pnpm exec turbo boundaries
+
+      - name: Typecheck Affected Packages
+        run: pnpm exec turbo run typecheck --affected
+
+      - name: Install Playwright Browser
+        timeout-minutes: 10
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Generate Test Secrets
+        run: |
+          echo "AUTH_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+          echo "ENCRYPTION_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+
+      - name: Prepare Storage
+        run: mkdir -p "$LOCAL_STORAGE_PATH"
+
+      - name: Run Database Migrations
+        run: pnpm db:migrate
+
+      - name: Prepare OAuth Test Database
+        run: |
+          psql "$DATABASE_URL" -c "CREATE DATABASE oauth_test"
+          DATABASE_URL="$OAUTH_TEST_DATABASE_URL" pnpm db:migrate
+
+      # Runs every workspace package, not a hand-maintained filter list, so a package
+      # cannot silently lose coverage by being left out. Serial execution: the PDF
+      # rasterization and API rate-limit suites time out when several packages' Vitest
+      # thread pools oversubscribe the runner at once.
+      - name: Run Unit Tests
+        run: pnpm exec turbo run test:ci --concurrency=1
+
+      - name: Build
+        run: pnpm build
+
+      - name: Run E2E Tests
+        run: pnpm exec playwright test
+
+      - name: Upload Playwright Report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+          retention-days: 7

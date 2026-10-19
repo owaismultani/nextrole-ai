@@ -1,0 +1,201 @@
+---
+title: "Job search and AI"
+description: "Configure one optional Firecrawl, Tavily or Exa connection and an AI provider without blocking manual job saving."
+---
+
+Users can save pasted job descriptions, read supported public links and prepare resumes manually without adding
+API accounts. This guide adds optional keyword search, enhanced page reading and AI assistance to a working
+[Docker](/self-hosting/docker), [Kubernetes](/self-hosting/kubernetes) or [Vercel](/self-hosting/vercel) deployment.
+
+| Service                  | What it does                                                                      | Required for                                  |
+| ------------------------ | --------------------------------------------------------------------------------- | --------------------------------------------- |
+| Built-in reader          | Reads supported public pages.                                                     | Active without credentials.                   |
+| Firecrawl, Tavily or Exa | One selected connection supplies search and enhanced reading.                     | Optional keyword search and enhanced reading. |
+| SearXNG                  | Supplies web search results to your self-hosted Firecrawl service.                | Optional alternative search backend.          |
+| AI provider              | Extracts role, company, salary, requirements and other details from posting text. | AI extraction and other AI features.          |
+
+Reactive Resume calls the selected web service and AI provider separately. Only self-hosted Firecrawl uses SearXNG.
+Assistant web search requires a configured Firecrawl, Tavily or Exa connection. Without one, the assistant can
+read supplied public URLs with the built-in reader or work from pasted text.
+
+## 1. Choose shared services or personal keys
+
+For shared web access, set one provider and key on the Reactive Resume server:
+
+```dotenv
+WEB_ACCESS_PROVIDER="tavily" # firecrawl, tavily or exa
+WEB_ACCESS_API_KEY="replace-with-your-provider-key"
+```
+
+**Settings → AI & developer → Web access** then says **Provided by the server**, and personal connection changes are
+disabled. Paid usage is charged to the shared account. Existing personal connections stay stored and become available
+again if you remove shared configuration. AI has its own existing shared/personal configuration.
+
+To let users bring their own keys instead, leave that integration's server variables unset and configure
+`ENCRYPTION_SECRET` with at least 32 characters, different from `AUTH_SECRET`. Users choose **Connect a service**,
+select Firecrawl, Tavily or Exa, and save one key. Replacing the connection replaces the old key; unused providers do
+not retain keys. Personal connections always use official cloud endpoints. Custom Firecrawl URLs belong only to
+operator configuration. Shared configuration does not need `ENCRYPTION_SECRET`.
+
+You can mix these choices, such as shared web access with personal AI keys. See the
+[environment reference](/self-hosting/environment-variables#ai-and-redis) for all settings.
+
+## 2. Connect Firecrawl
+
+Follow the official [Firecrawl self-hosting guide](https://docs.firecrawl.dev/contributing/self-host) to deploy its
+API and supporting services. Use the release and Compose files recommended there. Reactive Resume connects to
+that service over HTTP.
+
+Add the connection to **Reactive Resume's** environment:
+
+```dotenv
+# Replace with the address reachable from the Reactive Resume server.
+WEB_ACCESS_PROVIDER="firecrawl"
+WEB_ACCESS_API_URL="http://firecrawl-api:3002"
+# Set only if your Firecrawl deployment requires a bearer key.
+# WEB_ACCESS_API_KEY="replace-with-your-firecrawl-key"
+```
+
+Use the API base URL without `/v2`. A URL alone enables a keyless self-hosted service globally. Keep such a service
+private and follow Firecrawl's [production guidance](https://docs.firecrawl.dev/contributing/self-host#before-production).
+Keep its protections against private destination URLs, unsafe redirects and DNS rebinding enabled; job-posting URLs
+in Reactive Resume must point to public HTTPS destinations.
+
+For Firecrawl Cloud, use its [quickstart](https://docs.firecrawl.dev/introduction) to get a key, set only
+`WEB_ACCESS_PROVIDER="firecrawl"` and `WEB_ACCESS_API_KEY`, and leave `WEB_ACCESS_API_URL` unset. Requests then go to
+`https://api.firecrawl.dev`. Tavily and Exa use fixed official endpoints and require a key. Supplying their own API URL
+is rejected. Incomplete web-access configuration fails startup.
+
+### Container networking and local development
+
+`firecrawl-api` above is an example network alias. Replace it with your service's actual name or alias. Containers in
+separate Compose projects need a [shared external network](https://docs.docker.com/compose/how-tos/networking/#use-an-existing-external-network).
+Inside a container, `localhost` points to that container; use the service's container port on a shared network.
+On Kubernetes or another platform, use an address reachable from the Reactive Resume server.
+
+For host-run local development, publish Firecrawl's container port `3002` as host port `3102` to avoid Reactive
+Resume's email preview on `3002`. Add `WEB_ACCESS_PROVIDER="firecrawl"` and
+`WEB_ACCESS_API_URL="http://localhost:3102"` to Reactive Resume's `.env.local`.
+
+## 3. Add SearXNG to self-hosted Firecrawl (optional)
+
+Deploy SearXNG using its official [container installation guide](https://docs.searxng.org/admin/installation-docker.html).
+In its `settings.yml`, add `json` to the existing `search.formats` list, keeping other search settings:
+
+```yaml
+search:
+  formats:
+    - html
+    - json
+```
+
+The [search settings reference](https://docs.searxng.org/admin/settings/settings_search.html) documents these formats.
+Then add the following to **Firecrawl's** environment, using an address reachable from its API and workers:
+
+```dotenv
+SEARXNG_ENDPOINT="http://searxng:8080"
+# Optional filters; leave unset to use your SearXNG defaults.
+# SEARXNG_ENGINES="google,bing"
+# SEARXNG_CATEGORIES="general"
+```
+
+Replace `searxng` with your service name or network alias. Use the base URL without `/search`: Firecrawl appends that
+path and requests JSON, as shown in its [SearXNG adapter](https://github.com/firecrawl/firecrawl/blob/v2.11.162/apps/api/src/search/v2/searxng.ts).
+These variables belong to Firecrawl, not Reactive Resume. Your own SearXNG service is used only when Reactive Resume
+connects to your self-hosted Firecrawl.
+
+Restart SearXNG after changing settings, and recreate Firecrawl's services after changing its environment. To check
+JSON output, run this from a host or container that can reach SearXNG, replacing the address as needed:
+
+```bash
+curl --get 'http://searxng:8080/search' \
+  --data-urlencode 'q=software engineer jobs' \
+  --data-urlencode 'format=json'
+```
+
+Expect a JSON response with a `results` array. Disabled JSON output returns `403`; public instances often disable it.
+See the [SearXNG search API](https://docs.searxng.org/dev/search_api.html).
+
+## 4. Connect OpenAI or another AI provider
+
+For OpenAI, follow its [API quickstart](https://developers.openai.com/api/docs/quickstart), create a key in the
+[API dashboard](https://platform.openai.com/api-keys), and enable API billing. API usage is
+[billed separately from ChatGPT subscriptions](https://help.openai.com/en/articles/9039756-managing-billing-settings-on-the-chatgpt-web-and-api-platform).
+
+Set these variables on **Reactive Resume**:
+
+```dotenv
+AI_PROVIDER="openai"
+AI_MODEL="gpt-5-mini"
+AI_API_KEY="replace-with-your-openai-api-key"
+```
+
+`gpt-5-mini` is an example; choose a model your API account can use. Check its
+[model documentation](https://developers.openai.com/api/docs/models/gpt-5-mini) for supported features. Reactive
+Resume's Assistant needs a supported model with tool calling. Leave `AI_BASE_URL` unset
+for OpenAI's default endpoint. The app reads `AI_API_KEY`, not `OPENAI_API_KEY`.
+
+Other [supported providers](/guides/using-ai#supported-providers) use the same shared variables with their provider
+identifier and model. An OpenAI-compatible gateway also needs `AI_BASE_URL`. For a local model, see
+[Ollama setup](/self-hosting/examples#use-a-local-ai-model-with-ollama) and the
+[AI environment reference](/self-hosting/environment-variables#ai-and-redis). Local or private AI endpoints need
+`FLAG_ALLOW_UNSAFE_AI_BASE_URL=true`; enable it only where you trust every user. Ollama can omit `AI_API_KEY`.
+
+The AI key belongs to Reactive Resume for this workflow. Web services receive search queries and selected public URLs;
+they do not need the AI-provider key or candidate resume data.
+
+## 5. Apply settings and verify the workflow
+
+For the [Docker guide's setup](/self-hosting/docker), put Reactive Resume variables in `.env` and run
+`docker compose up -d reactive-resume`. The source repository's Compose service is named `reactive_resume` instead.
+For local development, edit `.env.local` and restart `pnpm dev`. On other platforms, update the server's environment
+and restart or redeploy it. Keep keys in server configuration or secret storage, never browser build variables.
+
+1. Open **Settings → AI & developer → Web access**. The built-in reader should show **Active**. The selected web service
+   should show its provider and ownership.
+2. Click **Test connection**. Search and reading are tested separately; a built-in fallback cannot make this pass.
+3. Open **Applications**, enter search keywords, choose a result and review the role, company and retained description.
+4. Save the job as **Saved**, prepare a selected resume or a copy, and confirm **Mark as applied** after submission.
+5. Try a public posting URL and pasted text. Failed reading should preserve the draft and offer pasted-text recovery.
+
+`/api/health` checks database, storage and configured Redis; it does not verify these integrations. If a step fails:
+
+| Symptom                       | Check                                                                                                                                                                                                                 |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No keyword search             | Configure one shared connection or save a personal key in Web access.                                                                                                                                                 |
+| Enhanced access fails         | Test search and reading separately. Check provider credentials, quota and service support. For Firecrawl, also check its network address and [self-hosting guide](https://docs.firecrawl.dev/contributing/self-host). |
+| SearXNG returns HTML or `403` | Enable JSON and check proxy/access rules against its [search API](https://docs.searxng.org/dev/search_api.html).                                                                                                      |
+| AI extraction fails           | Check provider billing, key and model access; verify all required [AI variables](/self-hosting/environment-variables#ai-and-redis).                                                                                   |
+
+Reading failures can fall back to the built-in reader, so a successful URL import alone does not prove the external
+service was used. Review the displayed posting source and use the independent connection test.
+
+## Credential backups
+
+Personal connections store encrypted keys in `web_access_credentials`. Preserve `ENCRYPTION_SECRET` with the
+PostgreSQL backup so restored keys can be decrypted. Verify restored connections in a disposable installation
+before upgrading the live installation. The retired Firecrawl API, environment aliases and credential table are
+removed; all providers use `/integrations/web-access` and the `WEB_ACCESS_*` variables.
+
+## Opt-in live connection check
+
+Use a dedicated maintainer test account and select each provider independently in Web access (or shared server
+configuration). Its API key authenticates this command; the web-service key remains in encrypted settings or server
+configuration. The check performs one public search and one read of `https://example.com/`, without fallback:
+
+```sh
+APP_URL="http://localhost:3000" WEB_ACCESS_SMOKE_API_KEY="test-account-api-key" \
+  node tooling/web-access/smoke.mjs tavily
+```
+
+Repeat with `firecrawl` and `exa` after selecting the matching connection. These calls use provider quota. Mocked
+tests establish application behavior; a live provider is verified only when this command succeeds with actual test
+credentials. Do not commit credentials or shell output containing them.
+
+## Career schedules
+
+The same web connection supports [automatic role discovery](/guides/finding-roles-automatically). Users enable a search schedule in **Career → Today**. Interview briefings use AI separately, and users must enable their preparation schedule too. Work runs on the server while the browser is closed.
+
+Node.js and Docker run the scheduler in the long-running server. Vercel uses the checked-in cron configuration and requires `CRON_SECRET`; Cloudflare uses its Cron Trigger. Check platform limits and verify a due reminder in a dedicated test installation. See [Operating scheduled work](/contributing/career-platform#operate-scheduled-work) for setup, delivery and retry details.
+
+Optional email copies require a verified user email, explicit user opt-in and working SMTP. In-app results stay available in Today. A successful health check does not establish that schedules or provider connections work.

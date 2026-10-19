@@ -1,0 +1,28 @@
+{
+	"name": "@reactive-resume/env",
+	"version": "0.0.0",
+	"type": "module",
+	"private": true,
+	"exports": {
+		"./server": "./src/server.ts"
+	},
+	"scripts": {
+		"typecheck": "tsgo --noEmit",
+		"test": "vitest run --passWithNoTests",
+		"test:coverage": "vitest run --coverage --passWithNoTests",
+		"test:ci": "vitest run --reporter=default --reporter=github-actions --reporter=json --reporter=junit --outputFile.json=reports/vitest-results.json --outputFile.junit=reports/vitest-junit.xml --passWithNoTests",
+		"test:agent": "vitest run --reporter=agent --reporter=json --outputFile.json=reports/vitest-results.json --passWithNoTests"
+	},
+	"dependencies": {
+		"@reactive-resume/ai": "workspace:*",
+		"@reactive-resume/utils": "workspace:*",
+		"@t3-oss/env-core": "^0.13.11",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@reactive-resume/config": "workspace:*",
+		"@types/node": "catalog:",
+		"@typescript/native-preview": "catalog:",
+		"typescript": "catalog:"
+	}
+}

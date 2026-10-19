@@ -1,0 +1,59 @@
+---
+title: "API and MCP resume automation"
+description: "Automate resumes, cover letters and job applications in Reactive Resume with API keys, the OpenAPI endpoints, the Patch API and the MCP server."
+---
+
+Reactive Resume has an authenticated API and an MCP server, so scripts, integrations and AI clients such as Claude or Cursor can work with your documents and job applications. Both use the same account data you see in the app.
+
+## What you can automate
+
+Through the API and the MCP server, a client acting as you can:
+
+- **Resumes:** list, read, create, import, duplicate, patch, lock, delete, download as PDF, and read sharing statistics.
+- **Cover letters:** list, read, create, update, duplicate, export, import and delete.
+- **Job applications:** create and update applications, move them through stages, add notes and interviews, edit the activity timeline, attach the documents you sent, bulk-update or delete, and import rows from a spreadsheet.
+- **Job-focused actions:** fill in an application from a job posting, score a resume against it, create a tailored resume copy, and draft a message such as a follow-up.
+
+The job-focused actions use your own AI provider, connected in **Settings → AI**.
+
+## API or MCP?
+
+Use the **API** for scripts, services and integrations you write yourself. It is described by an OpenAPI spec, and large requests are supported.
+
+Use the **MCP server** when you want an AI client that speaks the Model Context Protocol to read and edit your resumes through ready-made tools. The address to paste into your client is shown under **MCP server** in **Settings → AI**.
+
+For targeted resume edits, prefer the Patch API (JSON Patch operations) over replacing the whole resume. It changes only the fields you name, so it is less likely to overwrite something by accident.
+
+## Authentication
+
+Create an API key in **Settings → AI → API keys**. Keys act as you and can read and edit your documents. You choose an expiry of **30 days**, **90 days** or **Never**, the key is shown once, and you can revoke it at any time. MCP clients that support OAuth can sign in without a key.
+
+If you self-host, replace `https://rxresu.me` with your own instance's address in every API and MCP example.
+
+<Info>
+  Automated changes are real changes to your account. Try a new workflow on a duplicate of a resume first, and use
+  History in the editor to go back if something goes wrong.
+</Info>
+
+## When not to use automation
+
+For editing one resume by hand, choosing a template or checking the layout, the editor is faster. Automation pays off when you repeat the same change across many documents, keep applications in sync with another tool, or want an AI client to do the typing for you.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Use the API" icon="code" href="/guides/using-the-api">
+    Create a key and make your first request.
+  </Card>
+  <Card title="Use the Patch API" icon="pen-to-square" href="/guides/using-the-patch-api">
+    Change specific resume fields with JSON Patch.
+  </Card>
+  <Card title="Use the MCP server" icon="robot" href="/guides/using-the-mcp-server">
+    Connect Claude, Cursor or another MCP client.
+  </Card>
+  <Card title="Manage applications with MCP" icon="briefcase" href="/guides/managing-applications-with-mcp">
+    Track job applications from an AI client.
+  </Card>
+</CardGroup>
+
+For the shape of resume data, see the [JSON Resume schema](/guides/json-resume-schema). For big payloads, see [Large RPC requests](/guides/large-rpc-requests).

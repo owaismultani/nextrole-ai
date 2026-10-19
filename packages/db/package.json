@@ -1,0 +1,43 @@
+{
+	"name": "@reactive-resume/db",
+	"version": "0.0.0",
+	"type": "module",
+	"private": true,
+	"exports": {
+		"./coordination": "./src/coordination.ts",
+		"./client": {
+			"default": "./src/client.ts"
+		},
+		"./redis": {
+			"default": "./src/redis.ts"
+		},
+		"./schema": {
+			"default": "./src/schema/index.ts"
+		}
+	},
+	"scripts": {
+		"db:generate": "drizzle-kit generate",
+		"db:migrate": "drizzle-kit migrate",
+		"db:studio": "drizzle-kit studio",
+		"typecheck": "tsgo --noEmit",
+		"test": "vitest run --passWithNoTests",
+		"test:coverage": "vitest run --coverage --passWithNoTests",
+		"test:ci": "vitest run --reporter=default --reporter=github-actions --reporter=json --reporter=junit --outputFile.json=reports/vitest-results.json --outputFile.junit=reports/vitest-junit.xml --passWithNoTests",
+		"test:agent": "vitest run --reporter=agent --reporter=json --outputFile.json=reports/vitest-results.json --passWithNoTests"
+	},
+	"dependencies": {
+		"@reactive-resume/env": "workspace:*",
+		"@reactive-resume/schema": "workspace:*",
+		"@reactive-resume/utils": "workspace:*",
+		"drizzle-orm": "catalog:",
+		"ioredis": "catalog:",
+		"pg": "catalog:"
+	},
+	"devDependencies": {
+		"@reactive-resume/config": "workspace:*",
+		"@types/pg": "catalog:",
+		"@typescript/native-preview": "catalog:",
+		"drizzle-kit": "1.0.0-rc.4",
+		"typescript": "catalog:"
+	}
+}

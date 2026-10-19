@@ -1,0 +1,37 @@
+{
+	"name": "@reactive-resume/tooling",
+	"version": "0.0.0",
+	"type": "module",
+	"private": true,
+	"scripts": {
+		"db:reset": "tsx database/reset.ts",
+		"docs:gen": "tsx semantic-css/generate-reference.ts",
+		"test": "vitest run --passWithNoTests",
+		"test:ci": "vitest run --reporter=default --reporter=github-actions --reporter=json --reporter=junit --outputFile.json=reports/vitest-results.json --outputFile.junit=reports/vitest-junit.xml --passWithNoTests",
+		"typecheck": "tsgo --noEmit",
+		"pdf:translations": "tsx locales/generate.ts",
+		"icons:pdf": "tsx icons/phosphor-pdf.ts"
+	},
+	"dependencies": {
+		"@reactive-resume/schema": "workspace:*"
+	},
+	"devDependencies": {
+		"@lingui/format-po": "^6.10.0",
+		"@phosphor-icons/react": "^2.1.10",
+		"@reactive-resume/config": "workspace:*",
+		"@reactive-resume/env": "workspace:*",
+		"@reactive-resume/resume": "workspace:*",
+		"@types/pg": "catalog:",
+		"@types/react": "catalog:",
+		"@types/react-dom": "catalog:",
+		"@typescript/native-preview": "catalog:",
+		"drizzle-orm": "catalog:",
+		"esbuild": "catalog:",
+		"pg": "catalog:",
+		"react": "19.3.1",
+		"react-dom": "19.3.1",
+		"tsx": "^4.23.15",
+		"vitest": "catalog:",
+		"wrangler": "catalog:"
+	}
+}

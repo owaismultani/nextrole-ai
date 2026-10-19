@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="theme-color" content="#F8F7F3" media="(prefers-color-scheme: light)" />
+		<meta name="theme-color" content="#100F0C" media="(prefers-color-scheme: dark)" />
+		<!-- Apply the saved or system theme before first paint, so nothing flashes. Mirrors libs/theme.ts. -->
+		<script>
+			(() => {
+				try {
+					const match = document.cookie.match(/(?:^|; )theme=([^;]*)/);
+					const theme = match ? decodeURIComponent(match[1]) : "system";
+					const dark =
+						theme === "dark" || (theme !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+					document.documentElement.classList.toggle("dark", dark);
+				} catch {
+					// Without cookies or matchMedia the page starts light, and the app corrects it once it loads.
+				}
+			})();
+		</script>
+		<meta name="application-name" content="Reactive Resume" />
+		<meta name="mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-title" content="Reactive Resume" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+		<!-- Keep the homepage description between 120 and 160 characters. -->
+		<meta
+			name="description"
+			content="Free, open-source resume builder. Create, update, and share a professional resume in minutes, with PDF and Word downloads — no ads, no paywall."
+		/>
+
+		<link rel="icon" href="/favicon.ico" type="image/x-icon" sizes="128x128" />
+		<link rel="icon" href="/favicon.svg" type="image/svg+xml" sizes="256x256 any" />
+		<link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" type="image/png" sizes="180x180 any" />
+		<link rel="manifest" href="/manifest.webmanifest" crossorigin="use-credentials" />
+
+		<title>Reactive Resume — A free and open-source resume builder</title>
+	</head>
+	<body>
+		<!-- Empty here; the server prerenders the homepage into it (apps/server/src/static/web.ts). -->
+		<div id="app"></div>
+		<!-- Branded first paint; hidden once React populates #app (higher-specificity rule below). -->
+		<div id="initial-loader">
+			<img class="initial-loader__logo-light" src="/icon/light.svg" width="48" height="48" alt="Reactive Resume" />
+			<img class="initial-loader__logo-dark" src="/icon/dark.svg" width="48" height="48" alt="" />
+			<div class="initial-loader__spinner"></div>
+			<span class="initial-loader__sr-only">Loading</span>
+		</div>
+		<style>
+			@keyframes app-spin {
+				to {
+					transform: rotate(360deg);
+				}
+			}
+			#initial-loader {
+				position: fixed;
+				inset: 0;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+				gap: 24px;
+				background: #f8f7f3;
+			}
+			html.dark #initial-loader {
+				background: #100f0c;
+			}
+			.initial-loader__logo-dark,
+			html.dark .initial-loader__logo-light {
+				display: none;
+			}
+			html.dark .initial-loader__logo-dark {
+				display: block;
+			}
+			#app:not(:empty) ~ #initial-loader {
+				display: none;
+			}
+			.initial-loader__spinner {
+				width: 24px;
+				height: 24px;
+				border: 2px solid rgba(28, 27, 21, 0.2);
+				border-top-color: #1c1b15;
+				border-radius: 9999px;
+				animation: app-spin 0.7s linear infinite;
+			}
+			html.dark .initial-loader__spinner {
+				border-color: rgba(239, 238, 235, 0.2);
+				border-top-color: #efeeeb;
+			}
+			.initial-loader__sr-only {
+				position: absolute;
+				width: 1px;
+				height: 1px;
+				overflow: hidden;
+				clip: rect(0 0 0 0);
+			}
+		</style>
+		<script type="module" data-cfasync="false" src="/src/main.tsx"></script>
+	</body>
+</html>

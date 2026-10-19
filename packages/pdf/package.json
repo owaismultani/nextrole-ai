@@ -1,0 +1,52 @@
+{
+	"name": "@reactive-resume/pdf",
+	"version": "0.0.0",
+	"type": "module",
+	"private": true,
+	"exports": {
+		"./browser": "./src/browser.tsx",
+		"./document": "./src/document.tsx",
+		"./native": "./src/native.tsx",
+		"./page-map": "./src/page-map.ts",
+		"./semantic": "./src/semantic/index.ts",
+		"./semantic-legacy": "./src/semantic/legacy-converter.ts",
+		"./semantic-tree": "./src/semantic/tree.ts",
+		"./section-title": "./src/section-title.ts",
+		"./server": "./src/server.tsx",
+		"./primitives": "./src/forme/primitives.tsx"
+	},
+	"imports": {
+		"#react-pdf-renderer": "./src/forme/primitives.tsx"
+	},
+	"scripts": {
+		"typecheck": "tsgo --noEmit",
+		"test": "vitest run --passWithNoTests",
+		"test:coverage": "vitest run --coverage --passWithNoTests",
+		"test:ci": "vitest run --reporter=default --reporter=github-actions --reporter=json --reporter=junit --outputFile.json=reports/vitest-results.json --outputFile.junit=reports/vitest-junit.xml --passWithNoTests",
+		"test:agent": "vitest run --reporter=agent --reporter=json --outputFile.json=reports/vitest-results.json --passWithNoTests"
+	},
+	"dependencies": {
+		"@formepdf/core": "0.28.0",
+		"@formepdf/react": "0.28.0",
+		"@reactive-resume/fonts": "workspace:*",
+		"@reactive-resume/resume": "workspace:*",
+		"@reactive-resume/schema": "workspace:*",
+		"@reactive-resume/utils": "workspace:*",
+		"cjk-regex": "^3.5.0",
+		"fast-png": "^8.0.0",
+		"fflate": "catalog:",
+		"harfbuzzjs": "1.6.3",
+		"node-html-parser": "^9.0.5",
+		"react": "catalog:",
+		"react-reconciler": "0.34.0"
+	},
+	"devDependencies": {
+		"@napi-rs/canvas": "1.0.11",
+		"@reactive-resume/config": "workspace:*",
+		"@types/react": "catalog:",
+		"@types/react-reconciler": "^0.34.0",
+		"@typescript/native-preview": "catalog:",
+		"pdfjs-dist": "6.4.299",
+		"typescript": "catalog:"
+	}
+}

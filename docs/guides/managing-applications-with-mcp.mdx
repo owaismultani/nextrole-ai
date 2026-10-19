@@ -1,0 +1,182 @@
+---
+title: "Managing applications with MCP"
+description: "Track job applications from an AI client connected to Reactive Resume: add roles, move stages, schedule interviews, attach sent PDFs and draft letters."
+---
+
+Once your AI client is connected to the Reactive Resume MCP server, you can run your job search from a chat: add roles you find, move applications through their stages, log notes and interviews, attach the PDFs you sent, and ask for match scores or tailored resumes. This guide gives you prompts that work well and explains what each one does behind the scenes.
+
+## Before you start
+
+- Connect your client to the MCP server with OAuth or an API key. See [Using the MCP server](/guides/using-the-mcp-server).
+- Ask the client to list its Reactive Resume tools. You should see `list_applications`, `create_application`, `update_application` and the other application tools.
+- For match scores, tailored resumes, drafted letters and job-posting autofill, set up and test a default AI provider in Reactive Resume. See [Connecting an AI provider](/guides/using-ai). These tools send your resume and the job description to that provider.
+
+## How applications are organized
+
+Every application sits in one stage: `saved`, `applied`, `screening`, `interview`, `offer` or `closed`. Closing an application takes a reason: `not-selected`, `withdrew`, `accepted-other` or `no-response`. Each application also has a timeline of stage changes, notes and interviews, optional contacts, tags, a follow-up date, a linked resume and letter, and the resume and cover-letter PDFs you sent.
+
+These are the same applications you see in the app's List, Board, Insights and Calendar views. See [Tracking job applications](/guides/tracking-job-applications).
+
+## Review your pipeline first
+
+Start each session by having the client read what's already there. That gives it valid IDs and stops it from creating duplicates.
+
+```text
+List my applications grouped by stage. For each one show company, role, tags, follow-up date and linked resume.
+```
+
+```text
+Which applications have a follow-up date this week?
+```
+
+```text
+Show my pipeline counts by stage and by source.
+```
+
+The client uses `list_applications` (which can filter by stage and tags), `read_application` and `get_application_stats`.
+
+## Add applications
+
+When you know the details, ask for the application directly. Only `company` and `role` are required.
+
+```text
+Add an application for Senior Gameplay Engineer at Northwind Games. Stage: saved. Location: Remote. Source: LinkedIn. Tags: unreal, senior. Link my Game Developer Resume.
+```
+
+If you have a job posting, paste it and ask the client to read it first. The autofill tool works on pasted text; it doesn't open links.
+
+```text
+Read this job posting with the Reactive Resume autofill tool, then save it as an application in the saved stage with the job description included.
+
+[Paste the job posting here]
+```
+
+To bring in many rows at once, paste them and ask for an import. `import_applications` takes up to 500 rows per call.
+
+```text
+Import these rows as applications. Map "Rejected" to the closed stage with the reason not-selected. Skip rows without a company or role and tell me which you skipped.
+
+Company,Role,Stage,Location,Source
+Northwind Games,Gameplay Engineer,applied,Remote,LinkedIn
+Blue Harbor Studio,Technical Designer,interview,Seattle,Referral
+```
+
+For spreadsheets you can also import a CSV file in the web app. See [Importing applications from CSV](/guides/importing-applications-from-csv).
+
+## Move stages and add notes
+
+```text
+Move my Northwind Games application to screening and add a note: recruiter call went well, next step is a technical interview.
+```
+
+```text
+Close the Blue Harbor Studio application with the reason withdrew.
+```
+
+```text
+Add the recruiter Priya Shah (priya@example.com) as a contact on the Northwind Games application.
+```
+
+The client uses `update_application` for stages, contacts, tags and follow-up dates, and `add_application_note` for notes. When `update_application` changes a list such as contacts or tags, the list it sends replaces the old one, so a careful client reads the application first and sends the full list.
+
+When an application with a linked resume reaches **Applied** or a later stage, Reactive Resume saves that resume, and the linked letter, as a sent version named after the company. You can see later exactly what you sent.
+
+## Schedule interviews
+
+```text
+Schedule a 45-minute technical interview with Northwind Games on October 8 at 3 pm Pacific, on Google Meet.
+```
+
+```text
+Move the Northwind Games interview to October 9 at the same time.
+```
+
+```text
+Cancel the onsite interview with Blue Harbor Studio.
+```
+
+Interviews have a type (`screening`, `technical`, `behavioral`, `onsite` or `other`), a start time, a duration (60 minutes if you don't say), and an optional location and notes. They appear on the application's timeline and on the Applications calendar. The client uses `add_application_interview`, `update_application_interview` and, to cancel, `delete_application_timeline_entry`. See [Scheduling interviews](/guides/scheduling-interviews).
+
+## Attach what you sent
+
+```text
+Attach this PDF as the resume I sent to Northwind Games.
+```
+
+```text
+Remove the cover-letter PDF from the Blue Harbor Studio application.
+```
+
+`attach_application_document` accepts one resume PDF and one cover-letter PDF per application, up to 10 MB each, sent as base64. Attaching a new file replaces the old one.
+
+<Warning>
+  Anyone with the address of an attached PDF can download it without signing in. Attaching a file never sends it to an
+  employer.
+</Warning>
+
+If your client can't read files from your computer, attach the PDF in the app instead. See [Managing an application](/guides/managing-an-application).
+
+## Use AI on an application
+
+These tools need a tested default AI provider. Scoring and tailoring also need a job description and a linked resume on the application. Drafting uses them when they're there.
+
+```text
+Score my linked resume against the Northwind Games job description and list the biggest gaps. Don't change anything.
+```
+
+```text
+Make a tailored copy of my resume for the Northwind Games application.
+```
+
+```text
+Draft a cover letter for the Northwind Games application.
+```
+
+```text
+Draft a short follow-up to the recruiter at Northwind Games asking about next steps.
+```
+
+| Tool                            | What it changes                                                                                                                                                                              |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `score_application_match`       | Saves a new match score on the application, replacing the previous one.                                                                                                                      |
+| `tailor_resume_for_application` | Creates a private copy of the linked resume with a rewritten summary, links the copy to the application in place of the original and adds a timeline note. The original resume is unchanged. |
+| `draft_application_message`     | In cover-letter mode, saves a new cover letter and returns its text and ID. In follow-up mode, returns the text only. It never sends anything.                                               |
+| `autofill_application_from_job` | Returns suggested company, role, location and salary from a pasted posting. It saves nothing.                                                                                                |
+
+Read anything the AI writes before you use it. You can also tailor resumes and write letters from the app; see [Tailoring a resume for a job](/guides/tailoring-a-resume-for-a-job).
+
+## Clean up
+
+```text
+Find applications that haven't changed in three weeks and suggest which to follow up on and which to close. Don't change anything yet.
+```
+
+```text
+Add the tag follow-up to every application in the applied stage with a follow-up date before today. Show me the list first.
+```
+
+`bulk_update_applications` moves up to 200 applications to a stage or adds tags to them. `delete_application` and `bulk_delete_applications` delete permanently, including uploaded PDFs that no other application uses; there is no Trash for applications.
+
+## Suggested client instructions
+
+Add this to your client's project or session instructions so it handles your applications carefully:
+
+```text
+Use Reactive Resume MCP for job applications. Call list_applications before creating an application so you don't duplicate one. Before update_application changes contacts or tags, read the application and send the complete list. Ask me before delete_application, bulk_delete_applications, bulk_update_applications, or replacing an attached document. Score or tailor only when the application has a job description, and never describe a drafted letter or follow-up as sent.
+```
+
+## Troubleshooting
+
+| Problem                                                  | What to do                                                                                                                                                   |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| The client can't see application tools                   | Reconnect the server and ask the client to refresh its tools.                                                                                                |
+| The client creates duplicates                            | Ask it to list applications first and match on company and role before creating one.                                                                         |
+| A stage change to `rejected` or an archive request fails | Those no longer exist. Use the `closed` stage with a reason.                                                                                                 |
+| Attaching a document fails                               | Only PDFs up to 10 MB are accepted. Attach from the app if your client can't read the file.                                                                  |
+| Scoring, tailoring or drafting fails                     | Check that a default AI provider is set up and tested. For scoring and tailoring, also check that the application has a job description and a linked resume. |
+
+## Related guides
+
+- [Using the MCP server](/guides/using-the-mcp-server): connecting a client, and the full tool list.
+- [Tracking job applications](/guides/tracking-job-applications): the Applications views in the app.
+- [Managing an application](/guides/managing-an-application): the application detail sheet.

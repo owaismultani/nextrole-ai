@@ -1,0 +1,119 @@
+---
+title: "Contributing translations"
+description: "Help translate Reactive Resume on Crowdin: read the glossary, keep placeholders intact, request a new language, and update catalogs in a checkout."
+---
+
+Reactive Resume is available in more than 50 languages, and every translation comes from volunteers. If you speak a language other than English, you can help people build their resume in it. You don't need to write code: translations happen in your browser on Crowdin.
+
+## How translations reach the app
+
+1. Developers write every interface string in English. The strings are collected in one source catalog, `apps/web/locales/en-US.po`.
+2. Translators work on that catalog in the [Reactive Resume project on Crowdin](https://crowdin.com/project/reactive-resume).
+3. After each change to the `main` branch, a GitHub workflow uploads the source catalog, downloads the latest translations, and opens a pull request titled "Sync Translations from Crowdin".
+4. Once that pull request is merged, your translations ship with the next release of the app. There's usually a delay of a few days to a few weeks, depending on the release cycle.
+
+The same translations also label the default section headings in downloaded PDFs, such as "Experience" and "Education", and the word "Present" in date ranges.
+
+## Read the glossary first
+
+Most of the interface is made of short, standalone labels like `Board`, `Resume`, or `Check`. Without a sentence around them, it's easy to pick the wrong meaning. For example, **Resume** is always the document, never the verb "to resume".
+
+The [glossary](https://github.com/reactive-resume/reactive-resume/blob/main/GLOSSARY.md) explains what each recurring term means in Reactive Resume, lists the wrong senses that earlier translations used, and names the terms that stay in English: the product name, technology names such as PDF, DOCX, JSON, API, and MCP, AI provider names, and template names such as Azurill and Pikachu. Read the entry for a term before you translate it.
+
+## Translate on Crowdin
+
+<Steps>
+  <Step title="Create a Crowdin account">
+    Sign up at [crowdin.com](https://crowdin.com/) with your email or an existing account such as GitHub or Google. Crowdin's [guide for translators](https://support.crowdin.com/for-translators/) explains the basics.
+  </Step>
+
+    <Step title="Join the project">
+      Open the [Reactive Resume project](https://crowdin.com/project/reactive-resume) and select **Join**.
+    </Step>
+
+    <Step title="Choose your language">
+      Select your language on the project dashboard to see how much is already translated.
+    </Step>
+
+    <Step title="Translate strings">
+      Open the file to start the Crowdin editor. The English source is on one side and your translation on the other. Use translation memory and machine suggestions as a starting point, and vote for existing translations you agree with. Crowdin saves your work as you go.
+    </Step>
+
+</Steps>
+
+If a string is unclear, leave a comment on it in Crowdin. You can also search the source code for the English text to see where it appears.
+
+## Translation guidelines
+
+### Keep placeholders unchanged
+
+Words in curly braces are filled in by the app. Keep them exactly as they are, but move them wherever your grammar needs them. For example:
+
+```
+English: “{name}” moved to Trash
+German:  „{name}“ in den Papierkorb verschoben
+```
+
+Numbered placeholders such as `{0}` often come with a note in Crowdin, like `placeholder {0}: application.role`, that tells you what the value is.
+
+### Keep numbered tags around the same words
+
+Tags such as `<0>` and `</0>` mark text that gets a link or emphasis. Keep each pair, and wrap the words that carry the same meaning in your language. For example:
+
+```
+English: Have a resume already? <0>Import it</0>
+French:  Vous avez déjà un CV ? <0>Importez-le</0>
+```
+
+### Translate every plural form
+
+Some strings change with a number. They use this pattern:
+
+```
+{0, plural, one {# application ready to import} other {# applications ready to import}}
+```
+
+Translate the text inside each set of braces, keep `#` where the number goes, and don't translate the keywords `plural`, `one`, and `other`. Crowdin shows the plural categories your language needs.
+
+### Be consistent
+
+- Choose a formal or informal tone based on what's normal for software in your language, and use it everywhere.
+- Where your language normally calls this document a CV, use CV.
+- Reuse the same word for a term throughout. The glossary lists the terms that matter most.
+
+## Request a new language
+
+First check whether your language is already listed in the [Crowdin project](https://crowdin.com/project/reactive-resume). If it isn't:
+
+1. Open a new issue on [GitHub](https://github.com/reactive-resume/reactive-resume/issues/new/choose).
+2. Title it "Add [language name] translation".
+3. Include the language name and its locale code, such as `ja-JP` for Japanese.
+
+Once a maintainer adds the language, you can start translating it on Crowdin.
+
+## Updating catalogs in a checkout
+
+This section is for developers working in the repository.
+
+After you add or change user-facing strings with Lingui macros, extract them:
+
+```bash
+pnpm lingui:extract
+```
+
+This updates every catalog in `apps/web/locales/*.po` and then runs `pnpm pdf:translations`, which regenerates two files from the catalogs:
+
+- `packages/pdf/src/section-title-catalog.json`: default section titles for PDFs.
+- `packages/schema/src/resume/present-labels.json`: the translated word for "Present" in date ranges.
+
+`pnpm check` and `pnpm build` also regenerate them. Commit the generated files together with the catalog changes. Edit the `.po` files, never the JSON; a test in `tooling/locales` fails when the two drift apart.
+
+Only edit `en-US.po` by extracting it from code. Other catalogs arrive through the Crowdin pull request, so change translations on Crowdin rather than in the repository, or your edit is overwritten by the next sync.
+
+To add a new locale, a maintainer adds its code to `locales` in `apps/web/lingui.config.ts`, to `localeSchema` in `packages/utils/src/locale.ts`, and to `localeMap` in `apps/web/src/libs/locale.ts`, then runs `pnpm lingui:extract`.
+
+## Related pages
+
+- [Changing appearance and language](/guides/changing-appearance-and-language): switch the app's language.
+- [Development setup](/contributing/development): run Reactive Resume locally.
+- [Crowdin translator docs](https://support.crowdin.com/for-translators/): how the Crowdin editor works.

@@ -1,0 +1,407 @@
+---
+title: "Self-hosting with Kubernetes"
+description: "Deploy Reactive Resume on Kubernetes with plain manifests: PostgreSQL, a Secret, persistent uploads, health probes, Ingress, scaling and updates."
+---
+
+This guide deploys Reactive Resume to a Kubernetes cluster with plain manifests. The result matches the
+[Docker setup](/self-hosting/docker): one app Deployment serving everything on port `3000`, a separate PostgreSQL
+database, and persistent storage for uploads. Adapt the storage class and Ingress settings to your cluster.
+
+## Before you start
+
+You need:
+
+- A cluster with `kubectl` access and a default StorageClass for PersistentVolumeClaims.
+- An Ingress controller and a way to issue TLS certificates, such as cert-manager.
+- A DNS name for your instance, for example `resume.example.com`.
+- About 250m CPU and 512 MiB of memory for the app Pod, plus room for PostgreSQL if it runs in the cluster.
+
+The image is `amruthpillai/reactive-resume` on Docker Hub or `ghcr.io/reactive-resume/reactive-resume` on GitHub
+Container Registry, built for `amd64` and `arm64`. The examples pin the `v6` tag, which gets fixes and new features
+without moving to the next major version.
+
+## Create the namespace and Secret
+
+Save both manifests. The Secret holds every setting and is passed to the app as environment variables.
+
+```yaml namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: reactive-resume
+```
+
+```yaml secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: reactive-resume
+  namespace: reactive-resume
+type: Opaque
+stringData:
+  # The public HTTPS address people use. Must match the Ingress host.
+  APP_URL: "https://resume.example.com"
+  # "postgres" is the Service name from postgres.yaml.
+  DATABASE_URL: "postgresql://postgres:REPLACE_WITH_DATABASE_PASSWORD@postgres:5432/postgres"
+  # Read by the example PostgreSQL Deployment. Same password as in DATABASE_URL.
+  POSTGRES_PASSWORD: "REPLACE_WITH_DATABASE_PASSWORD"
+  # openssl rand -hex 32
+  AUTH_SECRET: "REPLACE_WITH_A_RANDOM_SECRET"
+  # Optional: turns on AI features. openssl rand -hex 32, different from AUTH_SECRET.
+  # ENCRYPTION_SECRET: ""
+  # Any other variable from the environment variable reference goes here too.
+```
+
+Generate the secrets and the database password with `openssl rand -hex 32`, and paste them in. See
+[Environment variables](/self-hosting/environment-variables) for everything else you can add, such as SMTP, S3 and
+single sign-on.
+
+<Tip>
+  `stringData` keeps the example readable, but a Secret is only base64-encoded, not encrypted. Keep this file out of
+  version control. For GitOps, use Sealed Secrets, SOPS or External Secrets. Never change `AUTH_SECRET` or
+  `ENCRYPTION_SECRET` once people use the instance.
+</Tip>
+
+## Run PostgreSQL
+
+You can use a managed database, an operator such as CloudNativePG, or this minimal single-instance Deployment. If you
+use your own, skip this file and set `DATABASE_URL` to it.
+
+```yaml postgres.yaml lines expandable
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data
+  namespace: reactive-resume
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: reactive-resume
+spec:
+  replicas: 1
+  # Stop the old Pod before a new one mounts the same data.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:18
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: postgres
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: reactive-resume
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-h", "127.0.0.1", "-U", "postgres", "-d", "postgres"]
+            periodSeconds: 10
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: postgres-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: reactive-resume
+spec:
+  selector:
+    app.kubernetes.io/name: postgres
+  ports:
+    - port: 5432
+```
+
+- Keep this Service a ClusterIP. Don't expose PostgreSQL outside the cluster.
+- `POSTGRES_PASSWORD` only applies when the database is first created. Changing it later doesn't change the password.
+- Inside the cluster, use the Service name as the host in `DATABASE_URL`, never `localhost`.
+
+## Deploy the app
+
+This file adds the uploads volume, the Deployment, a Service and an Ingress.
+
+```yaml reactive-resume.yaml lines expandable
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: reactive-resume-data
+  namespace: reactive-resume
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reactive-resume
+  namespace: reactive-resume
+spec:
+  replicas: 1
+  # The uploads volume is ReadWriteOnce, so the old Pod must stop first.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: reactive-resume
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: reactive-resume
+    spec:
+      # The image runs as the non-root "node" user (UID and GID 1000).
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: reactive-resume
+          image: ghcr.io/reactive-resume/reactive-resume:v6
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 3000
+          envFrom:
+            - secretRef:
+                name: reactive-resume
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 6
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 6
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              memory: 1Gi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: reactive-resume-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reactive-resume
+  namespace: reactive-resume
+spec:
+  selector:
+    app.kubernetes.io/name: reactive-resume
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: reactive-resume
+  namespace: reactive-resume
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    # For ingress-nginx. Other controllers have equivalent settings.
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: resume.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: reactive-resume
+                port:
+                  name: http
+  tls:
+    - hosts:
+        - resume.example.com
+      secretName: reactive-resume-tls
+```
+
+Replace `resume.example.com`, `ingressClassName` and the `cluster-issuer` with your own values, and point your DNS at
+the Ingress controller. The annotations let the Ingress accept Assistant attachments of up to 25 MB and stream replies
+that take up to 4 minutes; [What every reverse proxy needs](/self-hosting/examples#what-every-reverse-proxy-needs)
+explains why. That section also covers client IP headers: make sure your controller doesn't pass on
+`CF-Connecting-IP`, `CF-Connecting-IPv6` or `True-Client-IP` headers sent by clients, or they can get around per-IP
+rate limits.
+
+## Apply and verify
+
+<Steps>
+  <Step title="Apply the manifests">
+    ```bash
+    kubectl apply -f namespace.yaml
+    kubectl apply -f secret.yaml
+    kubectl apply -f postgres.yaml
+    kubectl -n reactive-resume rollout status deployment/postgres --timeout=300s
+    kubectl apply -f reactive-resume.yaml
+    kubectl -n reactive-resume rollout status deployment/reactive-resume --timeout=600s
+    ```
+
+    The app Pod becomes `Ready` once its startup migrations finish and `/api/health` answers `200`. Follow along with
+    `kubectl -n reactive-resume logs -f deployment/reactive-resume`.
+
+  </Step>
+
+<Step title="Create your account">
+  Open your `APP_URL` and create an account. You're signed in right away. Without SMTP, the verification email is
+  written to the app log instead of being sent.
+</Step>
+
+  <Step title="Check that data persists">
+    Create a resume from a sample and upload a profile picture. Then replace the Pod:
+
+    ```bash
+    kubectl -n reactive-resume rollout restart deployment/reactive-resume
+    kubectl -n reactive-resume rollout status deployment/reactive-resume
+    ```
+
+    Reload the page. The resume and picture should still be there. Expect a short outage while a single-replica
+    Deployment restarts.
+
+  </Step>
+
+  <Step title="Close sign-ups (optional)">
+    For a private instance, add `FLAG_DISABLE_SIGNUPS: "true"` to `secret.yaml` after your account exists, apply it,
+    and restart the Deployment. Pods only read Secret changes when they start.
+  </Step>
+</Steps>
+
+## How the probes work
+
+- The **startup probe** gives the first start up to 5 minutes to run migrations before other probes begin.
+- The **readiness probe** calls `/api/health`, which checks the database, storage and, when configured, Redis. It
+  answers `503` if any of them fails, and Kubernetes stops sending traffic to that Pod until it recovers.
+- There is deliberately no liveness probe on `/api/health`. Restarting the app doesn't fix a database or storage
+  outage. If the server process itself exits, Kubernetes restarts the container anyway.
+
+Storage checks have a 5-second deadline by default, including both S3 PUT and DELETE requests. For slower storage,
+set `STORAGE_HEALTHCHECK_TIMEOUT_MS` (milliseconds) in the app Secret. Set both probes' `timeoutSeconds` (seconds)
+above that duration (for example, `STORAGE_HEALTHCHECK_TIMEOUT_MS=10000` and `timeoutSeconds: 11`). Database and
+Redis checks keep their 1.5-second deadlines.
+
+See [Check the health endpoint](/self-hosting/docker#check-the-health-endpoint) for the response format. To call it
+yourself:
+
+```bash
+kubectl -n reactive-resume port-forward service/reactive-resume 3000:80
+curl http://localhost:3000/api/health
+```
+
+## Run several replicas
+
+The example runs one replica because uploads live on a `ReadWriteOnce` volume. To run more:
+
+1. Switch uploads to S3-compatible storage: add the `S3_*` variables to the Secret, then remove the PVC, the volume and
+   the `/app/data` mount. See [Store uploads in S3-compatible storage](/self-hosting/examples#store-uploads-in-s3-compatible-storage).
+2. Add Redis and set `REDIS_URL` in the Secret, so rate limits, stopping Assistant replies and live updates work
+   across Pods.
+3. Change `strategy` to `RollingUpdate` and raise `replicas`.
+
+Pods that start together are safe: they take turns on migrations, and only one applies changes.
+
+## Update the app
+
+1. Back up the database and uploads.
+2. Restart the Deployment to pull the newest `v6` image:
+
+   ```bash
+   kubectl -n reactive-resume rollout restart deployment/reactive-resume
+   kubectl -n reactive-resume rollout status deployment/reactive-resume
+   ```
+
+3. Check the logs while the new version applies its migrations.
+
+For fully reproducible deployments, pin an exact tag such as `v6.0.0` (or an image digest), change it in
+`reactive-resume.yaml`, and run `kubectl apply -f reactive-resume.yaml`. Coming from v5? Read
+[Migrating from v5](/self-hosting/upgrading-to-v6) first.
+
+Back up PostgreSQL and the uploads (the PVC or the S3 bucket) on a schedule, and keep a copy of the Secret. Update
+PostgreSQL separately from the app, following your operator's or provider's upgrade process.
+
+## Community Helm chart
+
+A community-maintained Helm chart is available from HelmForge:
+
+- Chart source: [helmforgedev/charts](https://github.com/helmforgedev/charts/tree/main/charts/reactive-resume)
+- Documentation: [helmforge.dev](https://helmforge.dev/docs/charts/reactive-resume)
+
+<Warning>
+  The Helm chart is maintained outside the Reactive Resume project. Report chart problems in the HelmForge repository.
+  Check that it supports v6 before using it; the manifests above work without it.
+</Warning>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="The app Pod is in CrashLoopBackOff">
+    Read the logs with `kubectl -n reactive-resume logs deployment/reactive-resume --previous`. `Invalid environment
+    variables` names a missing or malformed setting. `Database migrations failed` usually means a wrong
+    `DATABASE_URL` or PostgreSQL isn't ready. `Local storage path is not writable` means the volume isn't writable by
+    UID 1000; keep `fsGroup: 1000` or fix the volume's permissions.
+  </Accordion>
+
+<Accordion title="The Pod never becomes Ready">
+  Port-forward and call `/api/health`. The entry marked `unhealthy` points at the problem: the database, the uploads
+  volume or S3 settings, or Redis.
+</Accordion>
+
+<Accordion title="Sign-in loops back to the sign-in page">
+  `APP_URL` doesn't match the address in the browser, or it says `http://` while you use `https://`. Fix it in the
+  Secret, apply, and restart the Deployment.
+</Accordion>
+
+  <Accordion title="Assistant replies stop partway or attachments fail to upload">
+    The Ingress is buffering responses, timing out after 60 seconds, or rejecting large bodies. Apply the annotations
+    from the example, or your controller's equivalents.
+  </Accordion>
+</AccordionGroup>
+
+## Related pages
+
+- [Environment variables](/self-hosting/environment-variables): every setting you can put in the Secret.
+- [Self-hosting with Docker](/self-hosting/docker): the same setup with Docker Compose, plus backups.
+- [Deployment examples](/self-hosting/examples): S3 storage, Redis, local AI and private instances.

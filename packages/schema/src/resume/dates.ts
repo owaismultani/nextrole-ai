@@ -1,0 +1,261 @@
+import type { ResumeData } from "./data";
+import type { EndpointReading, ParsedPeriod, PeriodEndpoint } from "./period";
+import z from "zod";
+import { ONGOING_TOKENS_BY_LANGUAGE, readPeriod, readSingleDate } from "./period";
+import presentLabels from "./present-labels.json";
+
+/** A year ("2022") or a year and month ("2022-03"). A month is optional, so year-only dates are exact. */
+export const yearMonthSchema = z
+	.string()
+	.regex(/^\d{4}(?:-(?:0[1-9]|1[0-2]))?$/)
+	.describe('A year ("2022") or a year and month ("2022-03").');
+
+export type YearMonth = z.infer<typeof yearMonthSchema>;
+
+export const resumeDatesSchema = z
+	.object({
+		start: yearMonthSchema
+			.nullable()
+			.catch(null)
+			.describe("When it started, or the date itself for single-date entries (awards, certifications, publications)."),
+		end: yearMonthSchema.nullable().catch(null).describe("When it ended. Null while ongoing or for single dates."),
+		present: z.boolean().catch(false).describe("Whether it's ongoing, printed as 'Present'."),
+		raw: z
+			.string()
+			.optional()
+			.describe(
+				"The original text when it couldn't be read exactly, such as 'Summer 2016'. It's printed as written until the dates are edited, which removes it.",
+			),
+	})
+	.describe(
+		"Structured dates. Write these rather than the legacy text field (`period` or `date`), which is kept in sync from them.",
+	);
+
+export type ResumeDates = z.infer<typeof resumeDatesSchema>;
+
+/** How dates print: Mar 2022, March 2022, 03/2022 or 2022-03. */
+export const dateFormatSchema = z.enum(["short", "long", "numeric", "iso"]);
+
+export type DateFormat = z.infer<typeof dateFormatSchema>;
+
+export const DEFAULT_DATE_FORMAT: DateFormat = "short";
+
+export const EMPTY_RESUME_DATES: ResumeDates = { start: null, end: null, present: false };
+
+const labels: Record<string, string> = presentLabels;
+
+/**
+ * "Present" in a resume's locale, as dates print it. Locales without a translation yet fall back to the
+ * language's usual word from the parser's list ("Heute", "Presente"), then to English.
+ */
+export function getPresentLabel(locale: string): string {
+	const language = locale.split("-")[0]?.toLowerCase() ?? "";
+	const translated = labels[locale];
+	if (translated && (translated !== "Present" || language === "en")) return translated;
+
+	const word = ONGOING_TOKENS_BY_LANGUAGE[language]?.[0];
+	if (!word) return "Present";
+	// Case the word by its language alone: `locale` can be a malformed tag ("de-DE-") that throws a RangeError.
+	return word.charAt(0).toLocaleUpperCase(language) + word.slice(1);
+}
+
+const toEndpoint = (value: YearMonth): PeriodEndpoint => {
+	const [year, month] = value.split("-").map(Number);
+	return month ? { year: year ?? 0, month } : { year: year ?? 0 };
+};
+
+/** Dates as the period shape sorting and checks use; null when nothing was read (no start). */
+export const resumeDatesToPeriod = (dates: ResumeDates): ParsedPeriod | null =>
+	dates.start
+		? {
+				start: toEndpoint(dates.start),
+				...(dates.end ? { end: toEndpoint(dates.end) } : {}),
+				ongoing: dates.present,
+			}
+		: null;
+
+export const toYearMonth = ({ year, month }: PeriodEndpoint): YearMonth =>
+	month === undefined ? String(year) : `${year}-${String(month).padStart(2, "0")}`;
+
+// Seasons and days don't fit a year-month exactly, so readings that use them keep the original text.
+const isExact = (reading: EndpointReading | undefined) =>
+	!reading || (reading.style !== "season" && reading.style !== "day");
+
+/**
+ * Reads a legacy date text into structured dates. Exact readings (years, months by name or number, and
+ * "Present") drop the text; approximate or unreadable ones keep it in `raw`, which asks for a review and
+ * prints as written until then.
+ */
+export function readLegacyDates(text: string, options: { locale: string; single: boolean }): ResumeDates {
+	const value = text.trim();
+	if (!value) return { ...EMPTY_RESUME_DATES };
+
+	if (options.single) {
+		const reading = readSingleDate(value, options.locale);
+		if (!reading) return { ...EMPTY_RESUME_DATES, raw: value };
+		const dates: ResumeDates = { start: toYearMonth(reading.endpoint), end: null, present: false };
+		return isExact(reading) ? dates : { ...dates, raw: value };
+	}
+
+	const reading = readPeriod(value, options.locale, [getPresentLabel(options.locale)]);
+	if (!reading?.start) return { ...EMPTY_RESUME_DATES, raw: value };
+
+	const dates: ResumeDates = {
+		start: toYearMonth(reading.start.endpoint),
+		end: reading.end ? toYearMonth(reading.end.endpoint) : null,
+		present: reading.ongoing,
+	};
+	return isExact(reading.start) && isExact(reading.end) ? dates : { ...dates, raw: value };
+}
+
+/**
+ * Guesses the date format a resume was written in from its legacy texts, so upgraded resumes keep printing
+ * the way they were typed: month names long or short, numeric months, or ISO. Year-only dates don't vote.
+ */
+export function inferDateFormat(texts: readonly string[], locale: string): DateFormat {
+	const votes: Record<DateFormat, number> = { short: 0, long: 0, numeric: 0, iso: 0 };
+
+	for (const text of texts) {
+		const reading = readPeriod(text, locale) ?? { start: readSingleDate(text, locale) ?? undefined };
+		for (const endpoint of [reading.start, "end" in reading ? reading.end : undefined]) {
+			const style = endpoint?.style;
+			if (style === "short" || style === "long" || style === "numeric" || style === "iso") votes[style] += 1;
+		}
+	}
+
+	const [winner, count] = Object.entries(votes).sort((a, b) => b[1] - a[1])[0] as [DateFormat, number];
+	return count > 0 ? winner : DEFAULT_DATE_FORMAT;
+}
+
+/** An entry that carries dates, with the legacy text field that mirrors them. */
+export type DatedEntry = { dates?: ResumeDates | undefined } & ({ period: string } | { date: string });
+
+type DatedEntryVisitor = (entry: DatedEntry, field: "period" | "date") => void;
+
+const RANGE_TYPES = new Set(["experience", "education", "projects", "volunteer"]);
+const SINGLE_TYPES = new Set(["awards", "certifications", "publications"]);
+
+function visitItems(type: string, items: readonly unknown[], visit: DatedEntryVisitor) {
+	const field = RANGE_TYPES.has(type) ? "period" : SINGLE_TYPES.has(type) ? "date" : null;
+	if (!field) return;
+
+	for (const item of items as DatedEntry[]) {
+		visit(item, field);
+		if (type !== "experience") continue;
+		for (const role of (item as { roles?: DatedEntry[] }).roles ?? []) visit(role, "period");
+	}
+}
+
+/**
+ * Visits every dated entry: experience (and its roles), education, projects and volunteer by period; awards,
+ * certifications and publications by date; custom sections of those types too. Mutating visitors are fine,
+ * including inside an immer draft.
+ */
+export function forEachDatedEntry(data: ResumeData, visit: DatedEntryVisitor) {
+	for (const [type, section] of Object.entries(data.sections)) visitItems(type, section.items, visit);
+	for (const section of data.customSections) visitItems(section.type, section.items, visit);
+}
+
+export const getLegacyDateText = (entry: DatedEntry, field: "period" | "date") =>
+	field === "period" ? (entry as { period: string }).period : (entry as { date: string }).date;
+
+/**
+ * Read-time upgrade for resumes saved before structured dates: fills `dates` from each entry's legacy text,
+ * and the date format from how those texts were typed. Entries that already have dates keep them.
+ */
+export function upgradeResumeDates(data: ResumeData) {
+	const { page } = data.metadata;
+
+	if (!page.dateFormat) {
+		const texts: string[] = [];
+		forEachDatedEntry(data, (entry, field) => {
+			const text = getLegacyDateText(entry, field);
+			if (!entry.dates && text) texts.push(text);
+		});
+		page.dateFormat = inferDateFormat(texts, page.locale);
+	}
+
+	forEachDatedEntry(data, (entry, field) => {
+		entry.dates ??= readLegacyDates(getLegacyDateText(entry, field), { locale: page.locale, single: field === "date" });
+	});
+}
+
+export type DateFormatOptions = {
+	locale: string;
+	format?: DateFormat | undefined;
+	/** Defaults to "Present" in the locale. */
+	presentLabel?: string | undefined;
+};
+
+const monthFormatters = new Map<string, Intl.DateTimeFormat>();
+
+function formatMonth(year: number, month: number, locale: string, style: "short" | "long") {
+	const key = `${locale}:${style}`;
+	let formatter = monthFormatters.get(key);
+	if (!formatter) {
+		try {
+			formatter = new Intl.DateTimeFormat(locale, { year: "numeric", month: style, timeZone: "UTC" });
+		} catch {
+			formatter = new Intl.DateTimeFormat("en-US", { year: "numeric", month: style, timeZone: "UTC" });
+		}
+		monthFormatters.set(key, formatter);
+	}
+	return formatter.format(Date.UTC(year, month - 1, 1));
+}
+
+/** One date in the chosen format: Mar 2022, March 2022, 03/2022 or 2022-03. Year-only dates print the year. */
+export function formatYearMonth(value: YearMonth, { locale, format = DEFAULT_DATE_FORMAT }: DateFormatOptions) {
+	const [yearText, monthText] = value.split("-");
+	if (!monthText) return yearText ?? value;
+
+	const year = Number(yearText);
+	const month = Number(monthText);
+	if (format === "iso") return value;
+	if (format === "numeric") return `${monthText}/${yearText}`;
+	return formatMonth(year, month, locale, format);
+}
+
+/**
+ * Dates as they print: "Mar 2022 – Present", "2014 – 2018" or one date. Dates that still carry `raw` (text that
+ * couldn't be read exactly) print that text as written until someone reviews them.
+ */
+export function formatResumeDates(dates: ResumeDates, options: DateFormatOptions): string {
+	if (dates.raw !== undefined) return dates.raw;
+
+	const start = dates.start ? formatYearMonth(dates.start, options) : "";
+	const end = dates.present
+		? (options.presentLabel ?? getPresentLabel(options.locale))
+		: dates.end
+			? formatYearMonth(dates.end, options)
+			: "";
+
+	return start && end ? `${start} – ${end}` : start || end;
+}
+
+type PageDateOptions = { locale: string; dateFormat?: DateFormat | undefined };
+
+/** Prints an entry's dates, or its legacy text when it has none (data that skipped the read-time upgrade). */
+export const formatEntryDates = (dates: ResumeDates | undefined, text: string, page: PageDateOptions) =>
+	dates ? formatResumeDates(dates, { locale: page.locale, format: page.dateFormat }) : text;
+
+/**
+ * Rewrites each entry's text (`period` or `date`) from its structured dates, in the resume's locale and date
+ * format. Dates are the only source: an edit to the text alone is overwritten. Entries without dates (new
+ * items from imports or older data) get them from their text first.
+ *
+ * Mutates `data` in place and writes only what changed, so it's safe inside an immer draft.
+ */
+export function syncResumeDates(data: ResumeData) {
+	const { locale, dateFormat } = data.metadata.page;
+	const options: DateFormatOptions = { locale, format: dateFormat, presentLabel: getPresentLabel(locale) };
+
+	forEachDatedEntry(data, (entry, field) => {
+		const text = getLegacyDateText(entry, field);
+		entry.dates ??= readLegacyDates(text, { locale, single: field === "date" });
+
+		const formatted = formatResumeDates(entry.dates, options);
+		if (formatted === text) return;
+		if (field === "period") (entry as { period: string }).period = formatted;
+		else (entry as { date: string }).date = formatted;
+	});
+}

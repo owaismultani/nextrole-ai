@@ -1,0 +1,226 @@
+---
+title: "Using the patch API"
+description: "Change individual fields of a Reactive Resume with JSON Patch (RFC 6902): add, remove, replace and move items, set dates and avoid overwriting edits."
+---
+
+The patch endpoint lets you make small, targeted changes to a resume's content without sending the whole document. You send a list of [JSON Patch (RFC 6902)](https://datatracker.ietf.org/doc/html/rfc6902) operations, and the server applies them together and returns the updated resume. This is the same mechanism the MCP server's `apply_resume_patch` tool uses.
+
+## Before you start
+
+- Create an API key and try a first request, as described in [Using the API](/guides/using-the-api).
+- Find the resume's ID with `GET /api/openapi/resumes`, then fetch its current content with `GET /api/openapi/resumes/{id}`. Paths in your operations point into the `data` object of that response.
+- Keep the [JSON resume schema](/guides/json-resume-schema) at hand. It lists every field, its type and which fields a new item needs.
+
+## Choose PATCH or PUT
+
+| You want to                                                   | Use                             |
+| ------------------------------------------------------------- | ------------------------------- |
+| Change one field, such as the headline or a company name      | `PATCH /resumes/{id}`           |
+| Add, remove or reorder entries in a section                   | `PATCH /resumes/{id}`           |
+| Change the template, colors, fonts or layout                  | `PATCH /resumes/{id}`           |
+| Rename the resume, change its slug or tags, or make it public | `PUT /resumes/{id}`             |
+| Replace the whole resume content at once                      | `PUT /resumes/{id}` with `data` |
+
+PATCH only changes the resume's `data`. The name, slug, tags and public setting sit outside `data`, so change them with `PUT`, which updates only the fields you send.
+
+## Send a patch
+
+```http
+PATCH /api/openapi/resumes/{id}
+x-api-key: YOUR_API_KEY
+Content-Type: application/json
+```
+
+The body holds the operations, and optionally the version of the resume you based them on:
+
+```json
+{
+  "expectedUpdatedAt": "2026-09-30T00:10:08.197Z",
+  "operations": [{ "op": "replace", "path": "/basics/headline", "value": "Senior Game Developer" }]
+}
+```
+
+| Field               | Required | Description                                                                                                                                                                        |
+| ------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `operations`        | Yes      | At least one JSON Patch operation. They run in order.                                                                                                                              |
+| `expectedUpdatedAt` | No       | The resume's `updatedAt` when you read it. If the resume has changed since, the patch is rejected with `409`. See [Avoid overwriting other edits](#avoid-overwriting-other-edits). |
+
+Each operation has these properties:
+
+| Property | Required                        | Description                                                                                                             |
+| -------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `op`     | Yes                             | `add`, `remove`, `replace`, `move`, `copy` or `test`                                                                    |
+| `path`   | Yes                             | A [JSON Pointer (RFC 6901)](https://datatracker.ietf.org/doc/html/rfc6901) into the resume data, such as `/basics/name` |
+| `value`  | For `add`, `replace` and `test` | The value to write or compare                                                                                           |
+| `from`   | For `move` and `copy`           | A JSON Pointer to the source                                                                                            |
+
+A successful patch returns `200` with the full updated resume, including its new `updatedAt`.
+
+## Examples
+
+### Replace basic fields
+
+```bash
+curl -X PATCH "https://rxresu.me/api/openapi/resumes/YOUR_RESUME_ID" \
+  -H "x-api-key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "operations": [
+      { "op": "replace", "path": "/basics/name", "value": "David Kowalski" },
+      { "op": "replace", "path": "/basics/headline", "value": "Senior Game Developer" }
+    ]
+  }'
+```
+
+### Add an experience entry
+
+A new entry must be a complete item: include every required field of that item type, a unique `id` (a UUID) and `"hidden": false`. Set its dates in `dates` and leave `period` empty; the server fills it in.
+
+```bash
+curl -X PATCH "https://rxresu.me/api/openapi/resumes/YOUR_RESUME_ID" \
+  -H "x-api-key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "operations": [
+      {
+        "op": "add",
+        "path": "/sections/experience/items/0",
+        "value": {
+          "id": "019a0000-0000-7000-8000-000000000001",
+          "hidden": false,
+          "company": "Northwind Games",
+          "position": "Senior Gameplay Engineer",
+          "location": "Remote",
+          "period": "",
+          "dates": { "start": "2024-01", "end": null, "present": true },
+          "website": { "url": "", "label": "" },
+          "description": "<p>Leading the combat systems team.</p>",
+          "roles": []
+        }
+      }
+    ]
+  }'
+```
+
+A numeric index inserts at that position (`0` puts the entry first). The special index `-` appends to the end, as in `/sections/skills/items/-`.
+
+### Remove an entry
+
+Remove the second skill:
+
+```json
+{ "operations": [{ "op": "remove", "path": "/sections/skills/items/1" }] }
+```
+
+### Move an entry within a section
+
+Move the first experience entry to the third position:
+
+```json
+{ "operations": [{ "op": "move", "from": "/sections/experience/items/0", "path": "/sections/experience/items/2" }] }
+```
+
+### Change the design
+
+Switch the template and the primary color:
+
+```json
+{
+  "operations": [
+    { "op": "replace", "path": "/metadata/template", "value": "bronzor" },
+    { "op": "replace", "path": "/metadata/design/colors/primary", "value": "rgba(37, 99, 235, 1)" }
+  ]
+}
+```
+
+### Hide a section
+
+```json
+{ "operations": [{ "op": "replace", "path": "/sections/interests/hidden", "value": true }] }
+```
+
+## Dates
+
+Experience (and its roles), education, projects and volunteer entries, and awards, certifications and publications, have a structured `dates` object:
+
+```json
+"dates": { "start": "2022-03", "end": null, "present": true }
+```
+
+| Field     | Value                                                                                                                                        |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `start`   | A year (`"2022"`) or a year and month (`"2022-03"`), or `null`. Single-date entries (awards, certifications, publications) use only `start`. |
+| `end`     | A year or year and month, or `null` while the entry is ongoing or for single dates.                                                          |
+| `present` | `true` when the entry is ongoing. It prints as "Present" in the resume's language.                                                           |
+| `raw`     | Optional. Original text that couldn't be read exactly, such as "Summer 2016". It prints as written until the dates are edited.               |
+
+**Write `dates`, not the text.** Each entry also has a text field, `period` (ranges) or `date` (single dates). On every save, the server rewrites that text from `dates`, in the resume's language and date format (`/metadata/page/dateFormat`: `short`, `long`, `numeric` or `iso`). A patch that changes only `period` or `date` is overwritten, and the resume keeps its old dates.
+
+To change an entry's dates, replace the whole object:
+
+```json
+{
+  "operations": [
+    {
+      "op": "replace",
+      "path": "/sections/experience/items/0/dates",
+      "value": { "start": "2021", "end": "2024-06", "present": false }
+    }
+  ]
+}
+```
+
+With the `long` date format, that entry's `period` becomes "2021 – June 2024". An entry sent without `dates` (for example from an older export) gets them read from its text.
+
+## Avoid overwriting other edits
+
+Someone might edit the resume in the browser between your read and your write. Two tools protect you:
+
+**`expectedUpdatedAt`** rejects the whole patch if the resume changed after you read it. Send the `updatedAt` value from your last read:
+
+```json
+{
+  "expectedUpdatedAt": "2026-09-30T00:10:08.197Z",
+  "operations": [{ "op": "replace", "path": "/basics/headline", "value": "Lead Game Developer" }]
+}
+```
+
+If the resume has moved on, you get `409` with the code `RESUME_VERSION_CONFLICT` and the current `updatedAt` in `data`. Read the resume again, rebuild your operations and retry.
+
+**`test`** checks a value before the other operations run. If it doesn't match, nothing is applied:
+
+```json
+{
+  "operations": [
+    { "op": "test", "path": "/basics/name", "value": "David Kowalski" },
+    { "op": "replace", "path": "/basics/name", "value": "Dave Kowalski" }
+  ]
+}
+```
+
+## What happens when a patch is applied
+
+- **All or nothing.** The operations run in order inside one transaction. If any operation fails, or the result doesn't match the resume schema, none of them are saved.
+- **Validation.** The patched resume must pass the same validation as any other save. For example, `/metadata/template` must be one of the available templates. Rich-text fields such as `description` and `/summary/content` are HTML strings, so send HTML (`<p>…</p>`) rather than plain text or Markdown.
+- **History.** Each successful patch saves a version in the resume's history. It appears as **AI edit**, described as "from the assistant or API", and you can restore an earlier version from the editor. See [Undoing changes and version history](/guides/undoing-changes-and-version-history).
+- **Cover letters leave the resume.** If a patch adds a section of type `cover-letter`, the server saves its letter as a separate cover letter linked to the resume and removes the section. Manage letters with the `/cover-letters` endpoints instead.
+- **Public resumes update at once.** If the resume is public, the change is visible on its public page straight away.
+
+## Errors
+
+| Status | Code                       | Cause                                                                                                                                                                                                                                     |
+| ------ | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `400`  | `BAD_REQUEST`              | The body is malformed, for example `operations` is empty or an operation lacks `value` or `from`.                                                                                                                                         |
+| `400`  | `INVALID_PATCH_OPERATIONS` | An operation targets a path that doesn't exist, a `test` failed, or the result doesn't match the schema. `data` holds the failing `index`, the `operation` and a `code` such as `TEST_OPERATION_FAILED` or `OPERATION_PATH_UNRESOLVABLE`. |
+| `401`  | `UNAUTHORIZED`             | The API key is missing, revoked or expired.                                                                                                                                                                                               |
+| `404`  | `NOT_FOUND`                | The resume doesn't exist or belongs to someone else.                                                                                                                                                                                      |
+| `409`  | `RESUME_VERSION_CONFLICT`  | The resume changed after `expectedUpdatedAt`.                                                                                                                                                                                             |
+| `403`  | `RESUME_LOCKED`            | The resume is locked. Unlock it with `POST /resumes/{id}/lock` and `{ "isLocked": false }`, or in the app.                                                                                                                                |
+
+<Note>Locked resume writes return HTTP `403` with code `RESUME_LOCKED`. Unlock the resume before retrying.</Note>
+
+## Related guides
+
+- [Using the API](/guides/using-the-api): keys, authentication and the other endpoints.
+- [JSON resume schema](/guides/json-resume-schema): every path and value type you can patch.
+- [Using the MCP server](/guides/using-the-mcp-server): let an AI client write these patches for you.

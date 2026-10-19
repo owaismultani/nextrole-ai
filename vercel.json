@@ -1,0 +1,37 @@
+{
+	"$schema": "https://openapi.vercel.sh/vercel.json",
+	"crons": [{ "path": "/api/career/run", "schedule": "* * * * *" }],
+	"services": {
+		"frontend": {
+			"root": "apps/web",
+			"framework": "vite",
+			"buildCommand": "cd ../.. && pnpm build --filter=web",
+			"outputDirectory": "dist"
+		},
+		"backend": {
+			"root": "apps/server",
+			"runtime": "node",
+			"entrypoint": "vercel.mjs",
+			"buildCommand": "cd ../.. && pnpm build --filter=web --filter=server && node apps/server/dist/prepare-deployment.mjs",
+			"outputDirectory": ".",
+			"functions": {
+				"vercel.mjs": {
+					"maxDuration": 300,
+					"includeFiles": "{apps/web/dist/index.html,apps/web/dist-prerender/**,apps/server/dist/prompts/**,apps/server/dist/agent-skills/**}"
+				}
+			}
+		}
+	},
+	"rewrites": [
+		{ "source": "/api/(.*)", "destination": { "service": "backend" } },
+		{ "source": "/uploads/(.*)", "destination": { "service": "backend" } },
+		{ "source": "/mcp(/.*)?", "destination": { "service": "backend" } },
+		{ "source": "/\\.well-known(/.*)?", "destination": { "service": "backend" } },
+		{
+			"source": "/(index\\.html|robots\\.txt|sitemap\\.xml|llms\\.txt|schema\\.json|openapi\\.json)",
+			"destination": { "service": "backend" }
+		},
+		{ "source": "/(.*\\.[^/]+)", "destination": { "service": "frontend" } },
+		{ "source": "/(.*)", "destination": { "service": "backend" } }
+	]
+}

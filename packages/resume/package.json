@@ -1,0 +1,43 @@
+{
+	"name": "@reactive-resume/resume",
+	"version": "0.0.0",
+	"type": "module",
+	"private": true,
+	"exports": {
+		"./cover-letter": "./src/cover-letter.ts",
+		"./ats": "./src/ats/index.ts",
+		"./ats-pdf": "./src/ats-pdf/index.ts",
+		"./export-sections": "./src/export-sections.ts",
+		"./icons": "./src/icons.ts",
+		"./markdown": "./src/markdown.ts",
+		"./patch": "./src/patch.ts",
+		"./proposals": "./src/proposals.ts",
+		"./section-sort": "./src/section-sort.ts",
+		"./social-meta": "./src/social-meta.ts",
+		"./stylesheet": "./src/stylesheet/index.ts",
+		"./stylesheet/registry": "./src/stylesheet/registry/index.ts",
+		"./stylesheet/types": "./src/stylesheet/semantic-types.ts"
+	},
+	"scripts": {
+		"typecheck": "tsgo --noEmit",
+		"test": "vitest run --passWithNoTests",
+		"test:coverage": "vitest run --coverage --passWithNoTests",
+		"test:ci": "vitest run --reporter=default --reporter=github-actions --reporter=json --reporter=junit --outputFile.json=reports/vitest-results.json --outputFile.junit=reports/vitest-junit.xml --passWithNoTests",
+		"test:agent": "vitest run --reporter=agent --reporter=json --outputFile.json=reports/vitest-results.json --passWithNoTests"
+	},
+	"dependencies": {
+		"@bramus/specificity": "^2.4.3",
+		"@reactive-resume/schema": "workspace:*",
+		"@reactive-resume/utils": "workspace:*",
+		"css-tree": "^3.2.1",
+		"fast-json-patch": "^3.1.1",
+		"wink-porter2-stemmer": "2.0.1",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@reactive-resume/config": "workspace:*",
+		"@typescript/native-preview": "catalog:",
+		"fast-check": "^4.10.2",
+		"typescript": "catalog:"
+	}
+}

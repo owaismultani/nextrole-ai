@@ -1,0 +1,201 @@
+---
+title: "Self-hosting on Vercel"
+description: "Deploy Reactive Resume to Vercel as two Vercel Services, with Neon PostgreSQL, private Vercel Blob, and Upstash Redis provisioned by the wizard."
+---
+
+This guide deploys Reactive Resume to your own Vercel project with the **Deploy with Vercel** wizard. The wizard connects a database, file storage, and Redis for you; you supply two secrets. Use it when you want a managed deployment without running servers. If you'd rather run containers, see [Self-hosting with Docker](/self-hosting/docker). Both run the same application and data format.
+
+## How the deployment is laid out
+
+The repository's `vercel.json` defines two [Vercel Services](https://vercel.com/docs/services) in one project:
+
+| Service    | Source        | What it does                                                                                                                                        |
+| ---------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `frontend` | `apps/web`    | Serves the built web app (`apps/web/dist`) from Vercel's CDN.                                                                                       |
+| `backend`  | `apps/server` | Runs the Hono server in one Node.js Function (300-second budget). Its entrypoint, `apps/server/vercel.mjs`, re-exports the adapter the build emits. |
+
+Top-level rewrites decide which service answers a request. They're checked in order, and the first match wins:
+
+1. `/api/*`, `/uploads/*`, `/mcp`, `/.well-known/*`, and `/index.html`, `/robots.txt`, `/sitemap.xml`, `/llms.txt`, `/schema.json` go to `backend`.
+2. Any other path whose last segment has a file extension (`/assets/app.js`, `/favicon.ico`) goes to `frontend`.
+3. Everything else, including every page address such as `/dashboard` or `/alex/resume`, goes to `backend`, which returns the HTML shell with the right metadata.
+
+Keep the committed rewrites in `vercel.json`. They replace an SPA fallback, so don't add one.
+
+The configuration also schedules career work once a minute. This requires Vercel Pro or Enterprise; Hobby deployments must change the cron schedule to `0 0 * * *` before deploying. Daily ticks delay time-sensitive reminders and preparation. See [Vercel Cron limits](https://vercel.com/docs/cron-jobs/usage-and-pricing).
+
+## Before you start
+
+You need:
+
+- A Vercel account and a GitHub account.
+- Two independent random secrets, `AUTH_SECRET` and `ENCRYPTION_SECRET`. Generate each one separately:
+
+  ```bash
+  openssl rand -hex 32
+  ```
+
+  Keep both in a password manager. They must stay the same for the life of the installation: `AUTH_SECRET` signs sessions and tokens, and `ENCRYPTION_SECRET` encrypts the AI provider keys people save. Losing `ENCRYPTION_SECRET` makes those keys unreadable.
+
+The wizard connects three Vercel Marketplace services:
+
+| Service                   | Used for                                                                               |
+| ------------------------- | -------------------------------------------------------------------------------------- |
+| Neon PostgreSQL           | Application data                                                                       |
+| Vercel Blob (**private**) | Pictures, uploaded files, and assistant attachments                                    |
+| Upstash Redis             | Shared rate limits, live document updates, and assistant replies that survive a reload |
+
+Quotas and permitted use depend on your Vercel, Neon, and Upstash plans. Check [Vercel's Function limits](https://vercel.com/docs/functions/limitations), [Neon](https://vercel.com/marketplace/neon), and [Upstash](https://vercel.com/marketplace/upstash/upstash-kv) before you pick a plan, and turn off automatic paid upgrades if you want to stay inside a free allowance.
+
+<Note>
+  The assistant stops working on a reply after four minutes. This keeps the reply, plus saving and cleanup, inside
+  Vercel Hobby's five-minute Function limit. The limit applies to each message, not to the whole conversation, and
+  Docker uses the same limit.
+</Note>
+
+## Deploy
+
+<Steps>
+  <Step title="Start the wizard">
+    Select the button:
+
+    [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Freactive-resume%2Freactive-resume&project-name=reactive-resume&repository-name=reactive-resume&env=AUTH_SECRET%2CENCRYPTION_SECRET&envDescription=Generate+two+independent+secrets+with+openssl+rand+-hex+32.+Keep+these+values+across+deployments.&envLink=https%3A%2F%2Fdocs.rxresu.me%2Fself-hosting%2Fvercel&stores=%5B%7B%22type%22%3A%22integration%22%2C%22protocol%22%3A%22storage%22%2C%22integrationSlug%22%3A%22neon%22%2C%22productSlug%22%3A%22neon%22%7D%2C%7B%22type%22%3A%22integration%22%2C%22protocol%22%3A%22storage%22%2C%22integrationSlug%22%3A%22upstash%22%2C%22productSlug%22%3A%22upstash-kv%22%7D%2C%7B%22type%22%3A%22blob%22%2C%22access%22%3A%22private%22%7D%5D)
+
+  </Step>
+
+<Step title="Choose the Git scope">
+  On Hobby, select your **personal GitHub account**. Private repositories owned by a GitHub organization need Vercel
+  Pro.
+</Step>
+
+<Step title="Connect the services">
+  Approve Neon, Upstash, and Blob. Set Blob access to **private**. Pick regions close to each other and to the Function
+  region (`iad1` by default).
+</Step>
+
+<Step title="Enter the secrets">Paste `AUTH_SECRET` and `ENCRYPTION_SECRET`.</Step>
+
+  <Step title="Deploy">
+    Set **Framework Preset** to **Services**. Keep the project root at the repository root and keep the committed `vercel.json`. Don't select the `apps/web` subdirectory.
+
+    The `backend` build compiles both apps, then runs `apps/server/dist/prepare-deployment.mjs`, which checks the configuration and applies database migrations before the deployment goes live. You don't run migrations yourself.
+
+  </Step>
+</Steps>
+
+<Warning>
+  Don't paste Docker's `.env.example` into Vercel. Its local URLs and S3 settings select the wrong services, and the
+  build refuses any storage other than Blob.
+</Warning>
+
+## Check the deployment
+
+1. Open `https://<your-project>.vercel.app/api/health`. `database`, `storage`, and `redis` should each report `"status": "healthy"`, and `version` shows the release you deployed. A sleeping Neon database can fail the first check; retry once.
+2. Open the production domain and create an account.
+3. Optional: to use AI features, each person adds their own provider under **Settings → AI**.
+4. Optional: configure SMTP for verification and password-reset emails. Without SMTP, emails are written to the Function logs.
+5. Optional: add Google, GitHub, LinkedIn, or your own identity provider. See [Single sign-on (SSO)](/self-hosting/sso) for the callback URLs.
+
+## Scheduled career work
+
+Set a separate random `CRON_SECRET` (at least 16 characters) in the **Production** environment and redeploy. Generate it with `openssl rand -hex 32`. Vercel Cron sends `GET /api/career/run` with `Authorization: Bearer <CRON_SECRET>` automatically; no separate cron service is needed. Without this token, scheduling is unavailable and the HTTP runner is closed. Cron runs on production deployments.
+
+Users enable their own searches, preparation tasks, and reminders. Verify a due reminder after deployment; see [career scheduling](/contributing/career-platform#operate-scheduled-work) for delivery and retry limits.
+
+## Use a custom domain
+
+1. Add the domain to the Vercel project.
+2. Set `APP_URL` to the full origin, for example `https://resume.example.com`.
+3. Update the callback URL of every OAuth provider you configured.
+4. Redeploy.
+
+Changing the domain doesn't move stored files. They stay under the same `DEPLOYMENT_NAMESPACE`.
+
+## Update the deployment
+
+Redeploy the same project, for example by syncing your fork. Keep its connected services and secrets unchanged.
+
+- Migrations run in the build step, never in the runtime Function. A database advisory lock serializes concurrent deployments.
+- Rolling back to an older deployment doesn't roll back the database schema. Restore a database backup, or follow the rollback notes in the release's upgrade guide.
+
+<Warning>
+  Projects created before Reactive Resume used Vercel Services (v5.3 and earlier) must switch before they deploy v6.
+  Open **Settings → Build and Deployment**, set **Framework Preset** to **Services**, save, and then redeploy. Vercel
+  builds the `services` configuration only with this preset. Read [Migrating from v5](/self-hosting/upgrading-to-v6)
+  before you redeploy.
+</Warning>
+
+## Preview deployments
+
+Preview builds refuse to run migrations by default, so untrusted preview code can't change your production database. The build fails with "Preview deployment needs an isolated database" until you opt in.
+
+To enable previews:
+
+1. Connect separate Neon, Upstash, and Blob resources to the **Preview** environment.
+2. Set `ALLOW_PREVIEW_MIGRATIONS=true` for **Preview** only.
+
+A storage namespace doesn't isolate database rows. Never connect the production database to the Preview environment.
+
+## Back up your data
+
+Back up the Neon database and the Blob store. Store `AUTH_SECRET` and `ENCRYPTION_SECRET` separately from those backups.
+
+Moving between Docker and Vercel doesn't copy the database or files. Migrate both yourself.
+
+## Build locally
+
+A local Vercel build applies migrations, so run it only against an isolated database.
+
+```bash
+vercel pull --environment production
+APP_URL=https://your-project.vercel.app vercel build --prod
+```
+
+Replace sensitive pulled values with local-only ones first. The CLI has no deployment hostname before publishing, so `APP_URL` is required here; cloud builds set it automatically.
+
+## Vercel-specific variables
+
+On Vercel, the server reads the variables that Marketplace integrations inject. A variable you set explicitly always wins over these fallbacks. For everything else (SMTP, OAuth providers, feature flags), see [Environment variables](/self-hosting/environment-variables).
+
+| Variable                   | Required | Behavior on Vercel                                                                                                                                                                                                      |
+| -------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AUTH_SECRET`              | Yes      | Signs sessions and tokens. Keep it constant.                                                                                                                                                                            |
+| `ENCRYPTION_SECRET`        | Yes      | At least 32 characters. Encrypts saved AI provider keys. The build fails without it.                                                                                                                                    |
+| `APP_URL`                  | No       | Public origin. Defaults to the production domain (`VERCEL_PROJECT_PRODUCTION_URL`) in Production and to the deployment domain in Preview. Set it for a custom domain.                                                   |
+| `DATABASE_URL`             | Injected | Pooled runtime connection. Falls back to `POSTGRES_URL`.                                                                                                                                                                |
+| `DATABASE_MIGRATION_URL`   | No       | Direct connection for migrations. Falls back to `DATABASE_URL_UNPOOLED`, then `POSTGRES_URL_NON_POOLING`, then `DATABASE_URL`.                                                                                          |
+| `DATABASE_POOL_MAX`        | No       | Maximum database connections per Function instance. Default `10`.                                                                                                                                                       |
+| `REDIS_URL`                | Injected | Redis TCP/TLS URL. Falls back to Upstash's `KV_URL`. REST credentials alone don't work. The build fails without Redis.                                                                                                  |
+| `STORAGE_BACKEND`          | No       | Resolves to `blob` on Vercel. The build fails with any other value, so remove any `S3_*` variables.                                                                                                                     |
+| `BLOB_READ_WRITE_TOKEN`    | Injected | Provided by the connected Blob store. `BLOB_STORE_ID` with Vercel OIDC also works.                                                                                                                                      |
+| `DEPLOYMENT_NAMESPACE`     | No       | Prefix for Blob objects and Redis keys. Defaults to `production`, or to the branch URL in Preview. Keep it constant once files exist. Set different values if two installations share one Blob store or Redis database. |
+| `ALLOW_PREVIEW_MIGRATIONS` | No       | Set to `true` in Preview only, after you connect isolated preview resources.                                                                                                                                            |
+
+## Upload limits
+
+Vercel limits Function request bodies to 4.5 MB. The web app sends larger requests through private Blob staging, so the application's own limits still apply:
+
+- Uploads (pictures and files): 10 MB per file.
+- Assistant attachments: 25 MiB per file and 100 MiB per conversation.
+
+Blob objects are never public. The server serves public pictures and checks access to private files itself. API clients that send large RPC requests must follow the [large RPC requests](/guides/large-rpc-requests) protocol. REST (`/api/openapi`) and MCP request bodies stay subject to the 4.5 MB limit.
+
+## Troubleshooting
+
+| Symptom                                                                 | Fix                                                                                                                                |
+| ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| The deployment doesn't build as services                                | Set **Framework Preset** to **Services** under **Settings → Build and Deployment**, then redeploy.                                 |
+| The build fails with "Vercel requires private Blob storage"             | Connect a private Blob store and remove any `S3_*` variables and any `STORAGE_BACKEND` value other than `blob`.                    |
+| The build fails with "Vercel requires Redis and ENCRYPTION_SECRET"      | Connect Upstash Redis to the environment and set `ENCRYPTION_SECRET`.                                                              |
+| A preview build refuses to migrate                                      | Connect isolated preview resources, then set `ALLOW_PREVIEW_MIGRATIONS=true` for Preview.                                          |
+| Pages return 404 or the wrong content                                   | Check that the project root is the repository root and `vercel.json` is unchanged. Don't add an SPA fallback rewrite.              |
+| A large upload returns `413`                                            | Use the web app or the [large RPC requests](/guides/large-rpc-requests) protocol. Vercel Pro doesn't raise the request body limit. |
+| Assistant replies don't resume after a reload, or **Stop** doesn't work | Check the Upstash TLS URL, the remaining Upstash quota, and that every environment uses the expected `DEPLOYMENT_NAMESPACE`.       |
+| Sign-in redirects to another hostname                                   | Set `APP_URL` to the domain you use and redeploy.                                                                                  |
+| Files are missing after a configuration change                          | Restore the original `DEPLOYMENT_NAMESPACE` and Blob connection.                                                                   |
+
+## Related pages
+
+- [Migrating from v5](/self-hosting/upgrading-to-v6): what changes when an existing installation moves to v6.
+- [Single sign-on (SSO)](/self-hosting/sso): sign in through your own identity provider.
+- [Environment variables](/self-hosting/environment-variables): every variable the server reads.

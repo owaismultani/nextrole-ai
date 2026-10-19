@@ -1,0 +1,255 @@
+---
+title: "Single sign-on (SSO)"
+description: "Let people sign in to your self-hosted Reactive Resume through Authentik, Authelia, Keycloak, or any OpenID Connect or OAuth 2.0 identity provider."
+---
+
+This guide connects a self-hosted Reactive Resume to your own identity provider, so people sign in with their company or homelab account. It works with any OpenID Connect (OIDC) provider, and with plain OAuth 2.0 providers that expose a user-info endpoint. You configure it with environment variables and a restart; there's nothing to set up in the app.
+
+<Info>This is for self-hosted installations. On [rxresu.me](https://rxresu.me), use the built-in sign-in options.</Info>
+
+## Before you start
+
+You need:
+
+- Admin access to your identity provider, so you can register an application (client).
+- The public address of your installation, set as `APP_URL`, for example `https://resume.example.com`. Every callback URL is built from it.
+- A provider that returns an email address for each user. Reactive Resume identifies accounts by email and refuses sign-ins without one.
+
+## Register Reactive Resume with your provider
+
+Create a confidential OAuth 2.0 / OIDC client in your provider with these settings:
+
+| Setting                     | Value                                                                                                   |
+| --------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Redirect URI (callback URL) | `{APP_URL}/api/auth/callback/custom`, for example `https://resume.example.com/api/auth/callback/custom` |
+| Grant type                  | Authorization code                                                                                      |
+| Scopes                      | `openid profile email`                                                                                  |
+
+Copy the client ID and client secret. The callback must match exactly, including `https`, the port, and the absence of a trailing slash.
+
+<Warning>
+  Upgrading from a release before v5.2.8? The callback path changed from `/api/auth/oauth2/callback/custom` to
+  `/api/auth/callback/custom`. Update the redirect URI in your provider, or sign-in fails after the upgrade.
+</Warning>
+
+## Configure the environment variables
+
+Set the client credentials and one way of finding the provider's endpoints, then restart Reactive Resume.
+
+<Tabs>
+  <Tab title="OIDC discovery (recommended)">
+    Most modern providers publish a discovery document. Point Reactive Resume at it and it reads the authorization, token, and user-info endpoints from there.
+
+    ```bash .env
+    OAUTH_PROVIDER_NAME="Company SSO"
+    OAUTH_CLIENT_ID="your-client-id"
+    OAUTH_CLIENT_SECRET="your-client-secret"
+    OAUTH_DISCOVERY_URL="https://sso.example.com/.well-known/openid-configuration"
+    ```
+
+  </Tab>
+  <Tab title="Manual endpoints">
+    For providers without discovery, set all three endpoint URLs.
+
+    ```bash .env
+    OAUTH_PROVIDER_NAME="Company SSO"
+    OAUTH_CLIENT_ID="your-client-id"
+    OAUTH_CLIENT_SECRET="your-client-secret"
+    OAUTH_AUTHORIZATION_URL="https://sso.example.com/oauth/authorize"
+    OAUTH_TOKEN_URL="https://sso.example.com/oauth/token"
+    OAUTH_USER_INFO_URL="https://sso.example.com/oauth/userinfo"
+    ```
+
+  </Tab>
+</Tabs>
+
+| Variable                                                            | Required               | Description                                                              |
+| ------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------ |
+| `OAUTH_CLIENT_ID`                                                   | Yes                    | Client ID from your provider.                                            |
+| `OAUTH_CLIENT_SECRET`                                               | Yes                    | Client secret from your provider.                                        |
+| `OAUTH_DISCOVERY_URL`                                               | One of the two methods | The provider's `/.well-known/openid-configuration` URL.                  |
+| `OAUTH_AUTHORIZATION_URL`, `OAUTH_TOKEN_URL`, `OAUTH_USER_INFO_URL` | One of the two methods | All three, when the provider has no discovery document.                  |
+| `OAUTH_PROVIDER_NAME`                                               | No                     | Label on the sign-in button and in **Settings**. Default `Custom OAuth`. |
+| `OAUTH_SCOPES`                                                      | No                     | Space-separated scopes. Default `openid profile email`.                  |
+
+All URLs must use `http` or `https`. On Docker, restart the container after changing `.env`; on Vercel, add the variables to the project and redeploy.
+
+<Note>
+  The sign-in button appears only when `OAUTH_CLIENT_ID` and `OAUTH_CLIENT_SECRET` are set together with
+  `OAUTH_DISCOVERY_URL` or all three manual endpoint URLs. If it is missing, check that configuration and restart the
+  server.
+</Note>
+
+## Check that it works
+
+1. Open your installation's sign-in page. Under **or continue with**, a button with a key icon shows your `OAUTH_PROVIDER_NAME`.
+2. Select it, sign in at your provider, and approve access. You land on **Documents**.
+3. In **Settings → Account**, the **Sign-in & security** section lists your provider as **Connected**.
+
+People who already have an account can add or remove SSO from the same place with **Connect** and **Disconnect**. See [Linking social accounts](/guides/linking-social-accounts).
+
+## How profiles are mapped
+
+When someone signs in for the first time, Reactive Resume creates their account from the provider's profile:
+
+| Reactive Resume field | Taken from, in order                                                                          |
+| --------------------- | --------------------------------------------------------------------------------------------- |
+| Email (required)      | `email`                                                                                       |
+| Name                  | `name`, then `preferred_username`, then the part of the email before `@`                      |
+| Username              | `preferred_username`, then the part of the email before `@`. A number is added if it's taken. |
+| Picture               | `image`, then `picture`, then `avatar_url`                                                    |
+
+If the email already belongs to an account, the sign-in is linked to that account, which keeps its name and username. This works only when that account's email address is verified in Reactive Resume, protecting an existing account from an unverified email match. If it isn't (common on installations without SMTP, where verification emails never arrive), the sign-in stops with an "account not linked" error. Verify the existing account's email before trying SSO again, or sign in to that account and connect the provider in **Settings → Account**.
+
+## Make SSO the only way in
+
+Two feature flags turn Reactive Resume into an SSO-only installation:
+
+| Variable                       | Effect                                                                                     |
+| ------------------------------ | ------------------------------------------------------------------------------------------ |
+| `FLAG_DISABLE_EMAIL_AUTH=true` | Hides email-and-password sign-in and registration.                                         |
+| `FLAG_DISABLE_SIGNUPS=true`    | Blocks new accounts through every method, including SSO. Existing users can still sign in. |
+
+Set only `FLAG_DISABLE_EMAIL_AUTH` if new people should still get an account on their first SSO sign-in.
+
+## Provider examples
+
+Replace the hostnames with your own. The redirect URI is always `{APP_URL}/api/auth/callback/custom`.
+
+<AccordionGroup>
+  <Accordion title="Authentik">
+    1. In the admin interface, open **Applications → Providers** and create an **OAuth2/OpenID Provider**. Set **Client type** to **Confidential** and add the redirect URI.
+    2. Open **Applications → Applications**, create an application with the slug `reactive-resume`, and select the provider.
+    3. Copy the client ID and secret from the provider.
+
+    ```bash .env
+    OAUTH_PROVIDER_NAME="Authentik"
+    OAUTH_CLIENT_ID="your-client-id"
+    OAUTH_CLIENT_SECRET="your-client-secret"
+    OAUTH_DISCOVERY_URL="https://auth.example.com/application/o/reactive-resume/.well-known/openid-configuration"
+    ```
+
+  </Accordion>
+
+  <Accordion title="Authelia">
+    Add a client to Authelia's `configuration.yml`. Store a hashed secret there, generated with `authelia crypto hash generate pbkdf2 --variant sha512`.
+
+    ```yaml
+    identity_providers:
+      oidc:
+        clients:
+          - client_id: reactive-resume
+            client_name: Reactive Resume
+            client_secret: "the-hashed-secret"
+            public: false
+            authorization_policy: two_factor
+            redirect_uris:
+              - https://resume.example.com/api/auth/callback/custom
+            scopes:
+              - openid
+              - profile
+              - email
+            token_endpoint_auth_method: client_secret_post
+    ```
+
+    Give Reactive Resume the **plain-text** secret, not the hash:
+
+    ```bash .env
+    OAUTH_PROVIDER_NAME="Authelia"
+    OAUTH_CLIENT_ID="reactive-resume"
+    OAUTH_CLIENT_SECRET="the-plain-text-secret"
+    OAUTH_DISCOVERY_URL="https://auth.example.com/.well-known/openid-configuration"
+    ```
+
+  </Accordion>
+
+  <Accordion title="Keycloak">
+    1. In your realm, open **Clients → Create client** and set **Client ID** to `reactive-resume`.
+    2. Turn **Client authentication** on and keep **Standard flow** enabled.
+    3. Add the redirect URI under **Valid redirect URIs**.
+    4. Copy the secret from the **Credentials** tab.
+
+    ```bash .env
+    OAUTH_PROVIDER_NAME="Keycloak"
+    OAUTH_CLIENT_ID="reactive-resume"
+    OAUTH_CLIENT_SECRET="your-client-secret"
+    OAUTH_DISCOVERY_URL="https://keycloak.example.com/realms/myrealm/.well-known/openid-configuration"
+    ```
+
+  </Accordion>
+</AccordionGroup>
+
+## Built-in providers
+
+Google, GitHub, and LinkedIn sign-in each turn on when both of their variables are set, and can run alongside your own provider:
+
+| Provider | Variables                                      | Callback URL                           |
+| -------- | ---------------------------------------------- | -------------------------------------- |
+| Google   | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`     | `{APP_URL}/api/auth/callback/google`   |
+| GitHub   | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`     | `{APP_URL}/api/auth/callback/github`   |
+| LinkedIn | `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET` | `{APP_URL}/api/auth/callback/linkedin` |
+
+## Upgrading an install that uses OIDC discovery
+
+Since v5.2.8, linked accounts are identified by the issuer your provider advertises. The database migration that introduced this can't know your issuer, so it filled existing SSO accounts with the placeholder `local:oauth:custom`. If you used `OAUTH_DISCOVERY_URL` before v5.2.8, run this once after upgrading, with the `issuer` value from your discovery document:
+
+```sql
+UPDATE account SET issuer = 'https://auth.example.com/realms/main' WHERE provider_id = 'custom';
+```
+
+Without it, existing users who sign in through your provider no longer match their account. No data is lost. Installations that use the three manual URLs already have the right value and need nothing.
+
+## URLs and reverse proxies
+
+- Set `APP_URL` to the exact public address people use, with `https` in production. Callback URLs, secure cookies, and trusted origins all come from it.
+- Only the `APP_URL` origin (plus `localhost` and `127.0.0.1` on port 3000) is trusted. Other domains pointing at the same installation aren't.
+- Behind a reverse proxy, pass the `Host` and `X-Forwarded-Proto` headers through unchanged.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="The provider did not return an email address">
+    The sign-in fails, and the server logs "OAuth Provider provider did not return an email address". Include the
+    `email` scope, make sure your provider releases the email claim, and check that the user has an email address in the
+    provider.
+  </Accordion>
+  <Accordion title="Redirect URI mismatch">
+    The callback registered in your provider must equal `{APP_URL}/api/auth/callback/custom` exactly. Look for a
+    trailing slash, `http` instead of `https`, a different port, or a different hostname.
+  </Accordion>
+  <Accordion title="Sign-in succeeds at the provider but you land on an error page or aren't signed in">
+    Failed callbacks open the app's `/auth/error` page. The most common cause is an `APP_URL` that doesn't match the
+    real public address, for example `http://` behind a TLS proxy. Set `APP_URL` to the canonical `https` address and
+    restart.
+  </Accordion>
+  <Accordion title="The SSO button doesn't appear">
+    Both `OAUTH_CLIENT_ID` and `OAUTH_CLIENT_SECRET` must be set and non-empty. Restart after changing them.
+  </Accordion>
+  <Accordion title='Sign-in fails with "account not linked"'>
+    An account with the same email already exists, and its email address isn't verified in Reactive Resume. The person
+    can verify their email (this needs SMTP) and try again. Accounts created through SSO are always treated as verified.
+  </Accordion>
+  <Accordion title="Existing users get a new, empty account or can't sign in after an upgrade">
+    If you use `OAUTH_DISCOVERY_URL` and upgraded from before v5.2.8, run the issuer update in [Upgrading an install
+    that uses OIDC discovery](#upgrading-an-install-that-uses-oidc-discovery).
+  </Accordion>
+  <Accordion title="An MCP or API client's redirect URI is rejected">
+    This is a different feature: Reactive Resume is then the OAuth server, for tools that connect to it. Dynamic client
+    registration accepts your app's own origin and local loopback callbacks. Trusted private installations that need
+    other redirect URIs can set `FLAG_ALLOW_UNSAFE_OAUTH_REDIRECT_URI=true`, which accepts any parseable URI. Don't
+    enable it on public or shared installations.
+  </Accordion>
+</AccordionGroup>
+
+## Security checklist
+
+- Use `https` for both Reactive Resume and your provider.
+- Keep `OAUTH_CLIENT_SECRET`, `AUTH_SECRET`, and `BETTER_AUTH_API_KEY` out of version control. Rotating `AUTH_SECRET` signs everyone out.
+- Register the exact redirect URI; avoid wildcards.
+- Request only the default scopes; Reactive Resume needs nothing more.
+
+## Related pages
+
+- [Environment variables](/self-hosting/environment-variables): every variable the server reads.
+- [Self-hosting with Docker](/self-hosting/docker): where to put these variables in a container setup.
+- [Self-hosting on Vercel](/self-hosting/vercel): adding variables to a Vercel project.

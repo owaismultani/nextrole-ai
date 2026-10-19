@@ -1,0 +1,273 @@
+---
+title: "Migrating from v5"
+description: "Upgrade a self-hosted Reactive Resume v5 installation to v6: back up, run the startup migrations, convert old styles, and check API and MCP changes."
+---
+
+Reactive Resume v6 is a full redesign. For people using it, almost everything looks different; for you as the operator, the upgrade is a normal image or deployment update with a few things to plan for. This page walks through the upgrade and lists what changes in the database, the routes, the API, and the MCP server. For the user-facing changes, see [What's new in v6](/guides/whats-new-in-v6).
+
+This page is for installations already on v5. Coming from v4? Follow [Migrating from v4](/self-hosting/migration) first.
+
+## What to expect
+
+- **Migrations run on startup**, as in v5. One v6 migration adds columns and tables, moves data, and drops two legacy columns. You don't run anything by hand.
+- **v5 can't run against the upgraded database.** The v6 migration removes columns that v5 reads, so stop every v5 instance before the first v6 instance starts. There's no mixed v5 and v6 rolling update.
+- **Cover letters leave resumes.** Every letter stored inside a resume becomes a saved letter of its own.
+- **Old style-editor styles need a one-time manual conversion**, with a script you run yourself. Nothing converts them automatically.
+- **New optional environment variables** configure server AI and web access. Existing v5.3 settings keep working. Reverse proxies need `TRUSTED_PROXIES` to preserve per-visitor authentication limits; `REDIS_URL` is now optional for the assistant outside Vercel.
+- **Vercel projects must switch to the Services framework preset** before they deploy v6.
+
+## Before you upgrade
+
+<Steps>
+  <Step title="Back up the database and files">
+    Take a full PostgreSQL backup (for example with `pg_dump`) and back up your uploads: the local storage directory,
+    the S3 bucket, or the Blob store. Check that you can restore the backup. A backup is the simplest way back if
+    anything goes wrong; see [Roll back to v5](#roll-back-to-v5).
+  </Step>
+  <Step title="Check your integrations">
+    If scripts, automations, or AI clients use the API or MCP server, read [API changes](#api-changes) and [MCP
+    changes](#mcp-changes). Some fields and tools were removed.
+  </Step>
+  <Step title="Plan a short downtime">
+    Migrations usually finish in seconds, but the letter migration scans every resume. On large installations, allow a
+    few minutes and upgrade when traffic is low.
+  </Step>
+</Steps>
+
+## Upgrade
+
+<Tabs>
+  <Tab title="Docker">
+    Change the image tag to the v6 release (`v6`, a specific version such as `v6.0.0`, or `latest`), then recreate the container:
+
+    ```bash
+    docker compose pull
+    docker compose up -d
+    docker compose logs -f reactive-resume
+    ```
+
+    Use your own service name if it isn't `reactive-resume`. Watch the log for `Running database migrations...` followed by `Database migrations completed`. The server starts serving only after that.
+
+    Building from the repository's `compose.yml` instead? See [Self-hosting with Docker](/self-hosting/docker) for the build command.
+
+  </Tab>
+  <Tab title="Kubernetes">
+    Scale the v5 Deployment to zero, or set the Deployment's update strategy to `Recreate`, so no v5 pod runs next to a v6 pod. Then change the image tag and apply. The first v6 pod takes a database advisory lock and applies the migrations; other pods wait for it.
+
+    See [Self-hosting with Kubernetes](/self-hosting/kubernetes) for the manifests.
+
+  </Tab>
+  <Tab title="Vercel">
+    1. In the Vercel project, open **Settings → Build and Deployment**, set **Framework Preset** to **Services**, and save.
+    2. Sync your fork with the v6 release and redeploy.
+
+    Migrations run in the build step, before the new deployment receives traffic. Don't promote an older v5 deployment afterwards; it can't run against the migrated database. See [Self-hosting on Vercel](/self-hosting/vercel).
+
+  </Tab>
+</Tabs>
+
+## Check the upgrade
+
+1. Open `/api/health`. `status` should be `healthy` and `version` should start with `6`.
+2. Sign in. You land on **Documents**, which lists resumes and cover letters together.
+3. If a resume used to contain a cover letter, that letter now appears in **Documents** as a document of its own, named after the resume.
+4. If the server log shows `Database schema verification failed`, read [Schema check](#schema-check).
+
+## Convert styles from the old style editor
+
+Before Custom Styles became CSS, v5 had a visual style editor that stored its own style rules. v6 no longer renders those rules. Until you convert them, resumes and letters that still use them print with their template's default look.
+
+The conversion rewrites each affected document's stylesheet as Custom Styles (CSS) that reproduces the old look. It runs only when you start it, it works in four tables (`resume`, `resume_version`, `cover_letter`, `cover_letter_version`), and it changes only the stylesheet: the old rules stay in the data. Files imported later from old JSON exports are converted in the browser as they're imported, so they don't need the script.
+
+The script is `apps/server/dist/migrate-legacy-styles.mjs`, included in the Docker image. It connects with the server's `DATABASE_URL`.
+
+<Steps>
+  <Step title="Dry run">
+    Converts every affected row in memory and prints counts. Nothing is written.
+
+    ```bash
+    docker compose exec reactive-resume node apps/server/dist/migrate-legacy-styles.mjs
+    ```
+
+  </Step>
+  <Step title="Convert, with a backup file">
+    Every stylesheet it replaces is appended to the backup file (one JSON object per line) before its row is written. Put the file on persistent storage, such as the `/app/data` volume.
+
+    ```bash
+    docker compose exec reactive-resume node apps/server/dist/migrate-legacy-styles.mjs --apply --backup /app/data/legacy-styles-backup.ndjson
+    ```
+
+    It's safe to run again, for example after an interruption: converted rows are skipped. You can reuse the same backup file or start a new one.
+
+  </Step>
+  <Step title="Undo, if needed">
+    Puts back the stylesheets recorded in the backup file, except on documents whose stylesheet was edited since.
+
+    ```bash
+    docker compose exec reactive-resume node apps/server/dist/migrate-legacy-styles.mjs --restore /app/data/legacy-styles-backup.ndjson
+    ```
+
+  </Step>
+</Steps>
+
+Each run ends with a summary per table:
+
+| Count        | Meaning                                                                                       |
+| ------------ | --------------------------------------------------------------------------------------------- |
+| `candidates` | Rows that still use the old style rules.                                                      |
+| `migrated`   | Rows converted (or, in a dry run, rows that would be).                                        |
+| `changed`    | Rows edited while the script ran. They were left alone; run the script again to pick them up. |
+| `failed`     | Rows whose data couldn't be read. They were left as they are, and the log names each one.     |
+
+On Kubernetes, run the same commands with `kubectl exec deploy/<your-deployment> -- node apps/server/dist/migrate-legacy-styles.mjs ...`. On Vercel there's no container: from a checkout of the same release, put the production variables in the root `.env` (for example with `vercel env pull .env --environment production`), set `DATABASE_URL` to the direct, unpooled connection, run `pnpm install` and `pnpm build --filter=server`, and then run the script with `node`.
+
+## Check legacy PostgreSQL volumes
+
+Some v5 Compose examples mounted PostgreSQL 17 at `/var/lib/postgresql`. Unless you explicitly changed `PGDATA`, PostgreSQL 17 stores its database at `/var/lib/postgresql/data`, so Docker created an anonymous volume there instead of using the parent mount. See the [official PostgreSQL image volume guidance](https://github.com/docker-library/docs/blob/master/postgres/README.md#pgdata).
+
+Before recreating that container, inspect its mounts and make a logical database backup from the running instance. Keep the old container and its volumes until you have restored and checked the backup. Do not run `docker compose down -v` or delete anonymous volumes during the upgrade.
+
+PostgreSQL 18 changes the default data layout. Changing the image tag alone does not migrate a PostgreSQL 17 database; restore the logical backup into a fresh PostgreSQL 18 volume, or follow PostgreSQL's supported major-version upgrade procedure.
+
+## What the migrations change
+
+Existing v5 migrations stay unchanged. The v6 changes are consolidated in `20261001042749_v6_release`, generated from the current schema with the v5 data conversions included once. It runs under an advisory lock and ships one `rollback.sql` alongside `migration.sql`.
+
+| Area            | What changes                                                                                                                                                                                                                                  |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Resume versions | Adds `kind`, `name`, and session fields, fills kinds from old labels, then removes `label`.                                                                                                                                                   |
+| Public links    | Adds `resume_slug_redirect`, so renamed public links keep working for 30 days.                                                                                                                                                                |
+| Documents       | Adds Trash to resumes and letters, tags and locking to letters, and links from resumes to applications.                                                                                                                                       |
+| Applications    | Adds the Closed stage and reason, sent document versions and Check score, requirements, and posting provenance. Converts rejected and archived applications once, updates their timeline, links unambiguous letters, then removes `archived`. |
+| Letters         | Adds structured recipient fields, live links to resume details and design, and version history. Saves embedded resume letters as separate documents and removes their sections from resumes and page layouts.                                 |
+| Assistant       | Adds conversations about letters and counts of proposed and accepted edits.                                                                                                                                                                   |
+| Web access      | Creates `web_access_credentials` directly for encrypted per-user connections.                                                                                                                                                                 |
+
+### Cover letters leaving resumes
+
+In v5, a resume could hold cover letters as a section. The v6 migration moves each of them, hidden ones included, into a saved letter:
+
+- The letter is named after the resume and the section, for example "Product Designer — Cover letter".
+- It's linked to the resume, and takes its sender details and design from it, so it looks as it did inside the resume.
+- If a resume held exactly one letter and exactly one application used that resume without a letter, the letter becomes that application's letter.
+- Resume version history keeps its older versions as they were. Restoring one saves its letters again as letters (once) instead of putting them back in the resume.
+
+From then on, any resume that reaches the server with a cover-letter section, through an old browser tab, an imported file, a restored version, or an API client, has the section turned into a saved letter in the same save. A letter with the same text from the same section isn't saved twice.
+
+### Structured dates
+
+Dates on entries (experience and its roles, education, projects, volunteering, awards, certifications, and publications) are now stored as structured `dates`: a start and end year or year-month, and whether it's ongoing. No migration changes stored data for this. Instead, every read fills in `dates` from the old text, and every save writes the text (`period` or `date`) from `dates`. Text that couldn't be read exactly, such as "Summer 2016", keeps printing as typed until someone edits the date. The date format is inferred from how the dates were typed. See [Entering dates](/guides/entering-dates).
+
+### Trash
+
+Deleting a resume or letter now moves it to Trash. Trashed documents stop being shared publicly, and their public address stays reserved. They're deleted for good, with their files, 30 days later. There's no scheduled job for this: it happens the next time the owner opens their documents, so storage is freed then. See [Using the Trash](/guides/using-the-trash).
+
+## Removed and redirected routes
+
+These v5 addresses redirect to their v6 place, so bookmarks and old links keep working through the 6.0 releases. Update any links you control.
+
+| v5 address                                                                                           | Now goes to                                                                                               |
+| ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `/dashboard/resumes`                                                                                 | `/dashboard?type=resume` (tags, sort, and list view carry over)                                           |
+| `/dashboard/cover-letters`                                                                           | `/dashboard?type=letter`                                                                                  |
+| `/dashboard/settings/profile`, `/dashboard/settings/authentication`                                  | `/dashboard/settings/account`                                                                             |
+| `/dashboard/settings/integrations`, `/dashboard/settings/api-keys`, `/dashboard/settings/job-search` | `/dashboard/settings/ai`                                                                                  |
+| `/agent`                                                                                             | `/dashboard`                                                                                              |
+| `/agent/new?resumeId=<id>`                                                                           | `/builder/<id>?assistant=new` (or `/dashboard` without a resume)                                          |
+| `/agent/<threadId>`                                                                                  | The conversation's document in the editor, with the assistant open. `/dashboard` if the document is gone. |
+
+Cover letters now open in their own editor at `/builder/letter/<id>`. API, MCP, auth, and public resume addresses (`/<username>/<slug>`) are unchanged.
+
+## API changes
+
+Base paths, authentication, and API keys are unchanged. These changes can affect existing clients. The [API reference](/guides/using-the-api) has the full list.
+
+**Resume data**
+
+- Dated items carry `dates` (`start`, `end`, `present`, and `raw` for text that couldn't be read). Write `dates`. The text in `period` or `date` is rewritten from `dates` on every save, so a change to the text alone is overwritten. Items sent without `dates` get them from their text.
+- `metadata.page.dateFormat` (`short`, `long`, `numeric`, or `iso`) sets how dates print.
+- Resumes no longer hold `cover-letter` custom sections. Any you send are saved as letters and removed from the resume.
+
+**Resumes and documents**
+
+- `DELETE /resumes/{id}` and `DELETE /cover-letters/{id}` now move the document to Trash. New `documents` endpoints list, rename, tag, lock, trash, restore, and permanently delete (`/documents/purge`) resumes and letters together.
+- Creating or duplicating a resume no longer needs a `slug`; one is generated from the name. `GET /resumes/{resumeId}/slug-check` validates a slug (lowercase letters and numbers joined by single dashes) and suggests one.
+- Version entries have `kind` and `name` instead of `label`. New endpoints get, create (named), rename, and delete resume versions, and letters have the same set under `/cover-letters/{id}/versions`.
+- Resume PDF downloads accept only the resume. The `cover-letter` target is gone, and old signed links that ask for it return `404`. Download letters through `/cover-letters`.
+
+**Cover letters**
+
+- `POST /cover-letters/from-resume` (`copyEmbedded`) is removed, since resumes no longer contain letters.
+- Letters gain `layout`, `recipientName`, `recipientCompany`, `letterDate`, `senderLinked`, and `designLinked`, and a `draft` endpoint that drafts the letter body with the user's AI provider.
+
+**Applications**
+
+- The `rejected` stage and the `archived` flag are gone. Use `status: "closed"` with `closedReason` (`not-selected`, `withdrew`, `accepted-other`, or `no-response`). CSV import still reads `rejected` and `archived` from older exports as closed.
+- Listing applications returns closed ones too; `includeArchived` is removed. Filter by `status` instead.
+- New interview endpoints (`/applications/{id}/interviews`), and new fields for the linked letter, what was sent (`sentResumeVersionId`, `sentCoverLetterVersionId`, `sentCheckScore`), and `requirements`.
+- The account data export now includes applications.
+
+**Assistant**
+
+- `POST /agent/threads/for-resume`, `POST /agent/threads/{id}/archive`, and `POST /agent/actions/{id}/revert` are removed. Start a conversation with `POST /agent/threads`, passing either `resumeId` or `coverLetterId`.
+
+## MCP changes
+
+- Removed: `copy_embedded_cover_letter`.
+- `download_resume_pdf` no longer takes a `target`; it always returns the resume.
+- `delete_resume` and `delete_cover_letter` now move the document to Trash.
+- Added: `add_application_interview` and `update_application_interview`.
+- `list_applications` no longer takes `includeArchived`. `update_application` no longer takes `archived`, and accepts `closedReason` with the `closed` stage.
+- Resume patch paths document the new `dates` field. The resume schema resource, like `/schema.json`, is now generated from the live schema.
+
+See [Using the MCP server](/guides/using-the-mcp-server) and [Managing applications with MCP](/guides/managing-applications-with-mcp).
+
+## Environment variables
+
+Existing variables remain supported. New settings are optional unless your deployment uses the corresponding feature:
+
+- `AI_PROVIDER`, `AI_MODEL`, `AI_API_KEY`, and `AI_BASE_URL` configure a server AI provider. Set provider, model, and key together; Ollama may omit the key. `openai-compatible` also requires a base URL. Configuring this shared provider disables personal AI providers. Leave these unset to continue using user-configured providers.
+- `WEB_ACCESS_PROVIDER`, `WEB_ACCESS_API_KEY`, and `WEB_ACCESS_API_URL` configure server web access. Providers are Firecrawl, Tavily, and Exa. Set provider and key together; only Firecrawl accepts a custom API URL, which may be keyless.
+- `TRUSTED_PROXIES` lists comma-separated proxy IP addresses or CIDRs. Behind nginx, Caddy, or Traefik, include the immediate proxy and any trusted intermediate hops. The proxy must append or replace `X-Forwarded-For` with the actual client address. Leave this unset for direct connections. Never include public client networks: forwarded headers are trusted only through configured proxy addresses.
+- `FLAG_DISABLE_API_RATE_LIMIT` now disables all API and authentication limits, including PDF exports and AI requests. Keep it `false` on public installations.
+- `REDIS_URL` is optional for the assistant. Without Redis, replies can't resume after a page reload, and **Stop** reaches only a reply running on the same server. `ENCRYPTION_SECRET` is still required for AI providers and the assistant. Vercel still requires Redis.
+- The web build now also produces `apps/web/dist-prerender` (localized marketing pages). The Docker image includes it. If you build and deploy the server yourself, copy it next to `apps/web/dist`; without it, those pages render in the browser instead.
+
+See [Environment variables](/self-hosting/environment-variables) for the full list.
+
+## Schema check
+
+After the migrations, the server compares the live database with the tables and columns it expects. If something is missing, for example after a partial restore, it logs `Database schema verification failed` and keeps running, which can lead to errors later.
+
+Set `STRICT_SCHEMA_CHECK=true` to make startup fail instead. That's a good choice for production: a failed start is easier to notice than errors in the middle of the day. To fix drift, restore a consistent backup or recreate the missing objects, then restart.
+
+## Roll back to v5
+
+Restoring the backup you took before the upgrade is the safest way back, and the only one that undoes everything. Stop v6 first, restore the database (and files, if they changed), then start v5.
+
+If you must keep data written since the upgrade, you can undo the migrations that v5 can't live with, by hand, before starting v5:
+
+1. Stop every v6 instance.
+2. Run the consolidated rollback script with `psql`:
+
+   ```bash
+   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f migrations/20261001042749_v6_release/rollback.sql
+   ```
+
+   The script puts letters back into the resumes they came from (one section per resume per run; run it again for a resume that had several), restores `application.archived` and `resume_version.label`, and turns closed applications back into `rejected` or archived. These steps run in one transaction.
+
+3. Start v5.
+
+Columns and tables added by v6 stay; v5 ignores them. The letters saved from resumes stay too, so in v5 each one shows both inside its resume and in the cover letter library. Documents in Trash show up again in v5, because v5 doesn't know about Trash. If you converted old styles, the converted stylesheets stay, and `--restore` with your backup file puts the originals back.
+
+<Warning>
+  The rollback script doesn't change the migration ledger, so the v6 migration stays recorded as applied. Upgrading the
+  same database to v6 again won't re-run it. Take a fresh backup and ask in [GitHub
+  Discussions](https://github.com/reactive-resume/reactive-resume/discussions) before you try.
+</Warning>
+
+## Related pages
+
+- [What's new in v6](/guides/whats-new-in-v6): the user-facing changes.
+- [Self-hosting with Docker](/self-hosting/docker): updating and backing up a container installation.
+- [Custom styles](/applying-custom-styles): how converted styles look and how to edit them.

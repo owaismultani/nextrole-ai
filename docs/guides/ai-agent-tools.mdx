@@ -1,0 +1,69 @@
+---
+title: "Assistant tools"
+description: "Reference for the tools the Reactive Resume assistant can call: reading your document and attachments, proposing edits, asking questions and searching the web."
+---
+
+The assistant works through a small, fixed set of tools. You never call them yourself: the assistant picks one when your request needs it, and the conversation shows a short status line for each step. This page lists every tool, what it does, and when it's available.
+
+<Frame caption="Tool steps appear as short status lines in the conversation">
+  <img
+    src="/images/guides/ai-agent-tools/tool-status-in-conversation.webp"
+    alt="A request to tighten the summary, followed by the status line Read the resume with a checkmark and the start of a card titled 1 of 1 applied"
+  />
+</Frame>
+
+## Tools
+
+| Tool                | What it does                                                                                                                                                                                                                | Shown in the conversation as                                                    | Available when                                                                            |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `read_resume`       | Reads the open resume: its full text, plus every passage an edit can target (each paragraph of the summary, each bullet or paragraph of an entry's description), each with an ID. Hidden sections and entries are left out. | **Read the resume**                                                             | You're in a resume and the document chip is included in your message.                     |
+| `read_letter`       | Reads the open cover letter's body, sender and recipient, plus the text of the resume it's linked to, if any. The greeting and sign-off aren't editable through the assistant.                                              | **Read the letter**                                                             | You're in a letter and the document chip is included in your message.                     |
+| `propose_edits`     | Proposes a set of up to 12 edits with a short title. Each edit either rewrites one passage or adds a new passage after it, and comes with a one-line reason. Nothing changes until you accept.                              | **Preparing edits…**, then the proposed edits card                              | Same as the read tool.                                                                    |
+| `ask_user_question` | Asks you a short question, with up to four suggested answers, before the assistant continues.                                                                                                                               | A blue question card                                                            | Always.                                                                                   |
+| `read_attachment`   | Reads a file attached to a message. Text, Markdown and JSON files return their content (up to 40,000 characters).                                                                                                           | **Read the attachment**                                                         | Always; useful only when the message has attachments.                                     |
+| `search_web`        | Searches with your selected Firecrawl, Tavily or Exa web connection.                                                                                                                                                        | **Searching the web…**, then **Searched the web** and **Sources**               | An optional web connection is configured.                                                 |
+| `read_page`         | Reads a supplied public URL with your selected reader, falling back to the built-in reader when enhanced reading fails.                                                                                                     | **Reading page…**, then **Read the page**, with clipping warnings when detected | Available with the assistant's custom document tools, including without a web connection. |
+
+## How edits are placed
+
+Every edit targets one passage by the ID the read tool returned. When you accept, the new text replaces that passage (or is added after it) in your document, as a single step you can undo.
+
+If you or another change edits a passage after the assistant read it, the edit can no longer be placed. The card then says, for example, "1 edit couldn't be placed: its text changed. Ask again to redo it." Edits that were placed but whose passage changed afterwards show **Out of date: the text has changed since.**
+
+The assistant is instructed to rewrite only what your document already says: it doesn't add employers, titles, dates, numbers, skills or achievements that aren't in the document or the conversation. When a job posting asks for something your document doesn't mention, it uses `ask_user_question` first, and only drafts it from your answer.
+
+## What the assistant also sees
+
+Besides what the tools return, each message can include:
+
+- **The job posting**: the role, the company, the job description (or its requirements list) and your notes from the linked application. A resume uses the application it was made for, or else the most recently updated application it's linked to. A letter uses only the application it was made for. Removing the posting chip leaves it out.
+- **Attachments**: images, PDFs and MP3 or WAV audio are passed to the model directly, when the provider supports them. Other types are only listed by name.
+- **The conversation so far**: earlier messages, tool results and your answers.
+
+## Web search support
+
+A selected **Web access** connection always supplies search through `search_web`, regardless of which AI provider you use. Only one search mechanism is offered per reply. Reading a supplied link uses `read_page`; built-in reading needs no commercial web account.
+
+Without a web connection, the assistant can choose `read_page` to fetch a supplied public URL with the built-in reader. If the page cannot be read, paste the relevant text. The AI model does not fetch page content from a URL alone.
+
+The source list combines successful search/read results, deduplicates links, and survives reopening the conversation. Links invented in the reply text are not added as retrieved sources. Failed or interrupted web tools show that outcome; they do not show a successful search. Existing conversations retain source evidence from historical native searches.
+
+## Limits
+
+| Limit                                       | Value                                                                                   |
+| ------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Edits per proposal set                      | 12                                                                                      |
+| Tool steps per reply                        | 30                                                                                      |
+| Combined custom search/read calls per reply | 6                                                                                       |
+| Page text returned to the model             | 20,000 characters; clipping is reported                                                 |
+| Length of one reply                         | About 4 minutes, then "Time limit reached. Your progress is saved. Ask me to continue." |
+| Attachments per message                     | 10                                                                                      |
+| Size per attachment                         | 25 MB                                                                                   |
+| Attachments per conversation                | 100 MB in total                                                                         |
+| Text read from one attachment               | 40,000 characters                                                                       |
+
+Stopping a reply cancels outstanding search and reading as well as the model request.
+
+## Release verification
+
+Use the [live connection check](/self-hosting/job-search-and-ai#opt-in-live-connection-check) against a dedicated test installation to verify search and reading with each configured web service. Mocked SDK checks cover assistant endpoint and function-tool serialization; they do not prove a maintainer's live account or model access.

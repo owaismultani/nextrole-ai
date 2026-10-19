@@ -1,0 +1,53 @@
+---
+title: "Exporting your data"
+description: "Download everything in your Reactive Resume account, including resumes, cover letters and job applications, as JSON files in a single zip archive."
+---
+
+You can download a copy of everything you have stored in Reactive Resume in one step. Use it as a backup, to keep a record before [deleting your account](/guides/deleting-your-account), or to take your data elsewhere.
+
+## Download the archive
+
+<Steps>
+  <Step title="Open Your data">
+    Select your name at the bottom of the sidebar, then **Settings**. On the **Account** page, scroll to **Your data**.
+  </Step>
+
+  <Step title="Select Export">
+    Next to **Export everything**, select **Export**. Your browser downloads a file named `reactive-resume-` followed by today's date, for example `reactive-resume-2026-09-30.zip`.
+  </Step>
+</Steps>
+
+<Frame caption="Export everything sits under Your data in Settings → Account">
+  <img
+    src="/images/guides/exporting-your-data/your-data-section.webp"
+    alt="The Your data section with an Export everything row and Export button, and a Delete account row with a Delete button"
+  />
+</Frame>
+
+## What's in the zip
+
+| File                | Contents                                                                                                                                                  |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `account.json`      | Your name, email, username, photo address, timezone, whether your email is verified, and when the account was created and last updated.                   |
+| `applications.json` | Every job application with its status, job details, notes, contacts, follow-ups and activity.                                                             |
+| `resumes/`          | One JSON file per resume, including those in the trash. Each holds the resume's name, public address, tags, sharing settings and the full resume content. |
+| `letters/`          | One JSON file per cover letter.                                                                                                                           |
+
+`career.json` contains your preferences, facts and their source/correction history, stories, workspace answers and checklist state, saved results, schedules, notifications, discovered roles, voice transcripts, and career conversations with attachment metadata. It does not include raw voice recordings or the attachments' binary files.
+
+Each resume and letter file is named after the document plus a unique ID, so two documents with the same name don't overwrite each other.
+
+The archive doesn't include your password, passkeys, two-step verification codes, API keys or AI provider keys. Uploaded images, such as resume photos, are listed by their address rather than included as files.
+
+<Tip>
+  To restore a resume or letter, extract the archive and import its individual JSON file from `resumes/` or `letters/`.
+  Resume content and design are restored as a new document; account settings, document sharing settings and application
+  links are not restored. The whole zip is an account backup, not a bulk-import file. You can also download one resume
+  as **JSON** from the **Share** sheet. See [Importing resumes](/guides/importing-resumes).
+</Tip>
+
+## Related guides
+
+- [Exporting your resume](/guides/exporting-your-resume): PDF, Word, OpenDocument, Markdown and JSON for a single resume.
+- [Importing resumes](/guides/importing-resumes): bring a resume file into Reactive Resume.
+- [Deleting your account](/guides/deleting-your-account): remove your account and everything in it.

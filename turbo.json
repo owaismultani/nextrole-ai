@@ -1,0 +1,369 @@
+{
+	"$schema": "https://v2-11-5.turborepo.dev/schema.json",
+	"ui": "stream",
+	"boundaries": {
+		"dependencies": {
+			"deny": ["web", "server"]
+		},
+		"implicitDependencies": [
+			"vitest",
+			"@testing-library/jest-dom",
+			"@testing-library/react",
+			"@testing-library/user-event"
+		],
+		"tags": {
+			"app:server": {
+				"dependencies": {
+					"deny": ["app:web", "runtime:browser"]
+				}
+			},
+			"app:mobile": {
+				"dependencies": {
+					"deny": ["app:server", "app:web", "runtime:server", "runtime:browser"]
+				}
+			},
+			"runtime:server": {
+				"dependencies": {
+					"deny": ["app:web", "runtime:browser"]
+				}
+			},
+			"runtime:browser": {
+				"dependencies": {
+					"deny": ["app:server", "runtime:server"]
+				}
+			},
+			"runtime:native": {
+				"dependencies": {
+					"deny": ["app:web", "app:server", "runtime:server", "runtime:browser"]
+				}
+			},
+			"runtime:universal": {
+				"dependencies": {
+					"deny": ["app:web", "app:server", "runtime:server"]
+				}
+			},
+			"role:domain": {
+				"dependencies": {
+					"deny": ["app:web", "app:server", "role:adapter", "role:infra"]
+				}
+			},
+			"role:ui": {
+				"dependencies": {
+					"deny": ["app:web", "app:server", "runtime:server", "role:infra"]
+				}
+			}
+		}
+	},
+	"tasks": {
+		"transit": {
+			"dependsOn": ["^transit"]
+		},
+		"build": {
+			"inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/.env*"],
+			"outputs": ["dist/**", ".vercel/**"],
+			"dependsOn": ["transit"],
+			"env": ["NODE_ENV"]
+		},
+		"typecheck": {
+			"dependsOn": ["transit"]
+		},
+		"test": {
+			"dependsOn": ["transit"],
+			"env": [
+				"PORT",
+				"SERVER_PORT",
+				"APP_URL",
+				"APP_REVISION",
+				"ROOT_RESUME_ID",
+				"WEB_FONT_BASE_URL",
+				"DATABASE_*",
+				"AUTH_SECRET",
+				"TRUSTED_PROXIES",
+				"BETTER_AUTH_*",
+				"APPLE_CLIENT_*",
+				"MOBILE_*",
+				"GOOGLE_CLIENT_*",
+				"GITHUB_CLIENT_*",
+				"LINKEDIN_CLIENT_*",
+				"OAUTH_*",
+				"SMTP_*",
+				"LOCAL_STORAGE_PATH",
+				"S3_*",
+				"REDIS_URL",
+				"ENCRYPTION_SECRET",
+				"WEB_ACCESS_*",
+				"FIRECRAWL_*",
+				"AI_*",
+				"FLAG_*",
+				"CRON_SECRET",
+				"STRICT_SCHEMA_CHECK",
+				"CLOUDFLARE",
+				"VERCEL",
+				"VERCEL_ENV",
+				"VERCEL_URL",
+				"VERCEL_PROJECT_PRODUCTION_URL",
+				"VERCEL_BRANCH_URL",
+				"POSTGRES_*",
+				"KV_URL",
+				"STORAGE_BACKEND",
+				"STORAGE_HEALTHCHECK_TIMEOUT_MS",
+				"BLOB_*",
+				"DEPLOYMENT_NAMESPACE",
+				"ALLOW_PREVIEW_MIGRATIONS",
+				"NODE_ENV"
+			],
+			"inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/.env*"]
+		},
+		"test:coverage": {
+			"dependsOn": ["transit"],
+			"env": [
+				"PORT",
+				"SERVER_PORT",
+				"APP_URL",
+				"APP_REVISION",
+				"ROOT_RESUME_ID",
+				"WEB_FONT_BASE_URL",
+				"DATABASE_*",
+				"AUTH_SECRET",
+				"TRUSTED_PROXIES",
+				"BETTER_AUTH_*",
+				"APPLE_CLIENT_*",
+				"MOBILE_*",
+				"GOOGLE_CLIENT_*",
+				"GITHUB_CLIENT_*",
+				"LINKEDIN_CLIENT_*",
+				"OAUTH_*",
+				"SMTP_*",
+				"LOCAL_STORAGE_PATH",
+				"S3_*",
+				"REDIS_URL",
+				"ENCRYPTION_SECRET",
+				"WEB_ACCESS_*",
+				"FIRECRAWL_*",
+				"AI_*",
+				"FLAG_*",
+				"CRON_SECRET",
+				"STRICT_SCHEMA_CHECK",
+				"CLOUDFLARE",
+				"VERCEL",
+				"VERCEL_ENV",
+				"VERCEL_URL",
+				"VERCEL_PROJECT_PRODUCTION_URL",
+				"VERCEL_BRANCH_URL",
+				"POSTGRES_*",
+				"KV_URL",
+				"STORAGE_BACKEND",
+				"STORAGE_HEALTHCHECK_TIMEOUT_MS",
+				"BLOB_*",
+				"DEPLOYMENT_NAMESPACE",
+				"ALLOW_PREVIEW_MIGRATIONS",
+				"NODE_ENV"
+			],
+			"inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/.env*"],
+			"outputs": ["coverage/**"]
+		},
+		"test:ci": {
+			"dependsOn": ["transit"],
+			"env": [
+				"PORT",
+				"SERVER_PORT",
+				"APP_URL",
+				"APP_REVISION",
+				"ROOT_RESUME_ID",
+				"WEB_FONT_BASE_URL",
+				"DATABASE_*",
+				"AUTH_SECRET",
+				"TRUSTED_PROXIES",
+				"BETTER_AUTH_*",
+				"APPLE_CLIENT_*",
+				"MOBILE_*",
+				"GOOGLE_CLIENT_*",
+				"GITHUB_CLIENT_*",
+				"LINKEDIN_CLIENT_*",
+				"OAUTH_*",
+				"SMTP_*",
+				"LOCAL_STORAGE_PATH",
+				"S3_*",
+				"REDIS_URL",
+				"ENCRYPTION_SECRET",
+				"WEB_ACCESS_*",
+				"FIRECRAWL_*",
+				"AI_*",
+				"FLAG_*",
+				"CRON_SECRET",
+				"STRICT_SCHEMA_CHECK",
+				"CLOUDFLARE",
+				"VERCEL",
+				"VERCEL_ENV",
+				"VERCEL_URL",
+				"VERCEL_PROJECT_PRODUCTION_URL",
+				"VERCEL_BRANCH_URL",
+				"POSTGRES_*",
+				"KV_URL",
+				"STORAGE_BACKEND",
+				"STORAGE_HEALTHCHECK_TIMEOUT_MS",
+				"BLOB_*",
+				"DEPLOYMENT_NAMESPACE",
+				"ALLOW_PREVIEW_MIGRATIONS",
+				"NODE_ENV"
+			],
+			"inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/.env*"],
+			"outputs": ["reports/**"]
+		},
+		"test:agent": {
+			"dependsOn": ["transit"],
+			"env": [
+				"PORT",
+				"SERVER_PORT",
+				"APP_URL",
+				"APP_REVISION",
+				"ROOT_RESUME_ID",
+				"WEB_FONT_BASE_URL",
+				"DATABASE_*",
+				"AUTH_SECRET",
+				"TRUSTED_PROXIES",
+				"BETTER_AUTH_*",
+				"APPLE_CLIENT_*",
+				"MOBILE_*",
+				"GOOGLE_CLIENT_*",
+				"GITHUB_CLIENT_*",
+				"LINKEDIN_CLIENT_*",
+				"OAUTH_*",
+				"SMTP_*",
+				"LOCAL_STORAGE_PATH",
+				"S3_*",
+				"REDIS_URL",
+				"ENCRYPTION_SECRET",
+				"WEB_ACCESS_*",
+				"FIRECRAWL_*",
+				"AI_*",
+				"FLAG_*",
+				"CRON_SECRET",
+				"STRICT_SCHEMA_CHECK",
+				"CLOUDFLARE",
+				"VERCEL",
+				"VERCEL_ENV",
+				"VERCEL_URL",
+				"VERCEL_PROJECT_PRODUCTION_URL",
+				"VERCEL_BRANCH_URL",
+				"POSTGRES_*",
+				"KV_URL",
+				"STORAGE_BACKEND",
+				"STORAGE_HEALTHCHECK_TIMEOUT_MS",
+				"BLOB_*",
+				"DEPLOYMENT_NAMESPACE",
+				"ALLOW_PREVIEW_MIGRATIONS",
+				"NODE_ENV"
+			],
+			"inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/.env*"],
+			"outputs": ["reports/**"]
+		},
+		"dev": {
+			"cache": false,
+			"persistent": true
+		},
+		"start": {
+			"cache": false,
+			"persistent": true
+		},
+		"db:generate": {
+			"cache": false
+		},
+		"db:migrate": {
+			"cache": false
+		},
+		"db:studio": {
+			"cache": false,
+			"persistent": true
+		},
+		"lingui:extract": {
+			"cache": false
+		}
+	},
+	"globalDependencies": ["vitest.shared.mts", "vitest.setup.ts"],
+	"globalPassThroughEnv": [
+		"PORT",
+		"SERVER_PORT",
+		"APP_URL",
+		"APP_REVISION",
+		"ROOT_RESUME_ID",
+		"WEB_FONT_BASE_URL",
+		"DATABASE_URL",
+		"AUTH_SECRET",
+		"TRUSTED_PROXIES",
+		"BETTER_AUTH_API_KEY",
+		"BETTER_AUTH_INTERNAL_URL",
+		"OPENAI_APPS_CHALLENGE_TOKEN",
+		"APPLE_CLIENT_ID",
+		"APPLE_CLIENT_SECRET",
+		"MOBILE_IOS_APP_IDS",
+		"MOBILE_ANDROID_PACKAGES",
+		"MOBILE_ANDROID_CERT_SHA256",
+		"GOOGLE_CLIENT_ID",
+		"GOOGLE_CLIENT_SECRET",
+		"GITHUB_CLIENT_ID",
+		"GITHUB_CLIENT_SECRET",
+		"LINKEDIN_CLIENT_ID",
+		"LINKEDIN_CLIENT_SECRET",
+		"OAUTH_PROVIDER_NAME",
+		"OAUTH_CLIENT_ID",
+		"OAUTH_CLIENT_SECRET",
+		"OAUTH_DISCOVERY_URL",
+		"OAUTH_AUTHORIZATION_URL",
+		"OAUTH_TOKEN_URL",
+		"OAUTH_USER_INFO_URL",
+		"OAUTH_SCOPES",
+		"SMTP_HOST",
+		"SMTP_PORT",
+		"SMTP_USER",
+		"SMTP_PASS",
+		"SMTP_FROM",
+		"SMTP_SECURE",
+		"LOCAL_STORAGE_PATH",
+		"S3_ACCESS_KEY_ID",
+		"S3_SECRET_ACCESS_KEY",
+		"S3_REGION",
+		"S3_ENDPOINT",
+		"S3_BUCKET",
+		"S3_FORCE_PATH_STYLE",
+		"REDIS_URL",
+		"ENCRYPTION_SECRET",
+		"WEB_ACCESS_PROVIDER",
+		"WEB_ACCESS_API_KEY",
+		"WEB_ACCESS_API_URL",
+		"AI_PROVIDER",
+		"AI_MODEL",
+		"AI_API_KEY",
+		"AI_BASE_URL",
+		"CRON_SECRET",
+		"FLAG_DISABLE_SIGNUPS",
+		"FLAG_DISABLE_EMAIL_AUTH",
+		"FLAG_ENABLE_GUEST_LOGIN",
+		"FLAG_DISABLE_IMAGE_PROCESSING",
+		"FLAG_DISABLE_API_RATE_LIMIT",
+		"FLAG_ALLOW_UNSAFE_OAUTH_REDIRECT_URI",
+		"FLAG_ALLOW_UNSAFE_AI_BASE_URL",
+		"AI_TEST_TIMEOUT_MS",
+		"STRICT_SCHEMA_CHECK",
+		"CLOUDFLARE",
+		"VERCEL",
+		"VERCEL_ENV",
+		"VERCEL_URL",
+		"VERCEL_PROJECT_PRODUCTION_URL",
+		"VERCEL_BRANCH_URL",
+		"VERCEL_OIDC_TOKEN",
+		"DATABASE_MIGRATION_URL",
+		"DATABASE_POOL_MAX",
+		"DATABASE_URL_UNPOOLED",
+		"POSTGRES_URL",
+		"POSTGRES_URL_NON_POOLING",
+		"KV_URL",
+		"STORAGE_BACKEND",
+		"STORAGE_HEALTHCHECK_TIMEOUT_MS",
+		"BLOB_READ_WRITE_TOKEN",
+		"BLOB_STORE_ID",
+		"DEPLOYMENT_NAMESPACE",
+		"ALLOW_PREVIEW_MIGRATIONS",
+		"NODE_ENV"
+	]
+}

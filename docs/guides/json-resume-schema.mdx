@@ -1,0 +1,4792 @@
+---
+title: "JSON resume schema"
+description: "The Reactive Resume JSON Schema published at /schema.json: what it covers, how resume data is structured, and how to validate files against it."
+---
+
+Every Reactive Resume document is stored as one JSON object, described by a public [JSON Schema](https://json-schema.org). The same schema validates what the API and MCP server accept, what the JSON export produces and what the JSON import reads. Use it to validate files, generate types, get autocompletion in your editor or build integrations that exchange resumes without parsing PDFs.
+
+## Where to get it
+
+The schema is served by every instance at `/schema.json`:
+
+<Info>[https://rxresu.me/schema.json](https://rxresu.me/schema.json)</Info>
+
+It uses the JSON Schema draft 2020-12 dialect and is served as `application/schema+json`. Self-hosted instances serve the schema of the version they run, at their own address. MCP clients can read the same schema as the resource `resume://_meta/schema`.
+
+<Note>
+  This is Reactive Resume's own format, not the community [JSON Resume](https://jsonresume.org) format. Reactive Resume can import JSON Resume files; see [Importing resumes](/guides/importing-resumes).
+</Note>
+
+## Structure
+
+A resume object has six required top-level properties:
+
+| Property | Contents |
+| --- | --- |
+| `picture` | The profile photo: its URL, size, shape, rotation, border and shadow, and whether it's hidden. |
+| `basics` | Name, headline, email, phone, location, website and custom fields. |
+| `summary` | The summary section: its heading settings and its `content` as HTML. |
+| `sections` | The built-in sections: `profiles`, `experience`, `education`, `projects`, `skills`, `languages`, `interests`, `awards`, `certifications`, `publications`, `volunteer` and `references`. |
+| `customSections` | Sections you added yourself. Each has an `id` and a `type` that picks the item shape it holds. |
+| `metadata` | Design and settings: `template`, `layout`, `page`, `design`, `typography`, private `notes`, custom styles (`styleRules`, `stylesheet`) and Check preferences (`check`). |
+
+Each section has display settings and a list of items:
+
+```json
+{
+  "title": "",
+  "icon": "briefcase",
+  "columns": 1,
+  "hidden": false,
+  "showHeading": true,
+  "keepTogether": false,
+  "startOnNewPage": false,
+  "items": [
+    {
+      "id": "019bef5a-93e4-7746-ad39-44d8cec98ca4",
+      "hidden": false,
+      "company": "Cascade Studios",
+      "position": "Senior Game Developer",
+      "location": "Seattle, WA",
+      "period": "March 2022 – Present",
+      "dates": { "start": "2022-03", "end": null, "present": true },
+      "website": { "url": "", "label": "", "inlineLink": false },
+      "description": "<p>Lead gameplay programmer on an action-adventure title.</p>",
+      "roles": []
+    }
+  ]
+}
+```
+
+An empty `title` means the template's default heading in the resume's language.
+
+## Things to know
+
+- **Dates.** Dated items have a `dates` object with `start`, `end` (a year like `"2022"` or a year and month like `"2022-03"`) and `present`. The text in `period` (or `date` for awards, certifications and publications) is still required and still exported, but Reactive Resume rewrites it from `dates` whenever it saves. Write `dates`. See [Using the patch API](/guides/using-the-patch-api#dates).
+- **Rich text is HTML.** Fields such as `description` and `summary.content` hold HTML strings.
+- **IDs.** Every item and custom section needs a unique `id`. Use a UUID.
+- **Cover letters.** The schema still accepts custom sections of type `cover-letter` so older exports stay valid. When you save or import such a resume, Reactive Resume moves each letter into a cover letter of its own and removes the section. See [Writing a cover letter](/guides/writing-a-cover-letter).
+- **Templates.** `metadata.template` is one of the 18 templates: `azurill`, `bronzor`, `chikorita`, `ditgar`, `ditto`, `gengar`, `glalie`, `kakuna`, `lapras`, `leafish`, `meowth`, `onyx`, `persian`, `pikachu`, `porygon`, `rhyhorn`, `scizor` or `smeargle`.
+- **No version field.** Resume objects have no top-level `version` or `$schema` property. Don't add one; point your tools at the schema URL instead.
+
+## Validate resume data
+
+Any validator that supports draft 2020-12 works. With [Ajv](https://ajv.js.org) in JavaScript:
+
+```javascript
+import Ajv2020 from "ajv/dist/2020.js";
+
+const ajv = new Ajv2020({ strict: false });
+const schema = await fetch("https://rxresu.me/schema.json").then((response) => response.json());
+const validate = ajv.compile(schema);
+
+if (!validate(resumeData)) console.error(validate.errors);
+```
+
+In Python, with [`jsonschema`](https://pypi.org/project/jsonschema/):
+
+```python
+import json, urllib.request
+from jsonschema import Draft202012Validator
+
+schema = json.load(urllib.request.urlopen("https://rxresu.me/schema.json"))
+Draft202012Validator(schema).validate(resume_data)
+```
+
+Passing the schema is necessary, not sufficient: the server also checks a few things the schema can't express, such as the size limit on custom styles.
+
+## Get autocompletion in your editor
+
+Associate exported files with the schema. In VS Code, add this to `settings.json`:
+
+```json
+{
+  "json.schemas": [
+    {
+      "fileMatch": ["*.resume.json"],
+      "url": "https://rxresu.me/schema.json"
+    }
+  ]
+}
+```
+
+## Full schema
+
+The complete schema, generated from the source code of this version.
+
+{/* Generated by `pnpm docs:gen` (tooling/semantic-css/generate-reference.ts). Do not edit between the markers. */}
+
+{/* RESUME-JSON-SCHEMA:START */}
+```json /schema.json lines expandable
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"type": "object",
+	"properties": {
+		"picture": {
+			"type": "object",
+			"properties": {
+				"hidden": {
+					"type": "boolean",
+					"description": "Whether to hide the picture from the resume."
+				},
+				"fit": {
+					"default": "cover",
+					"description": "How the picture fits its frame: cover crops overflow, while contain preserves the whole image.",
+					"type": "string",
+					"enum": [
+						"cover",
+						"contain"
+					]
+				},
+				"url": {
+					"type": "string",
+					"description": "The URL to the picture to display on the resume. Prefer local app-served paths (for example /uploads/...) populated via upload."
+				},
+				"size": {
+					"type": "number",
+					"minimum": 32,
+					"maximum": 512,
+					"description": "The size of the picture to display on the resume, defined in points (pt)."
+				},
+				"rotation": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 360,
+					"description": "The rotation of the picture to display on the resume, defined in degrees (°)."
+				},
+				"aspectRatio": {
+					"type": "number",
+					"minimum": 0.5,
+					"maximum": 2.5,
+					"description": "The aspect ratio of the picture to display on the resume, defined as width / height (e.g. 1.5 for 1.5:1 or 0.5 for 1:2)."
+				},
+				"borderRadius": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 100,
+					"description": "The border radius of the picture to display on the resume, defined in points (pt)."
+				},
+				"borderColor": {
+					"type": "string",
+					"description": "The color of the border of the picture to display on the resume, defined as rgba(r, g, b, a)."
+				},
+				"borderWidth": {
+					"type": "number",
+					"minimum": 0,
+					"description": "The width of the border of the picture to display on the resume, defined in points (pt)."
+				},
+				"shadowColor": {
+					"type": "string",
+					"description": "The color of the shadow of the picture to display on the resume, defined as rgba(r, g, b, a)."
+				},
+				"shadowWidth": {
+					"type": "number",
+					"minimum": 0,
+					"description": "The width of the shadow of the picture to display on the resume, defined in points (pt)."
+				}
+			},
+			"required": [
+				"hidden",
+				"url",
+				"size",
+				"rotation",
+				"aspectRatio",
+				"borderRadius",
+				"borderColor",
+				"borderWidth",
+				"shadowColor",
+				"shadowWidth"
+			],
+			"description": "Configuration for photograph displayed on the resume"
+		},
+		"basics": {
+			"type": "object",
+			"properties": {
+				"name": {
+					"type": "string",
+					"description": "The full name of the author of the resume."
+				},
+				"headline": {
+					"type": "string",
+					"description": "The headline of the author of the resume."
+				},
+				"email": {
+					"type": "string",
+					"description": "The email address of the author of the resume."
+				},
+				"phone": {
+					"type": "string",
+					"description": "The phone number of the author of the resume."
+				},
+				"location": {
+					"type": "string",
+					"description": "The location of the author of the resume."
+				},
+				"website": {
+					"type": "object",
+					"properties": {
+						"url": {
+							"type": "string",
+							"description": "The URL to show as a link. Must be a valid URL with a protocol (http:// or https://)."
+						},
+						"label": {
+							"type": "string",
+							"description": "The label to display for the URL. Leave blank to display the URL as-is."
+						}
+					},
+					"required": [
+						"url",
+						"label"
+					],
+					"description": "The website of the author of the resume."
+				},
+				"customFields": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"properties": {
+							"id": {
+								"type": "string",
+								"description": "The unique identifier for the custom field. Usually generated as a UUID."
+							},
+							"icon": {
+								"type": "string",
+								"description": "The icon to display for the custom field. Must be a valid icon name from @phosphor-icons/web icon set, or an empty string to hide. Default to '' (empty string) when unsure which icons are available."
+							},
+							"text": {
+								"type": "string",
+								"description": "The text to display for the custom field."
+							},
+							"link": {
+								"default": "",
+								"type": "string",
+								"description": "If the custom field should be a link, the URL to link to."
+							}
+						},
+						"required": [
+							"id",
+							"icon",
+							"text",
+							"link"
+						]
+					},
+					"description": "The custom fields to display on the resume."
+				}
+			},
+			"required": [
+				"name",
+				"headline",
+				"email",
+				"phone",
+				"location",
+				"website",
+				"customFields"
+			],
+			"description": "Basic information about the author, such as name, email, phone, location, and website"
+		},
+		"summary": {
+			"type": "object",
+			"properties": {
+				"title": {
+					"type": "string",
+					"description": "The title of the summary of the resume."
+				},
+				"icon": {
+					"default": "",
+					"description": "Phosphor icon name to display before the summary section title in the PDF output. Empty string uses the default summary icon; 'none' hides the icon.",
+					"type": "string"
+				},
+				"columns": {
+					"default": 1,
+					"description": "The number of columns the summary should span across.",
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 6
+				},
+				"hidden": {
+					"type": "boolean",
+					"description": "Whether to hide the summary from the resume."
+				},
+				"showHeading": {
+					"default": true,
+					"description": "Whether to show the summary heading, icon, and decoration while retaining summary content.",
+					"type": "boolean"
+				},
+				"keepTogether": {
+					"default": false,
+					"description": "If true, the summary is kept on a single page instead of splitting across a page break.",
+					"type": "boolean"
+				},
+				"startOnNewPage": {
+					"default": false,
+					"description": "If true, the summary always begins on a new page.",
+					"type": "boolean"
+				},
+				"content": {
+					"type": "string",
+					"description": "The content of the summary of the resume. This should be a HTML-formatted string."
+				}
+			},
+			"required": [
+				"title",
+				"icon",
+				"columns",
+				"hidden",
+				"keepTogether",
+				"startOnNewPage",
+				"content"
+			],
+			"description": "Summary section of the resume, useful for a short bio or introduction"
+		},
+		"sections": {
+			"type": "object",
+			"properties": {
+				"profiles": {
+					"type": "object",
+					"properties": {
+						"title": {
+							"type": "string",
+							"description": "The title of the section."
+						},
+						"icon": {
+							"default": "",
+							"description": "Phosphor icon name to display before the section title in the PDF output. Empty string uses the default section icon; 'none' hides the icon.",
+							"type": "string"
+						},
+						"columns": {
+							"default": 1,
+							"description": "The number of columns the section should span across.",
+							"type": "integer",
+							"minimum": 1,
+							"maximum": 6
+						},
+						"hidden": {
+							"type": "boolean",
+							"description": "Whether to hide the section from the resume."
+						},
+						"showHeading": {
+							"default": true,
+							"description": "Whether to show the section heading, icon, and decoration while retaining section content.",
+							"type": "boolean"
+						},
+						"keepTogether": {
+							"default": false,
+							"description": "If true, the section is kept on a single page instead of splitting across a page break.",
+							"type": "boolean"
+						},
+						"startOnNewPage": {
+							"default": false,
+							"description": "If true, the section always begins on a new page.",
+							"type": "boolean"
+						},
+						"items": {
+							"type": "array",
+							"items": {
+								"type": "object",
+								"properties": {
+									"id": {
+										"type": "string",
+										"description": "The unique identifier for the item. Usually generated as a UUID."
+									},
+									"hidden": {
+										"type": "boolean",
+										"description": "Whether to hide the item from the resume."
+									},
+									"icon": {
+										"type": "string",
+										"description": "The icon to display for the custom field. Must be a valid icon name from @phosphor-icons/web icon set, or an empty string to hide. Default to '' (empty string) when unsure which icons are available."
+									},
+									"iconColor": {
+										"default": "",
+										"description": "Custom color for the icon, defined as rgba(r, g, b, a). Leave blank to use the template default icon color.",
+										"type": "string"
+									},
+									"network": {
+										"type": "string",
+										"description": "The name of the network or platform. Empty while the entry is a draft, which isn't printed."
+									},
+									"username": {
+										"type": "string",
+										"description": "The username of the author on the network or platform."
+									},
+									"website": {
+										"default": {
+											"url": "",
+											"label": "",
+											"inlineLink": false
+										},
+										"description": "The link to the profile of the author on the network or platform, if any.",
+										"type": "object",
+										"properties": {
+											"url": {
+												"type": "string",
+												"description": "The URL to show as a link. Must be a valid URL with a protocol (http:// or https://)."
+											},
+											"label": {
+												"type": "string",
+												"description": "The label to display for the URL. Leave blank to display the URL as-is."
+											},
+											"inlineLink": {
+												"default": false,
+												"description": "If true, the website URL is rendered as a hyperlink on the title instead of a separate link at the bottom.",
+												"type": "boolean"
+											}
+										},
+										"required": [
+											"url",
+											"label",
+											"inlineLink"
+										]
+									}
+								},
+								"required": [
+									"id",
+									"hidden",
+									"icon",
+									"iconColor",
+									"network",
+									"username",
+									"website"
+								]
+							},
+							"description": "The items to display in the profiles section."
+						}
+					},
+					"required": [
+						"title",
+						"icon",
+						"columns",
+						"hidden",
+						"keepTogether",
+						"startOnNewPage",
+						"items"
+					],
+					"description": "The section to display the profiles of the author."
+				},
+				"experience": {
+					"type": "object",
+					"properties": {
+						"title": {
+							"type": "string",
+							"description": "The title of the section."
+						},
+						"icon": {
+							"default": "",
+							"description": "Phosphor icon name to display before the section title in the PDF output. Empty string uses the default section icon; 'none' hides the icon.",
+							"type": "string"
+						},
+						"columns": {
+							"default": 1,
+							"description": "The number of columns the section should span across.",
+							"type": "integer",
+							"minimum": 1,
+							"maximum": 6
+						},
+						"hidden": {
+							"type": "boolean",
+							"description": "Whether to hide the section from the resume."
+						},
+						"showHeading": {
+							"default": true,
+							"description": "Whether to show the section heading, icon, and decoration while retaining section content.",
+							"type": "boolean"
+						},
+						"keepTogether": {
+							"default": false,
+							"description": "If true, the section is kept on a single page instead of splitting across a page break.",
+							"type": "boolean"
+						},
+						"startOnNewPage": {
+							"default": false,
+							"description": "If true, the section always begins on a new page.",
+							"type": "boolean"
+						},
+						"items": {
+							"type": "array",
+							"items": {
+								"type": "object",
+								"properties": {
+									"id": {
+										"type": "string",
+										"description": "The unique identifier for the item. Usually generated as a UUID."
+									},
+									"hidden": {
+										"type": "boolean",
+										"description": "Whether to hide the item from the resume."
+									},
+									"company": {
+										"type": "string",
+										"description": "The name of the company or organization. Empty while the entry is a draft, which isn't printed."
+									},
+									"position": {
+										"type": "string",
+										"description": "The position held at the company or organization. Used when there is only a single role. If multiple roles are provided in the 'roles' field, this serves as a summary title or can be left blank."
+									},
+									"location": {
+										"type": "string",
+										"description": "The location of the company or organization."
+									},
+									"period": {
+										"type": "string",
+										"description": "The overall period of time at the company, as text. When multiple roles are used, this should reflect the total tenure. Written from `dates` on every save; write `dates` instead."
+									},
+									"dates": {
+										"type": "object",
+										"properties": {
+											"start": {
+												"default": null,
+												"description": "When it started, or the date itself for single-date entries (awards, certifications, publications).",
+												"anyOf": [
+													{
+														"type": "string",
+														"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+														"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+													},
+													{
+														"type": "null"
+													}
+												]
+											},
+											"end": {
+												"default": null,
+												"description": "When it ended. Null while ongoing or for single dates.",
+												"anyOf": [
+													{
+														"type": "string",
+														"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+														"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+													},
+													{
+														"type": "null"
+													}
+												]
+											},
+											"present": {
+												"default": false,
+												"description": "Whether it's ongoing, printed as 'Present'.",
+												"type": "boolean"
+											},
+											"raw": {
+												"description": "The original text when it couldn't be read exactly, such as 'Summer 2016'. It's printed as written until the dates are edited, which removes it.",
+												"type": "string"
+											}
+										},
+										"required": [
+											"start",
+											"end",
+											"present"
+										],
+										"description": "Structured dates. Write these rather than the legacy text field (`period` or `date`), which is kept in sync from them."
+									},
+									"website": {
+										"default": {
+											"url": "",
+											"label": "",
+											"inlineLink": false
+										},
+										"description": "The website of the company or organization, if any.",
+										"type": "object",
+										"properties": {
+											"url": {
+												"type": "string",
+												"description": "The URL to show as a link. Must be a valid URL with a protocol (http:// or https://)."
+											},
+											"label": {
+												"type": "string",
+												"description": "The label to display for the URL. Leave blank to display the URL as-is."
+											},
+											"inlineLink": {
+												"default": false,
+												"description": "If true, the website URL is rendered as a hyperlink on the title instead of a separate link at the bottom.",
+												"type": "boolean"
+											}
+										},
+										"required": [
+											"url",
+											"label",
+											"inlineLink"
+										]
+									},
+									"description": {
+										"type": "string",
+										"description": "The description of the experience. This should be a HTML-formatted string."
+									},
+									"roles": {
+										"default": [],
+										"description": "List of individual roles held at this company to show career progression.",
+										"type": "array",
+										"items": {
+											"type": "object",
+											"properties": {
+												"id": {
+													"type": "string",
+													"description": "The unique identifier for the role. Usually generated as a UUID."
+												},
+												"position": {
+													"type": "string",
+													"description": "The position or job title for this role."
+												},
+												"period": {
+													"type": "string",
+													"description": "The period of time this role was held, as text. Written from `dates` on every save; write `dates` instead."
+												},
+												"dates": {
+													"type": "object",
+													"properties": {
+														"start": {
+															"default": null,
+															"description": "When it started, or the date itself for single-date entries (awards, certifications, publications).",
+															"anyOf": [
+																{
+																	"type": "string",
+																	"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+																	"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
+														"end": {
+															"default": null,
+															"description": "When it ended. Null while ongoing or for single dates.",
+															"anyOf": [
+																{
+																	"type": "string",
+																	"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+																	"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
+														"present": {
+															"default": false,
+															"description": "Whether it's ongoing, printed as 'Present'.",
+															"type": "boolean"
+														},
+														"raw": {
+															"description": "The original text when it couldn't be read exactly, such as 'Summer 2016'. It's printed as written until the dates are edited, which removes it.",
+															"type": "string"
+														}
+													},
+													"required": [
+														"start",
+														"end",
+														"present"
+													],
+													"description": "Structured dates. Write these rather than the legacy text field (`period` or `date`), which is kept in sync from them."
+												},
+												"description": {
+													"type": "string",
+													"description": "The description of this specific role. This should be a HTML-formatted string."
+												}
+											},
+											"required": [
+												"id",
+												"position",
+												"period",
+												"description"
+											]
+										}
+									}
+								},
+								"required": [
+									"id",
+									"hidden",
+									"company",
+									"position",
+									"location",
+									"period",
+									"website",
+									"description",
+									"roles"
+								]
+							},
+							"description": "The items to display in the experience section."
+						}
+					},
+					"required": [
+						"title",
+						"icon",
+						"columns",
+						"hidden",
+						"keepTogether",
+						"startOnNewPage",
+						"items"
+					],
+					"description": "The section to display the experience of the author."
+				},
+				"education": {
+					"type": "object",
+					"properties": {
+						"title": {
+							"type": "string",
+							"description": "The title of the section."
+						},
+						"icon": {
+							"default": "",
+							"description": "Phosphor icon name to display before the section title in the PDF output. Empty string uses the default section icon; 'none' hides the icon.",
+							"type": "string"
+						},
+						"columns": {
+							"default": 1,
+							"description": "The number of columns the section should span across.",
+							"type": "integer",
+							"minimum": 1,
+							"maximum": 6
+						},
+						"hidden": {
+							"type": "boolean",
+							"description": "Whether to hide the section from the resume."
+						},
+						"showHeading": {
+							"default": true,
+							"description": "Whether to show the section heading, icon, and decoration while retaining section content.",
+							"type": "boolean"
+						},
+						"keepTogether": {
+							"default": false,
+							"description": "If true, the section is kept on a single page instead of splitting across a page break.",
+							"type": "boolean"
+						},
+						"startOnNewPage": {
+							"default": false,
+							"description": "If true, the section always begins on a new page.",
+							"type": "boolean"
+						},
+						"items": {
+							"type": "array",
+							"items": {
+								"type": "object",
+								"properties": {
+									"id": {
+										"type": "string",
+										"description": "The unique identifier for the item. Usually generated as a UUID."
+									},
+									"hidden": {
+										"type": "boolean",
+										"description": "Whether to hide the item from the resume."
+									},
+									"school": {
+										"type": "string",
+										"description": "The name of the school or institution. Empty while the entry is a draft, which isn't printed."
+									},
+									"degree": {
+										"type": "string",
+										"description": "The degree or qualification obtained."
+									},
+									"area": {
+										"type": "string",
+										"description": "The area of study or specialization."
+									},
+									"grade": {
+										"type": "string",
+										"description": "The grade or score achieved."
+									},
+									"location": {
+										"type": "string",
+										"description": "The location of the school or institution."
+									},
+									"period": {
+										"type": "string",
+										"description": "The period of time the education was obtained over, as text. Written from `dates` on every save; write `dates` instead."
+									},
+									"dates": {
+										"type": "object",
+										"properties": {
+											"start": {
+												"default": null,
+												"description": "When it started, or the date itself for single-date entries (awards, certifications, publications).",
+												"anyOf": [
+													{
+														"type": "string",
+														"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+														"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+													},
+													{
+														"type": "null"
+													}
+												]
+											},
+											"end": {
+												"default": null,
+												"description": "When it ended. Null while ongoing or for single dates.",
+												"anyOf": [
+													{
+														"type": "string",
+														"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+														"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+													},
+													{
+														"type": "null"
+													}
+												]
+											},
+											"present": {
+												"default": false,
+												"description": "Whether it's ongoing, printed as 'Present'.",
+												"type": "boolean"
+											},
+											"raw": {
+												"description": "The original text when it couldn't be read exactly, such as 'Summer 2016'. It's printed as written until the dates are edited, which removes it.",
+												"type": "string"
+											}
+										},
+										"required": [
+											"start",
+											"end",
+											"present"
+										],
+										"description": "Structured dates. Write these rather than the legacy text field (`period` or `date`), which is kept in sync from them."
+									},
+									"website": {
+										"default": {
+											"url": "",
+											"label": "",
+											"inlineLink": false
+										},
+										"description": "The website of the school or institution, if any.",
+										"type": "object",
+										"properties": {
+											"url": {
+												"type": "string",
+												"description": "The URL to show as a link. Must be a valid URL with a protocol (http:// or https://)."
+											},
+											"label": {
+												"type": "string",
+												"description": "The label to display for the URL. Leave blank to display the URL as-is."
+											},
+											"inlineLink": {
+												"default": false,
+												"description": "If true, the website URL is rendered as a hyperlink on the title instead of a separate link at the bottom.",
+												"type": "boolean"
+											}
+										},
+										"required": [
+											"url",
+											"label",
+											"inlineLink"
+										]
+									},
+									"description": {
+										"type": "string",
+										"description": "The description of the education. This should be a HTML-formatted string."
+									}
+								},
+								"required": [
+									"id",
+									"hidden",
+									"school",
+									"degree",
+									"area",
+									"grade",
+									"location",
+									"period",
+									"website",
+									"description"
+								]
+							},
+							"description": "The items to display in the education section."
+						}
+					},
+					"required": [
+						"title",
+						"icon",
+						"columns",
+						"hidden",
+						"keepTogether",
+						"startOnNewPage",
+						"items"
+					],
+					"description": "The section to display the education of the author."
+				},
+				"projects": {
+					"type": "object",
+					"properties": {
+						"title": {
+							"type": "string",
+							"description": "The title of the section."
+						},
+						"icon": {
+							"default": "",
+							"description": "Phosphor icon name to display before the section title in the PDF output. Empty string uses the default section icon; 'none' hides the icon.",
+							"type": "string"
+						},
+						"columns": {
+							"default": 1,
+							"description": "The number of columns the section should span across.",
+							"type": "integer",
+							"minimum": 1,
+							"maximum": 6
+						},
+						"hidden": {
+							"type": "boolean",
+							"description": "Whether to hide the section from the resume."
+						},
+						"showHeading": {
+							"default": true,
+							"description": "Whether to show the section heading, icon, and decoration while retaining section content.",
+							"type": "boolean"
+						},
+						"keepTogether": {
+							"default": false,
+							"description": "If true, the section is kept on a single page instead of splitting across a page break.",
+							"type": "boolean"
+						},
+						"startOnNewPage": {
+							"default": false,
+							"description": "If true, the section always begins on a new page.",
+							"type": "boolean"
+						},
+						"items": {
+							"type": "array",
+							"items": {
+								"type": "object",
+								"properties": {
+									"id": {
+										"type": "string",
+										"description": "The unique identifier for the item. Usually generated as a UUID."
+									},
+									"hidden": {
+										"type": "boolean",
+										"description": "Whether to hide the item from the resume."
+									},
+									"name": {
+										"type": "string",
+										"description": "The name of the project. Empty while the entry is a draft, which isn't printed."
+									},
+									"period": {
+										"type": "string",
+										"description": "The period of time the project was worked on, as text. Written from `dates` on every save; write `dates` instead."
+									},
+									"dates": {
+										"type": "object",
+										"properties": {
+											"start": {
+												"default": null,
+												"description": "When it started, or the date itself for single-date entries (awards, certifications, publications).",
+												"anyOf": [
+													{
+														"type": "string",
+														"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+														"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+													},
+													{
+														"type": "null"
+													}
+												]
+											},
+											"end": {
+												"default": null,
+												"description": "When it ended. Null while ongoing or for single dates.",
+												"anyOf": [
+													{
+														"type": "string",
+														"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+														"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+													},
+													{
+														"type": "null"
+													}
+												]
+											},
+											"present": {
+												"default": false,
+												"description": "Whether it's ongoing, printed as 'Present'.",
+												"type": "boolean"
+											},
+											"raw": {
+												"description": "The original text when it couldn't be read exactly, such as 'Summer 2016'. It's printed as written until the dates are edited, which removes it.",
+												"type": "string"
+											}
+										},
+										"required": [
+											"start",
+											"end",
+											"present"
+										],
+										"description": "Structured dates. Write these rather than the legacy text field (`period` or `date`), which is kept in sync from them."
+									},
+									"website": {
+										"default": {
+											"url": "",
+											"label": "",
+											"inlineLink": false
+										},
+										"description": "The link to the project, if any.",
+										"type": "object",
+										"properties": {
+											"url": {
+												"type": "string",
+												"description": "The URL to show as a link. Must be a valid URL with a protocol (http:// or https://)."
+											},
+											"label": {
+												"type": "string",
+												"description": "The label to display for the URL. Leave blank to display the URL as-is."
+											},
+											"inlineLink": {
+												"default": false,
+												"description": "If true, the website URL is rendered as a hyperlink on the title instead of a separate link at the bottom.",
+												"type": "boolean"
+											}
+										},
+										"required": [
+											"url",
+											"label",
+											"inlineLink"
+										]
+									},
+									"description": {
+										"type": "string",
+										"description": "The description of the project. This should be a HTML-formatted string."
+									}
+								},
+								"required": [
+									"id",
+									"hidden",
+									"name",
+									"period",
+									"website",
+									"description"
+								]
+							},
+							"description": "The items to display in the projects section."
+						}
+					},
+					"required": [
+						"title",
+						"icon",
+						"columns",
+						"hidden",
+						"keepTogether",
+						"startOnNewPage",
+						"items"
+					],
+					"description": "The section to display the projects of the author."
+				},
+				"skills": {
+					"description": "The section to display the skills of the author.",
+					"type": "object",
+					"properties": {
+						"title": {
+							"type": "string",
+							"description": "The title of the section."
+						},
+						"icon": {
+							"default": "",
+							"description": "Phosphor icon name to display before the section title in the PDF output. Empty string uses the default section icon; 'none' hides the icon.",
+							"type": "string"
+						},
+						"columns": {
+							"default": 1,
+							"description": "The number of columns the section should span across.",
+							"type": "integer",
+							"minimum": 1,
+							"maximum": 6
+						},
+						"hidden": {
+							"type": "boolean",
+							"description": "Whether to hide the section from the resume."
+						},
+						"showHeading": {
+							"default": true,
+							"description": "Whether to show the section heading, icon, and decoration while retaining section content.",
+							"type": "boolean"
+						},
+						"keepTogether": {
+							"default": false,
+							"description": "If true, the section is kept on a single page instead of splitting across a page break.",
+							"type": "boolean"
+						},
+						"startOnNewPage": {
+							"default": false,
+							"description": "If true, the section always begins on a new page.",
+							"type": "boolean"
+						},
+						"items": {
+							"type": "array",
+							"items": {
+								"type": "object",
+								"properties": {
+									"id": {
+										"type": "string",
+										"description": "The unique identifier for the item. Usually generated as a UUID."
+									},
+									"hidden": {
+										"type": "boolean",
+										"description": "Whether to hide the item from the resume."
+									},
+									"icon": {
+										"type": "string",
+										"description": "The icon to display for the custom field. Must be a valid icon name from @phosphor-icons/web icon set, or an empty string to hide. Default to '' (empty string) when unsure which icons are available."
+									},
+									"iconColor": {
+										"default": "",
+										"description": "Custom color for the icon, defined as rgba(r, g, b, a). Leave blank to use the template default icon color.",
+										"type": "string"
+									},
+									"name": {
+										"type": "string",
+										"description": "The name of the skill. Empty while the entry is a draft, which isn't printed."
+									},
+									"proficiency": {
+										"type": "string",
+										"description": "The proficiency level of the skill. Can be any text, such as 'Beginner', 'Intermediate', 'Advanced', etc."
+									},
+									"level": {
+										"default": 0,
+										"description": "The proficiency level of the skill, defined as a number between 0 and 5. If set to 0, the icons displaying the level will be hidden.",
+										"type": "number",
+										"minimum": 0,
+										"maximum": 5
+									},
+									"keywords": {
+										"default": [],
+										"description": "The keywords associated with the skill, if any. These are displayed as tags below the name.",
+										"type": "array",
+										"items": {
+											"type": "string"
+										}
+									}
+								},
+								"required": [
+									"id",
+									"hidden",
+									"icon",
+									"iconColor",
+									"name",
+									"proficiency",
+									"level",
+									"keywords"
+								]
+							},
+							"description": "The items to display in the skills section."
+						},
+						"keywordLayout": {
+							"default": "inline",
+							"description": "How skill keywords are displayed: inline separated by commas, or one bullet per keyword.",
+							"type": "string",
+							"enum": [
+								"inline",
+								"list"
+							]
+						},
+						"layout": {
+							"default": "default",
+							"description": "The layout style for skill items. 'inline' places item fields next to name",
+							"type": "string",
+							"enum": [
+								"default",
+								"inline"
+							]
+						}
+					},
+					"required": [
+						"title",
+						"icon",
+						"columns",
+						"hidden",
+						"keepTogether",
+						"startOnNewPage",
+						"items"
+					]
+				},
+				"languages": {
+					"type": "object",
+					"properties": {
+						"title": {
+							"type": "string",
+							"description": "The title of the section."
+						},
+						"icon": {
+							"default": "",
+							"description": "Phosphor icon name to display before the section title in the PDF output. Empty string uses the default section icon; 'none' hides the icon.",
+							"type": "string"
+						},
+						"columns": {
+							"default": 1,
+							"description": "The number of columns the section should span across.",
+							"type": "integer",
+							"minimum": 1,
+							"maximum": 6
+						},
+						"hidden": {
+							"type": "boolean",
+							"description": "Whether to hide the section from the resume."
+						},
+						"showHeading": {
+							"default": true,
+							"description": "Whether to show the section heading, icon, and decoration while retaining section content.",
+							"type": "boolean"
+						},
+						"keepTogether": {
+							"default": false,
+							"description": "If true, the section is kept on a single page instead of splitting across a page break.",
+							"type": "boolean"
+						},
+						"startOnNewPage": {
+							"default": false,
+							"description": "If true, the section always begins on a new page.",
+							"type": "boolean"
+						},
+						"items": {
+							"type": "array",
+							"items": {
+								"type": "object",
+								"properties": {
+									"id": {
+										"type": "string",
+										"description": "The unique identifier for the item. Usually generated as a UUID."
+									},
+									"hidden": {
+										"type": "boolean",
+										"description": "Whether to hide the item from the resume."
+									},
+									"language": {
+										"type": "string",
+										"description": "The name of the language the author knows. Empty while the entry is a draft, which isn't printed."
+									},
+									"fluency": {
+										"type": "string",
+										"description": "The fluency level of the language. Can be any text, such as 'Native', 'Fluent', 'Conversational', etc. or can also be a CEFR level (A1, A2, B1, B2, C1, C2)."
+									},
+									"level": {
+										"default": 0,
+										"description": "The proficiency level of the language, defined as a number between 0 and 5. If set to 0, the icons displaying the level will be hidden.",
+										"type": "number",
+										"minimum": 0,
+										"maximum": 5
+									}
+								},
+								"required": [
+									"id",
+									"hidden",
+									"language",
+									"fluency",
+									"level"
+								]
+							},
+							"description": "The items to display in the languages section."
+						}
+					},
+					"required": [
+						"title",
+						"icon",
+						"columns",
+						"hidden",
+						"keepTogether",
+						"startOnNewPage",
+						"items"
+					],
+					"description": "The section to display the languages of the author."
+				},
+				"interests": {
+					"type": "object",
+					"properties": {
+						"title": {
+							"type": "string",
+							"description": "The title of the section."
+						},
+						"icon": {
+							"default": "",
+							"description": "Phosphor icon name to display before the section title in the PDF output. Empty string uses the default section icon; 'none' hides the icon.",
+							"type": "string"
+						},
+						"columns": {
+							"default": 1,
+							"description": "The number of columns the section should span across.",
+							"type": "integer",
+							"minimum": 1,
+							"maximum": 6
+						},
+						"hidden": {
+							"type": "boolean",
+							"description": "Whether to hide the section from the resume."
+						},
+						"showHeading": {
+							"default": true,
+							"description": "Whether to show the section heading, icon, and decoration while retaining section content.",
+							"type": "boolean"
+						},
+						"keepTogether": {
+							"default": false,
+							"description": "If true, the section is kept on a single page instead of splitting across a page break.",
+							"type": "boolean"
+						},
+						"startOnNewPage": {
+							"default": false,
+							"description": "If true, the section always begins on a new page.",
+							"type": "boolean"
+						},
+						"items": {
+							"type": "array",
+							"items": {
+								"type": "object",
+								"properties": {
+									"id": {
+										"type": "string",
+										"description": "The unique identifier for the item. Usually generated as a UUID."
+									},
+									"hidden": {
+										"type": "boolean",
+										"description": "Whether to hide the item from the resume."
+									},
+									"icon": {
+										"type": "string",
+										"description": "The icon to display for the custom field. Must be a valid icon name from @phosphor-icons/web icon set, or an empty string to hide. Default to '' (empty string) when unsure which icons are available."
+									},
+									"iconColor": {
+										"default": "",
+										"description": "Custom color for the icon, defined as rgba(r, g, b, a). Leave blank to use the template default icon color.",
+										"type": "string"
+									},
+									"name": {
+										"type": "string",
+										"description": "The name of the interest/hobby. Empty while the entry is a draft, which isn't printed."
+									},
+									"keywords": {
+										"default": [],
+										"description": "The keywords associated with the interest/hobby, if any. These are displayed as tags below the name.",
+										"type": "array",
+										"items": {
+											"type": "string"
+										}
+									}
+								},
+								"required": [
+									"id",
+									"hidden",
+									"icon",
+									"iconColor",
+									"name",
+									"keywords"
+								]
+							},
+							"description": "The items to display in the interests section."
+						}
+					},
+					"required": [
+						"title",
+						"icon",
+						"columns",
+						"hidden",
+						"keepTogether",
+						"startOnNewPage",
+						"items"
+					],
+					"description": "The section to display the interests of the author."
+				},
+				"awards": {
+					"type": "object",
+					"properties": {
+						"title": {
+							"type": "string",
+							"description": "The title of the section."
+						},
+						"icon": {
+							"default": "",
+							"description": "Phosphor icon name to display before the section title in the PDF output. Empty string uses the default section icon; 'none' hides the icon.",
+							"type": "string"
+						},
+						"columns": {
+							"default": 1,
+							"description": "The number of columns the section should span across.",
+							"type": "integer",
+							"minimum": 1,
+							"maximum": 6
+						},
+						"hidden": {
+							"type": "boolean",
+							"description": "Whether to hide the section from the resume."
+						},
+						"showHeading": {
+							"default": true,
+							"description": "Whether to show the section heading, icon, and decoration while retaining section content.",
+							"type": "boolean"
+						},
+						"keepTogether": {
+							"default": false,
+							"description": "If true, the section is kept on a single page instead of splitting across a page break.",
+							"type": "boolean"
+						},
+						"startOnNewPage": {
+							"default": false,
+							"description": "If true, the section always begins on a new page.",
+							"type": "boolean"
+						},
+						"items": {
+							"type": "array",
+							"items": {
+								"type": "object",
+								"properties": {
+									"id": {
+										"type": "string",
+										"description": "The unique identifier for the item. Usually generated as a UUID."
+									},
+									"hidden": {
+										"type": "boolean",
+										"description": "Whether to hide the item from the resume."
+									},
+									"title": {
+										"type": "string",
+										"description": "The title of the award. Empty while the entry is a draft, which isn't printed."
+									},
+									"awarder": {
+										"type": "string",
+										"description": "The awarder of the award."
+									},
+									"date": {
+										"type": "string",
+										"description": "The date when the award was received, as text. Written from `dates` on every save; write `dates` instead."
+									},
+									"dates": {
+										"type": "object",
+										"properties": {
+											"start": {
+												"default": null,
+												"description": "When it started, or the date itself for single-date entries (awards, certifications, publications).",
+												"anyOf": [
+													{
+														"type": "string",
+														"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+														"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+													},
+													{
+														"type": "null"
+													}
+												]
+											},
+											"end": {
+												"default": null,
+												"description": "When it ended. Null while ongoing or for single dates.",
+												"anyOf": [
+													{
+														"type": "string",
+														"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+														"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+													},
+													{
+														"type": "null"
+													}
+												]
+											},
+											"present": {
+												"default": false,
+												"description": "Whether it's ongoing, printed as 'Present'.",
+												"type": "boolean"
+											},
+											"raw": {
+												"description": "The original text when it couldn't be read exactly, such as 'Summer 2016'. It's printed as written until the dates are edited, which removes it.",
+												"type": "string"
+											}
+										},
+										"required": [
+											"start",
+											"end",
+											"present"
+										],
+										"description": "Structured dates. Write these rather than the legacy text field (`period` or `date`), which is kept in sync from them."
+									},
+									"website": {
+										"default": {
+											"url": "",
+											"label": "",
+											"inlineLink": false
+										},
+										"description": "The website of the award, if any.",
+										"type": "object",
+										"properties": {
+											"url": {
+												"type": "string",
+												"description": "The URL to show as a link. Must be a valid URL with a protocol (http:// or https://)."
+											},
+											"label": {
+												"type": "string",
+												"description": "The label to display for the URL. Leave blank to display the URL as-is."
+											},
+											"inlineLink": {
+												"default": false,
+												"description": "If true, the website URL is rendered as a hyperlink on the title instead of a separate link at the bottom.",
+												"type": "boolean"
+											}
+										},
+										"required": [
+											"url",
+											"label",
+											"inlineLink"
+										]
+									},
+									"description": {
+										"type": "string",
+										"description": "The description of the award. This should be a HTML-formatted string."
+									}
+								},
+								"required": [
+									"id",
+									"hidden",
+									"title",
+									"awarder",
+									"date",
+									"website",
+									"description"
+								]
+							},
+							"description": "The items to display in the awards section."
+						}
+					},
+					"required": [
+						"title",
+						"icon",
+						"columns",
+						"hidden",
+						"keepTogether",
+						"startOnNewPage",
+						"items"
+					],
+					"description": "The section to display the awards of the author."
+				},
+				"certifications": {
+					"type": "object",
+					"properties": {
+						"title": {
+							"type": "string",
+							"description": "The title of the section."
+						},
+						"icon": {
+							"default": "",
+							"description": "Phosphor icon name to display before the section title in the PDF output. Empty string uses the default section icon; 'none' hides the icon.",
+							"type": "string"
+						},
+						"columns": {
+							"default": 1,
+							"description": "The number of columns the section should span across.",
+							"type": "integer",
+							"minimum": 1,
+							"maximum": 6
+						},
+						"hidden": {
+							"type": "boolean",
+							"description": "Whether to hide the section from the resume."
+						},
+						"showHeading": {
+							"default": true,
+							"description": "Whether to show the section heading, icon, and decoration while retaining section content.",
+							"type": "boolean"
+						},
+						"keepTogether": {
+							"default": false,
+							"description": "If true, the section is kept on a single page instead of splitting across a page break.",
+							"type": "boolean"
+						},
+						"startOnNewPage": {
+							"default": false,
+							"description": "If true, the section always begins on a new page.",
+							"type": "boolean"
+						},
+						"items": {
+							"type": "array",
+							"items": {
+								"type": "object",
+								"properties": {
+									"id": {
+										"type": "string",
+										"description": "The unique identifier for the item. Usually generated as a UUID."
+									},
+									"hidden": {
+										"type": "boolean",
+										"description": "Whether to hide the item from the resume."
+									},
+									"title": {
+										"type": "string",
+										"description": "The title of the certification. Empty while the entry is a draft, which isn't printed."
+									},
+									"issuer": {
+										"type": "string",
+										"description": "The issuer of the certification."
+									},
+									"date": {
+										"type": "string",
+										"description": "The date when the certification was received, as text. Written from `dates` on every save; write `dates` instead."
+									},
+									"dates": {
+										"type": "object",
+										"properties": {
+											"start": {
+												"default": null,
+												"description": "When it started, or the date itself for single-date entries (awards, certifications, publications).",
+												"anyOf": [
+													{
+														"type": "string",
+														"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+														"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+													},
+													{
+														"type": "null"
+													}
+												]
+											},
+											"end": {
+												"default": null,
+												"description": "When it ended. Null while ongoing or for single dates.",
+												"anyOf": [
+													{
+														"type": "string",
+														"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+														"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+													},
+													{
+														"type": "null"
+													}
+												]
+											},
+											"present": {
+												"default": false,
+												"description": "Whether it's ongoing, printed as 'Present'.",
+												"type": "boolean"
+											},
+											"raw": {
+												"description": "The original text when it couldn't be read exactly, such as 'Summer 2016'. It's printed as written until the dates are edited, which removes it.",
+												"type": "string"
+											}
+										},
+										"required": [
+											"start",
+											"end",
+											"present"
+										],
+										"description": "Structured dates. Write these rather than the legacy text field (`period` or `date`), which is kept in sync from them."
+									},
+									"website": {
+										"default": {
+											"url": "",
+											"label": "",
+											"inlineLink": false
+										},
+										"description": "The website of the certification, if any.",
+										"type": "object",
+										"properties": {
+											"url": {
+												"type": "string",
+												"description": "The URL to show as a link. Must be a valid URL with a protocol (http:// or https://)."
+											},
+											"label": {
+												"type": "string",
+												"description": "The label to display for the URL. Leave blank to display the URL as-is."
+											},
+											"inlineLink": {
+												"default": false,
+												"description": "If true, the website URL is rendered as a hyperlink on the title instead of a separate link at the bottom.",
+												"type": "boolean"
+											}
+										},
+										"required": [
+											"url",
+											"label",
+											"inlineLink"
+										]
+									},
+									"description": {
+										"type": "string",
+										"description": "The description of the certification. This should be a HTML-formatted string."
+									}
+								},
+								"required": [
+									"id",
+									"hidden",
+									"title",
+									"issuer",
+									"date",
+									"website",
+									"description"
+								]
+							},
+							"description": "The items to display in the certifications section."
+						}
+					},
+					"required": [
+						"title",
+						"icon",
+						"columns",
+						"hidden",
+						"keepTogether",
+						"startOnNewPage",
+						"items"
+					],
+					"description": "The section to display the certifications of the author."
+				},
+				"publications": {
+					"type": "object",
+					"properties": {
+						"title": {
+							"type": "string",
+							"description": "The title of the section."
+						},
+						"icon": {
+							"default": "",
+							"description": "Phosphor icon name to display before the section title in the PDF output. Empty string uses the default section icon; 'none' hides the icon.",
+							"type": "string"
+						},
+						"columns": {
+							"default": 1,
+							"description": "The number of columns the section should span across.",
+							"type": "integer",
+							"minimum": 1,
+							"maximum": 6
+						},
+						"hidden": {
+							"type": "boolean",
+							"description": "Whether to hide the section from the resume."
+						},
+						"showHeading": {
+							"default": true,
+							"description": "Whether to show the section heading, icon, and decoration while retaining section content.",
+							"type": "boolean"
+						},
+						"keepTogether": {
+							"default": false,
+							"description": "If true, the section is kept on a single page instead of splitting across a page break.",
+							"type": "boolean"
+						},
+						"startOnNewPage": {
+							"default": false,
+							"description": "If true, the section always begins on a new page.",
+							"type": "boolean"
+						},
+						"items": {
+							"type": "array",
+							"items": {
+								"type": "object",
+								"properties": {
+									"id": {
+										"type": "string",
+										"description": "The unique identifier for the item. Usually generated as a UUID."
+									},
+									"hidden": {
+										"type": "boolean",
+										"description": "Whether to hide the item from the resume."
+									},
+									"title": {
+										"type": "string",
+										"description": "The title of the publication. Empty while the entry is a draft, which isn't printed."
+									},
+									"publisher": {
+										"type": "string",
+										"description": "The publisher of the publication."
+									},
+									"date": {
+										"type": "string",
+										"description": "The date when the publication was published, as text. Written from `dates` on every save; write `dates` instead."
+									},
+									"dates": {
+										"type": "object",
+										"properties": {
+											"start": {
+												"default": null,
+												"description": "When it started, or the date itself for single-date entries (awards, certifications, publications).",
+												"anyOf": [
+													{
+														"type": "string",
+														"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+														"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+													},
+													{
+														"type": "null"
+													}
+												]
+											},
+											"end": {
+												"default": null,
+												"description": "When it ended. Null while ongoing or for single dates.",
+												"anyOf": [
+													{
+														"type": "string",
+														"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+														"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+													},
+													{
+														"type": "null"
+													}
+												]
+											},
+											"present": {
+												"default": false,
+												"description": "Whether it's ongoing, printed as 'Present'.",
+												"type": "boolean"
+											},
+											"raw": {
+												"description": "The original text when it couldn't be read exactly, such as 'Summer 2016'. It's printed as written until the dates are edited, which removes it.",
+												"type": "string"
+											}
+										},
+										"required": [
+											"start",
+											"end",
+											"present"
+										],
+										"description": "Structured dates. Write these rather than the legacy text field (`period` or `date`), which is kept in sync from them."
+									},
+									"website": {
+										"default": {
+											"url": "",
+											"label": "",
+											"inlineLink": false
+										},
+										"description": "The link to the publication, if any.",
+										"type": "object",
+										"properties": {
+											"url": {
+												"type": "string",
+												"description": "The URL to show as a link. Must be a valid URL with a protocol (http:// or https://)."
+											},
+											"label": {
+												"type": "string",
+												"description": "The label to display for the URL. Leave blank to display the URL as-is."
+											},
+											"inlineLink": {
+												"default": false,
+												"description": "If true, the website URL is rendered as a hyperlink on the title instead of a separate link at the bottom.",
+												"type": "boolean"
+											}
+										},
+										"required": [
+											"url",
+											"label",
+											"inlineLink"
+										]
+									},
+									"description": {
+										"type": "string",
+										"description": "The description of the publication. This should be a HTML-formatted string."
+									}
+								},
+								"required": [
+									"id",
+									"hidden",
+									"title",
+									"publisher",
+									"date",
+									"website",
+									"description"
+								]
+							},
+							"description": "The items to display in the publications section."
+						}
+					},
+					"required": [
+						"title",
+						"icon",
+						"columns",
+						"hidden",
+						"keepTogether",
+						"startOnNewPage",
+						"items"
+					],
+					"description": "The section to display the publications of the author."
+				},
+				"volunteer": {
+					"type": "object",
+					"properties": {
+						"title": {
+							"type": "string",
+							"description": "The title of the section."
+						},
+						"icon": {
+							"default": "",
+							"description": "Phosphor icon name to display before the section title in the PDF output. Empty string uses the default section icon; 'none' hides the icon.",
+							"type": "string"
+						},
+						"columns": {
+							"default": 1,
+							"description": "The number of columns the section should span across.",
+							"type": "integer",
+							"minimum": 1,
+							"maximum": 6
+						},
+						"hidden": {
+							"type": "boolean",
+							"description": "Whether to hide the section from the resume."
+						},
+						"showHeading": {
+							"default": true,
+							"description": "Whether to show the section heading, icon, and decoration while retaining section content.",
+							"type": "boolean"
+						},
+						"keepTogether": {
+							"default": false,
+							"description": "If true, the section is kept on a single page instead of splitting across a page break.",
+							"type": "boolean"
+						},
+						"startOnNewPage": {
+							"default": false,
+							"description": "If true, the section always begins on a new page.",
+							"type": "boolean"
+						},
+						"items": {
+							"type": "array",
+							"items": {
+								"type": "object",
+								"properties": {
+									"id": {
+										"type": "string",
+										"description": "The unique identifier for the item. Usually generated as a UUID."
+									},
+									"hidden": {
+										"type": "boolean",
+										"description": "Whether to hide the item from the resume."
+									},
+									"organization": {
+										"type": "string",
+										"description": "The name of the organization or company. Empty while the entry is a draft, which isn't printed."
+									},
+									"location": {
+										"type": "string",
+										"description": "The location of the organization or company."
+									},
+									"period": {
+										"type": "string",
+										"description": "The period of time the author was volunteered at the organization or company, as text. Written from `dates` on every save; write `dates` instead."
+									},
+									"dates": {
+										"type": "object",
+										"properties": {
+											"start": {
+												"default": null,
+												"description": "When it started, or the date itself for single-date entries (awards, certifications, publications).",
+												"anyOf": [
+													{
+														"type": "string",
+														"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+														"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+													},
+													{
+														"type": "null"
+													}
+												]
+											},
+											"end": {
+												"default": null,
+												"description": "When it ended. Null while ongoing or for single dates.",
+												"anyOf": [
+													{
+														"type": "string",
+														"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+														"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+													},
+													{
+														"type": "null"
+													}
+												]
+											},
+											"present": {
+												"default": false,
+												"description": "Whether it's ongoing, printed as 'Present'.",
+												"type": "boolean"
+											},
+											"raw": {
+												"description": "The original text when it couldn't be read exactly, such as 'Summer 2016'. It's printed as written until the dates are edited, which removes it.",
+												"type": "string"
+											}
+										},
+										"required": [
+											"start",
+											"end",
+											"present"
+										],
+										"description": "Structured dates. Write these rather than the legacy text field (`period` or `date`), which is kept in sync from them."
+									},
+									"website": {
+										"default": {
+											"url": "",
+											"label": "",
+											"inlineLink": false
+										},
+										"description": "The link to the organization or company, if any.",
+										"type": "object",
+										"properties": {
+											"url": {
+												"type": "string",
+												"description": "The URL to show as a link. Must be a valid URL with a protocol (http:// or https://)."
+											},
+											"label": {
+												"type": "string",
+												"description": "The label to display for the URL. Leave blank to display the URL as-is."
+											},
+											"inlineLink": {
+												"default": false,
+												"description": "If true, the website URL is rendered as a hyperlink on the title instead of a separate link at the bottom.",
+												"type": "boolean"
+											}
+										},
+										"required": [
+											"url",
+											"label",
+											"inlineLink"
+										]
+									},
+									"description": {
+										"type": "string",
+										"description": "The description of the volunteer experience. This should be a HTML-formatted string."
+									}
+								},
+								"required": [
+									"id",
+									"hidden",
+									"organization",
+									"location",
+									"period",
+									"website",
+									"description"
+								]
+							},
+							"description": "The items to display in the volunteer section."
+						}
+					},
+					"required": [
+						"title",
+						"icon",
+						"columns",
+						"hidden",
+						"keepTogether",
+						"startOnNewPage",
+						"items"
+					],
+					"description": "The section to display the volunteer experience of the author."
+				},
+				"references": {
+					"type": "object",
+					"properties": {
+						"title": {
+							"type": "string",
+							"description": "The title of the section."
+						},
+						"icon": {
+							"default": "",
+							"description": "Phosphor icon name to display before the section title in the PDF output. Empty string uses the default section icon; 'none' hides the icon.",
+							"type": "string"
+						},
+						"columns": {
+							"default": 1,
+							"description": "The number of columns the section should span across.",
+							"type": "integer",
+							"minimum": 1,
+							"maximum": 6
+						},
+						"hidden": {
+							"type": "boolean",
+							"description": "Whether to hide the section from the resume."
+						},
+						"showHeading": {
+							"default": true,
+							"description": "Whether to show the section heading, icon, and decoration while retaining section content.",
+							"type": "boolean"
+						},
+						"keepTogether": {
+							"default": false,
+							"description": "If true, the section is kept on a single page instead of splitting across a page break.",
+							"type": "boolean"
+						},
+						"startOnNewPage": {
+							"default": false,
+							"description": "If true, the section always begins on a new page.",
+							"type": "boolean"
+						},
+						"items": {
+							"type": "array",
+							"items": {
+								"type": "object",
+								"properties": {
+									"id": {
+										"type": "string",
+										"description": "The unique identifier for the item. Usually generated as a UUID."
+									},
+									"hidden": {
+										"type": "boolean",
+										"description": "Whether to hide the item from the resume."
+									},
+									"name": {
+										"type": "string",
+										"description": "The name of the reference, or a note such as 'Available upon request'. Empty while the entry is a draft, which isn't printed."
+									},
+									"position": {
+										"type": "string",
+										"description": "The position or job title of the reference."
+									},
+									"website": {
+										"default": {
+											"url": "",
+											"label": "",
+											"inlineLink": false
+										},
+										"description": "The website or LinkedIn profile of the reference, if any.",
+										"type": "object",
+										"properties": {
+											"url": {
+												"type": "string",
+												"description": "The URL to show as a link. Must be a valid URL with a protocol (http:// or https://)."
+											},
+											"label": {
+												"type": "string",
+												"description": "The label to display for the URL. Leave blank to display the URL as-is."
+											},
+											"inlineLink": {
+												"default": false,
+												"description": "If true, the website URL is rendered as a hyperlink on the title instead of a separate link at the bottom.",
+												"type": "boolean"
+											}
+										},
+										"required": [
+											"url",
+											"label",
+											"inlineLink"
+										]
+									},
+									"phone": {
+										"type": "string",
+										"description": "The phone number of the reference."
+									},
+									"description": {
+										"type": "string",
+										"description": "The description of the reference. Can be used to display a quote, a testimonial, etc. This should be a HTML-formatted string."
+									}
+								},
+								"required": [
+									"id",
+									"hidden",
+									"name",
+									"position",
+									"website",
+									"phone",
+									"description"
+								]
+							},
+							"description": "The items to display in the references section."
+						}
+					},
+					"required": [
+						"title",
+						"icon",
+						"columns",
+						"hidden",
+						"keepTogether",
+						"startOnNewPage",
+						"items"
+					],
+					"description": "The section to display the references of the author."
+				}
+			},
+			"required": [
+				"profiles",
+				"experience",
+				"education",
+				"projects",
+				"skills",
+				"languages",
+				"interests",
+				"awards",
+				"certifications",
+				"publications",
+				"volunteer",
+				"references"
+			],
+			"description": "Various sections of the resume, such as experience, education, projects, etc."
+		},
+		"customSections": {
+			"type": "array",
+			"items": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"title": {
+								"type": "string",
+								"description": "The title of the section."
+							},
+							"icon": {
+								"default": "",
+								"description": "Phosphor icon name to display before the section title in the PDF output. Empty string uses the default section icon; 'none' hides the icon.",
+								"type": "string"
+							},
+							"columns": {
+								"default": 1,
+								"description": "The number of columns the section should span across.",
+								"type": "integer",
+								"minimum": 1,
+								"maximum": 6
+							},
+							"hidden": {
+								"type": "boolean",
+								"description": "Whether to hide the section from the resume."
+							},
+							"showHeading": {
+								"default": true,
+								"description": "Whether to show the section heading, icon, and decoration while retaining section content.",
+								"type": "boolean"
+							},
+							"keepTogether": {
+								"default": false,
+								"description": "If true, the section is kept on a single page instead of splitting across a page break.",
+								"type": "boolean"
+							},
+							"startOnNewPage": {
+								"default": false,
+								"description": "If true, the section always begins on a new page.",
+								"type": "boolean"
+							},
+							"keywordLayout": {},
+							"id": {
+								"type": "string",
+								"description": "The unique identifier for the custom section. Usually generated as a UUID."
+							},
+							"type": {
+								"type": "string",
+								"const": "cover-letter",
+								"description": "The type of items this custom section contains. Determines which item schema and form fields to use."
+							},
+							"items": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"properties": {
+										"id": {
+											"type": "string",
+											"description": "The unique identifier for the item. Usually generated as a UUID."
+										},
+										"hidden": {
+											"type": "boolean",
+											"description": "Whether to hide the item from the resume."
+										},
+										"recipient": {
+											"type": "string",
+											"description": "The recipient's address block as HTML (name, title, company, address, email)."
+										},
+										"content": {
+											"type": "string",
+											"description": "The cover letter body as HTML (salutation, paragraphs, closing, signature)."
+										}
+									},
+									"required": [
+										"id",
+										"hidden",
+										"recipient",
+										"content"
+									],
+									"additionalProperties": {}
+								},
+								"description": "The items to display in the custom section. Items follow the schema of the section type."
+							}
+						},
+						"required": [
+							"title",
+							"icon",
+							"columns",
+							"hidden",
+							"keepTogether",
+							"startOnNewPage",
+							"id",
+							"type",
+							"items"
+						]
+					},
+					{
+						"type": "object",
+						"properties": {
+							"title": {
+								"type": "string",
+								"description": "The title of the section."
+							},
+							"icon": {
+								"default": "",
+								"description": "Phosphor icon name to display before the section title in the PDF output. Empty string uses the default section icon; 'none' hides the icon.",
+								"type": "string"
+							},
+							"columns": {
+								"default": 1,
+								"description": "The number of columns the section should span across.",
+								"type": "integer",
+								"minimum": 1,
+								"maximum": 6
+							},
+							"hidden": {
+								"type": "boolean",
+								"description": "Whether to hide the section from the resume."
+							},
+							"showHeading": {
+								"default": true,
+								"description": "Whether to show the section heading, icon, and decoration while retaining section content.",
+								"type": "boolean"
+							},
+							"keepTogether": {
+								"default": false,
+								"description": "If true, the section is kept on a single page instead of splitting across a page break.",
+								"type": "boolean"
+							},
+							"startOnNewPage": {
+								"default": false,
+								"description": "If true, the section always begins on a new page.",
+								"type": "boolean"
+							},
+							"keywordLayout": {},
+							"id": {
+								"type": "string",
+								"description": "The unique identifier for the custom section. Usually generated as a UUID."
+							},
+							"type": {
+								"type": "string",
+								"const": "summary",
+								"description": "The type of items this custom section contains. Determines which item schema and form fields to use."
+							},
+							"items": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"properties": {
+										"id": {
+											"type": "string",
+											"description": "The unique identifier for the item. Usually generated as a UUID."
+										},
+										"hidden": {
+											"type": "boolean",
+											"description": "Whether to hide the item from the resume."
+										},
+										"content": {
+											"type": "string",
+											"description": "The rich text content of the summary item. This should be a HTML-formatted string."
+										}
+									},
+									"required": [
+										"id",
+										"hidden",
+										"content"
+									],
+									"additionalProperties": {}
+								},
+								"description": "The items to display in the custom section. Items follow the schema of the section type."
+							}
+						},
+						"required": [
+							"title",
+							"icon",
+							"columns",
+							"hidden",
+							"keepTogether",
+							"startOnNewPage",
+							"id",
+							"type",
+							"items"
+						]
+					},
+					{
+						"type": "object",
+						"properties": {
+							"title": {
+								"type": "string",
+								"description": "The title of the section."
+							},
+							"icon": {
+								"default": "",
+								"description": "Phosphor icon name to display before the section title in the PDF output. Empty string uses the default section icon; 'none' hides the icon.",
+								"type": "string"
+							},
+							"columns": {
+								"default": 1,
+								"description": "The number of columns the section should span across.",
+								"type": "integer",
+								"minimum": 1,
+								"maximum": 6
+							},
+							"hidden": {
+								"type": "boolean",
+								"description": "Whether to hide the section from the resume."
+							},
+							"showHeading": {
+								"default": true,
+								"description": "Whether to show the section heading, icon, and decoration while retaining section content.",
+								"type": "boolean"
+							},
+							"keepTogether": {
+								"default": false,
+								"description": "If true, the section is kept on a single page instead of splitting across a page break.",
+								"type": "boolean"
+							},
+							"startOnNewPage": {
+								"default": false,
+								"description": "If true, the section always begins on a new page.",
+								"type": "boolean"
+							},
+							"keywordLayout": {},
+							"id": {
+								"type": "string",
+								"description": "The unique identifier for the custom section. Usually generated as a UUID."
+							},
+							"type": {
+								"type": "string",
+								"const": "profiles",
+								"description": "The type of items this custom section contains. Determines which item schema and form fields to use."
+							},
+							"items": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"properties": {
+										"id": {
+											"type": "string",
+											"description": "The unique identifier for the item. Usually generated as a UUID."
+										},
+										"hidden": {
+											"type": "boolean",
+											"description": "Whether to hide the item from the resume."
+										},
+										"icon": {
+											"type": "string",
+											"description": "The icon to display for the custom field. Must be a valid icon name from @phosphor-icons/web icon set, or an empty string to hide. Default to '' (empty string) when unsure which icons are available."
+										},
+										"iconColor": {
+											"default": "",
+											"description": "Custom color for the icon, defined as rgba(r, g, b, a). Leave blank to use the template default icon color.",
+											"type": "string"
+										},
+										"network": {
+											"type": "string",
+											"description": "The name of the network or platform. Empty while the entry is a draft, which isn't printed."
+										},
+										"username": {
+											"type": "string",
+											"description": "The username of the author on the network or platform."
+										},
+										"website": {
+											"default": {
+												"url": "",
+												"label": "",
+												"inlineLink": false
+											},
+											"description": "The link to the profile of the author on the network or platform, if any.",
+											"type": "object",
+											"properties": {
+												"url": {
+													"type": "string",
+													"description": "The URL to show as a link. Must be a valid URL with a protocol (http:// or https://)."
+												},
+												"label": {
+													"type": "string",
+													"description": "The label to display for the URL. Leave blank to display the URL as-is."
+												},
+												"inlineLink": {
+													"default": false,
+													"description": "If true, the website URL is rendered as a hyperlink on the title instead of a separate link at the bottom.",
+													"type": "boolean"
+												}
+											},
+											"required": [
+												"url",
+												"label",
+												"inlineLink"
+											]
+										}
+									},
+									"required": [
+										"id",
+										"hidden",
+										"icon",
+										"iconColor",
+										"network",
+										"username",
+										"website"
+									],
+									"additionalProperties": {}
+								},
+								"description": "The items to display in the custom section. Items follow the schema of the section type."
+							}
+						},
+						"required": [
+							"title",
+							"icon",
+							"columns",
+							"hidden",
+							"keepTogether",
+							"startOnNewPage",
+							"id",
+							"type",
+							"items"
+						]
+					},
+					{
+						"type": "object",
+						"properties": {
+							"title": {
+								"type": "string",
+								"description": "The title of the section."
+							},
+							"icon": {
+								"default": "",
+								"description": "Phosphor icon name to display before the section title in the PDF output. Empty string uses the default section icon; 'none' hides the icon.",
+								"type": "string"
+							},
+							"columns": {
+								"default": 1,
+								"description": "The number of columns the section should span across.",
+								"type": "integer",
+								"minimum": 1,
+								"maximum": 6
+							},
+							"hidden": {
+								"type": "boolean",
+								"description": "Whether to hide the section from the resume."
+							},
+							"showHeading": {
+								"default": true,
+								"description": "Whether to show the section heading, icon, and decoration while retaining section content.",
+								"type": "boolean"
+							},
+							"keepTogether": {
+								"default": false,
+								"description": "If true, the section is kept on a single page instead of splitting across a page break.",
+								"type": "boolean"
+							},
+							"startOnNewPage": {
+								"default": false,
+								"description": "If true, the section always begins on a new page.",
+								"type": "boolean"
+							},
+							"keywordLayout": {},
+							"id": {
+								"type": "string",
+								"description": "The unique identifier for the custom section. Usually generated as a UUID."
+							},
+							"type": {
+								"type": "string",
+								"const": "experience",
+								"description": "The type of items this custom section contains. Determines which item schema and form fields to use."
+							},
+							"items": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"properties": {
+										"id": {
+											"type": "string",
+											"description": "The unique identifier for the item. Usually generated as a UUID."
+										},
+										"hidden": {
+											"type": "boolean",
+											"description": "Whether to hide the item from the resume."
+										},
+										"company": {
+											"type": "string",
+											"description": "The name of the company or organization. Empty while the entry is a draft, which isn't printed."
+										},
+										"position": {
+											"type": "string",
+											"description": "The position held at the company or organization. Used when there is only a single role. If multiple roles are provided in the 'roles' field, this serves as a summary title or can be left blank."
+										},
+										"location": {
+											"type": "string",
+											"description": "The location of the company or organization."
+										},
+										"period": {
+											"type": "string",
+											"description": "The overall period of time at the company, as text. When multiple roles are used, this should reflect the total tenure. Written from `dates` on every save; write `dates` instead."
+										},
+										"dates": {
+											"type": "object",
+											"properties": {
+												"start": {
+													"default": null,
+													"description": "When it started, or the date itself for single-date entries (awards, certifications, publications).",
+													"anyOf": [
+														{
+															"type": "string",
+															"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+															"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"end": {
+													"default": null,
+													"description": "When it ended. Null while ongoing or for single dates.",
+													"anyOf": [
+														{
+															"type": "string",
+															"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+															"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"present": {
+													"default": false,
+													"description": "Whether it's ongoing, printed as 'Present'.",
+													"type": "boolean"
+												},
+												"raw": {
+													"description": "The original text when it couldn't be read exactly, such as 'Summer 2016'. It's printed as written until the dates are edited, which removes it.",
+													"type": "string"
+												}
+											},
+											"required": [
+												"start",
+												"end",
+												"present"
+											],
+											"description": "Structured dates. Write these rather than the legacy text field (`period` or `date`), which is kept in sync from them."
+										},
+										"website": {
+											"default": {
+												"url": "",
+												"label": "",
+												"inlineLink": false
+											},
+											"description": "The website of the company or organization, if any.",
+											"type": "object",
+											"properties": {
+												"url": {
+													"type": "string",
+													"description": "The URL to show as a link. Must be a valid URL with a protocol (http:// or https://)."
+												},
+												"label": {
+													"type": "string",
+													"description": "The label to display for the URL. Leave blank to display the URL as-is."
+												},
+												"inlineLink": {
+													"default": false,
+													"description": "If true, the website URL is rendered as a hyperlink on the title instead of a separate link at the bottom.",
+													"type": "boolean"
+												}
+											},
+											"required": [
+												"url",
+												"label",
+												"inlineLink"
+											]
+										},
+										"description": {
+											"type": "string",
+											"description": "The description of the experience. This should be a HTML-formatted string."
+										},
+										"roles": {
+											"default": [],
+											"description": "List of individual roles held at this company to show career progression.",
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"id": {
+														"type": "string",
+														"description": "The unique identifier for the role. Usually generated as a UUID."
+													},
+													"position": {
+														"type": "string",
+														"description": "The position or job title for this role."
+													},
+													"period": {
+														"type": "string",
+														"description": "The period of time this role was held, as text. Written from `dates` on every save; write `dates` instead."
+													},
+													"dates": {
+														"type": "object",
+														"properties": {
+															"start": {
+																"default": null,
+																"description": "When it started, or the date itself for single-date entries (awards, certifications, publications).",
+																"anyOf": [
+																	{
+																		"type": "string",
+																		"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+																		"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+																	},
+																	{
+																		"type": "null"
+																	}
+																]
+															},
+															"end": {
+																"default": null,
+																"description": "When it ended. Null while ongoing or for single dates.",
+																"anyOf": [
+																	{
+																		"type": "string",
+																		"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+																		"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+																	},
+																	{
+																		"type": "null"
+																	}
+																]
+															},
+															"present": {
+																"default": false,
+																"description": "Whether it's ongoing, printed as 'Present'.",
+																"type": "boolean"
+															},
+															"raw": {
+																"description": "The original text when it couldn't be read exactly, such as 'Summer 2016'. It's printed as written until the dates are edited, which removes it.",
+																"type": "string"
+															}
+														},
+														"required": [
+															"start",
+															"end",
+															"present"
+														],
+														"description": "Structured dates. Write these rather than the legacy text field (`period` or `date`), which is kept in sync from them."
+													},
+													"description": {
+														"type": "string",
+														"description": "The description of this specific role. This should be a HTML-formatted string."
+													}
+												},
+												"required": [
+													"id",
+													"position",
+													"period",
+													"description"
+												]
+											}
+										}
+									},
+									"required": [
+										"id",
+										"hidden",
+										"company",
+										"position",
+										"location",
+										"period",
+										"website",
+										"description",
+										"roles"
+									],
+									"additionalProperties": {}
+								},
+								"description": "The items to display in the custom section. Items follow the schema of the section type."
+							}
+						},
+						"required": [
+							"title",
+							"icon",
+							"columns",
+							"hidden",
+							"keepTogether",
+							"startOnNewPage",
+							"id",
+							"type",
+							"items"
+						]
+					},
+					{
+						"type": "object",
+						"properties": {
+							"title": {
+								"type": "string",
+								"description": "The title of the section."
+							},
+							"icon": {
+								"default": "",
+								"description": "Phosphor icon name to display before the section title in the PDF output. Empty string uses the default section icon; 'none' hides the icon.",
+								"type": "string"
+							},
+							"columns": {
+								"default": 1,
+								"description": "The number of columns the section should span across.",
+								"type": "integer",
+								"minimum": 1,
+								"maximum": 6
+							},
+							"hidden": {
+								"type": "boolean",
+								"description": "Whether to hide the section from the resume."
+							},
+							"showHeading": {
+								"default": true,
+								"description": "Whether to show the section heading, icon, and decoration while retaining section content.",
+								"type": "boolean"
+							},
+							"keepTogether": {
+								"default": false,
+								"description": "If true, the section is kept on a single page instead of splitting across a page break.",
+								"type": "boolean"
+							},
+							"startOnNewPage": {
+								"default": false,
+								"description": "If true, the section always begins on a new page.",
+								"type": "boolean"
+							},
+							"keywordLayout": {},
+							"id": {
+								"type": "string",
+								"description": "The unique identifier for the custom section. Usually generated as a UUID."
+							},
+							"type": {
+								"type": "string",
+								"const": "education",
+								"description": "The type of items this custom section contains. Determines which item schema and form fields to use."
+							},
+							"items": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"properties": {
+										"id": {
+											"type": "string",
+											"description": "The unique identifier for the item. Usually generated as a UUID."
+										},
+										"hidden": {
+											"type": "boolean",
+											"description": "Whether to hide the item from the resume."
+										},
+										"school": {
+											"type": "string",
+											"description": "The name of the school or institution. Empty while the entry is a draft, which isn't printed."
+										},
+										"degree": {
+											"type": "string",
+											"description": "The degree or qualification obtained."
+										},
+										"area": {
+											"type": "string",
+											"description": "The area of study or specialization."
+										},
+										"grade": {
+											"type": "string",
+											"description": "The grade or score achieved."
+										},
+										"location": {
+											"type": "string",
+											"description": "The location of the school or institution."
+										},
+										"period": {
+											"type": "string",
+											"description": "The period of time the education was obtained over, as text. Written from `dates` on every save; write `dates` instead."
+										},
+										"dates": {
+											"type": "object",
+											"properties": {
+												"start": {
+													"default": null,
+													"description": "When it started, or the date itself for single-date entries (awards, certifications, publications).",
+													"anyOf": [
+														{
+															"type": "string",
+															"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+															"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"end": {
+													"default": null,
+													"description": "When it ended. Null while ongoing or for single dates.",
+													"anyOf": [
+														{
+															"type": "string",
+															"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+															"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"present": {
+													"default": false,
+													"description": "Whether it's ongoing, printed as 'Present'.",
+													"type": "boolean"
+												},
+												"raw": {
+													"description": "The original text when it couldn't be read exactly, such as 'Summer 2016'. It's printed as written until the dates are edited, which removes it.",
+													"type": "string"
+												}
+											},
+											"required": [
+												"start",
+												"end",
+												"present"
+											],
+											"description": "Structured dates. Write these rather than the legacy text field (`period` or `date`), which is kept in sync from them."
+										},
+										"website": {
+											"default": {
+												"url": "",
+												"label": "",
+												"inlineLink": false
+											},
+											"description": "The website of the school or institution, if any.",
+											"type": "object",
+											"properties": {
+												"url": {
+													"type": "string",
+													"description": "The URL to show as a link. Must be a valid URL with a protocol (http:// or https://)."
+												},
+												"label": {
+													"type": "string",
+													"description": "The label to display for the URL. Leave blank to display the URL as-is."
+												},
+												"inlineLink": {
+													"default": false,
+													"description": "If true, the website URL is rendered as a hyperlink on the title instead of a separate link at the bottom.",
+													"type": "boolean"
+												}
+											},
+											"required": [
+												"url",
+												"label",
+												"inlineLink"
+											]
+										},
+										"description": {
+											"type": "string",
+											"description": "The description of the education. This should be a HTML-formatted string."
+										}
+									},
+									"required": [
+										"id",
+										"hidden",
+										"school",
+										"degree",
+										"area",
+										"grade",
+										"location",
+										"period",
+										"website",
+										"description"
+									],
+									"additionalProperties": {}
+								},
+								"description": "The items to display in the custom section. Items follow the schema of the section type."
+							}
+						},
+						"required": [
+							"title",
+							"icon",
+							"columns",
+							"hidden",
+							"keepTogether",
+							"startOnNewPage",
+							"id",
+							"type",
+							"items"
+						]
+					},
+					{
+						"type": "object",
+						"properties": {
+							"title": {
+								"type": "string",
+								"description": "The title of the section."
+							},
+							"icon": {
+								"default": "",
+								"description": "Phosphor icon name to display before the section title in the PDF output. Empty string uses the default section icon; 'none' hides the icon.",
+								"type": "string"
+							},
+							"columns": {
+								"default": 1,
+								"description": "The number of columns the section should span across.",
+								"type": "integer",
+								"minimum": 1,
+								"maximum": 6
+							},
+							"hidden": {
+								"type": "boolean",
+								"description": "Whether to hide the section from the resume."
+							},
+							"showHeading": {
+								"default": true,
+								"description": "Whether to show the section heading, icon, and decoration while retaining section content.",
+								"type": "boolean"
+							},
+							"keepTogether": {
+								"default": false,
+								"description": "If true, the section is kept on a single page instead of splitting across a page break.",
+								"type": "boolean"
+							},
+							"startOnNewPage": {
+								"default": false,
+								"description": "If true, the section always begins on a new page.",
+								"type": "boolean"
+							},
+							"keywordLayout": {},
+							"id": {
+								"type": "string",
+								"description": "The unique identifier for the custom section. Usually generated as a UUID."
+							},
+							"type": {
+								"type": "string",
+								"const": "projects",
+								"description": "The type of items this custom section contains. Determines which item schema and form fields to use."
+							},
+							"items": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"properties": {
+										"id": {
+											"type": "string",
+											"description": "The unique identifier for the item. Usually generated as a UUID."
+										},
+										"hidden": {
+											"type": "boolean",
+											"description": "Whether to hide the item from the resume."
+										},
+										"name": {
+											"type": "string",
+											"description": "The name of the project. Empty while the entry is a draft, which isn't printed."
+										},
+										"period": {
+											"type": "string",
+											"description": "The period of time the project was worked on, as text. Written from `dates` on every save; write `dates` instead."
+										},
+										"dates": {
+											"type": "object",
+											"properties": {
+												"start": {
+													"default": null,
+													"description": "When it started, or the date itself for single-date entries (awards, certifications, publications).",
+													"anyOf": [
+														{
+															"type": "string",
+															"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+															"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"end": {
+													"default": null,
+													"description": "When it ended. Null while ongoing or for single dates.",
+													"anyOf": [
+														{
+															"type": "string",
+															"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+															"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"present": {
+													"default": false,
+													"description": "Whether it's ongoing, printed as 'Present'.",
+													"type": "boolean"
+												},
+												"raw": {
+													"description": "The original text when it couldn't be read exactly, such as 'Summer 2016'. It's printed as written until the dates are edited, which removes it.",
+													"type": "string"
+												}
+											},
+											"required": [
+												"start",
+												"end",
+												"present"
+											],
+											"description": "Structured dates. Write these rather than the legacy text field (`period` or `date`), which is kept in sync from them."
+										},
+										"website": {
+											"default": {
+												"url": "",
+												"label": "",
+												"inlineLink": false
+											},
+											"description": "The link to the project, if any.",
+											"type": "object",
+											"properties": {
+												"url": {
+													"type": "string",
+													"description": "The URL to show as a link. Must be a valid URL with a protocol (http:// or https://)."
+												},
+												"label": {
+													"type": "string",
+													"description": "The label to display for the URL. Leave blank to display the URL as-is."
+												},
+												"inlineLink": {
+													"default": false,
+													"description": "If true, the website URL is rendered as a hyperlink on the title instead of a separate link at the bottom.",
+													"type": "boolean"
+												}
+											},
+											"required": [
+												"url",
+												"label",
+												"inlineLink"
+											]
+										},
+										"description": {
+											"type": "string",
+											"description": "The description of the project. This should be a HTML-formatted string."
+										}
+									},
+									"required": [
+										"id",
+										"hidden",
+										"name",
+										"period",
+										"website",
+										"description"
+									],
+									"additionalProperties": {}
+								},
+								"description": "The items to display in the custom section. Items follow the schema of the section type."
+							}
+						},
+						"required": [
+							"title",
+							"icon",
+							"columns",
+							"hidden",
+							"keepTogether",
+							"startOnNewPage",
+							"id",
+							"type",
+							"items"
+						]
+					},
+					{
+						"type": "object",
+						"properties": {
+							"title": {
+								"type": "string",
+								"description": "The title of the section."
+							},
+							"icon": {
+								"default": "",
+								"description": "Phosphor icon name to display before the section title in the PDF output. Empty string uses the default section icon; 'none' hides the icon.",
+								"type": "string"
+							},
+							"columns": {
+								"default": 1,
+								"description": "The number of columns the section should span across.",
+								"type": "integer",
+								"minimum": 1,
+								"maximum": 6
+							},
+							"hidden": {
+								"type": "boolean",
+								"description": "Whether to hide the section from the resume."
+							},
+							"showHeading": {
+								"default": true,
+								"description": "Whether to show the section heading, icon, and decoration while retaining section content.",
+								"type": "boolean"
+							},
+							"keepTogether": {
+								"default": false,
+								"description": "If true, the section is kept on a single page instead of splitting across a page break.",
+								"type": "boolean"
+							},
+							"startOnNewPage": {
+								"default": false,
+								"description": "If true, the section always begins on a new page.",
+								"type": "boolean"
+							},
+							"keywordLayout": {
+								"default": "inline",
+								"description": "How skill keywords are displayed: inline separated by commas, or one bullet per keyword.",
+								"type": "string",
+								"enum": [
+									"inline",
+									"list"
+								]
+							},
+							"id": {
+								"type": "string",
+								"description": "The unique identifier for the custom section. Usually generated as a UUID."
+							},
+							"type": {
+								"type": "string",
+								"const": "skills",
+								"description": "The type of items this custom section contains. Determines which item schema and form fields to use."
+							},
+							"items": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"properties": {
+										"id": {
+											"type": "string",
+											"description": "The unique identifier for the item. Usually generated as a UUID."
+										},
+										"hidden": {
+											"type": "boolean",
+											"description": "Whether to hide the item from the resume."
+										},
+										"icon": {
+											"type": "string",
+											"description": "The icon to display for the custom field. Must be a valid icon name from @phosphor-icons/web icon set, or an empty string to hide. Default to '' (empty string) when unsure which icons are available."
+										},
+										"iconColor": {
+											"default": "",
+											"description": "Custom color for the icon, defined as rgba(r, g, b, a). Leave blank to use the template default icon color.",
+											"type": "string"
+										},
+										"name": {
+											"type": "string",
+											"description": "The name of the skill. Empty while the entry is a draft, which isn't printed."
+										},
+										"proficiency": {
+											"type": "string",
+											"description": "The proficiency level of the skill. Can be any text, such as 'Beginner', 'Intermediate', 'Advanced', etc."
+										},
+										"level": {
+											"default": 0,
+											"description": "The proficiency level of the skill, defined as a number between 0 and 5. If set to 0, the icons displaying the level will be hidden.",
+											"type": "number",
+											"minimum": 0,
+											"maximum": 5
+										},
+										"keywords": {
+											"default": [],
+											"description": "The keywords associated with the skill, if any. These are displayed as tags below the name.",
+											"type": "array",
+											"items": {
+												"type": "string"
+											}
+										}
+									},
+									"required": [
+										"id",
+										"hidden",
+										"icon",
+										"iconColor",
+										"name",
+										"proficiency",
+										"level",
+										"keywords"
+									],
+									"additionalProperties": {}
+								},
+								"description": "The items to display in the custom section. Items follow the schema of the section type."
+							}
+						},
+						"required": [
+							"title",
+							"icon",
+							"columns",
+							"hidden",
+							"keepTogether",
+							"startOnNewPage",
+							"id",
+							"type",
+							"items"
+						]
+					},
+					{
+						"type": "object",
+						"properties": {
+							"title": {
+								"type": "string",
+								"description": "The title of the section."
+							},
+							"icon": {
+								"default": "",
+								"description": "Phosphor icon name to display before the section title in the PDF output. Empty string uses the default section icon; 'none' hides the icon.",
+								"type": "string"
+							},
+							"columns": {
+								"default": 1,
+								"description": "The number of columns the section should span across.",
+								"type": "integer",
+								"minimum": 1,
+								"maximum": 6
+							},
+							"hidden": {
+								"type": "boolean",
+								"description": "Whether to hide the section from the resume."
+							},
+							"showHeading": {
+								"default": true,
+								"description": "Whether to show the section heading, icon, and decoration while retaining section content.",
+								"type": "boolean"
+							},
+							"keepTogether": {
+								"default": false,
+								"description": "If true, the section is kept on a single page instead of splitting across a page break.",
+								"type": "boolean"
+							},
+							"startOnNewPage": {
+								"default": false,
+								"description": "If true, the section always begins on a new page.",
+								"type": "boolean"
+							},
+							"keywordLayout": {},
+							"id": {
+								"type": "string",
+								"description": "The unique identifier for the custom section. Usually generated as a UUID."
+							},
+							"type": {
+								"type": "string",
+								"const": "languages",
+								"description": "The type of items this custom section contains. Determines which item schema and form fields to use."
+							},
+							"items": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"properties": {
+										"id": {
+											"type": "string",
+											"description": "The unique identifier for the item. Usually generated as a UUID."
+										},
+										"hidden": {
+											"type": "boolean",
+											"description": "Whether to hide the item from the resume."
+										},
+										"language": {
+											"type": "string",
+											"description": "The name of the language the author knows. Empty while the entry is a draft, which isn't printed."
+										},
+										"fluency": {
+											"type": "string",
+											"description": "The fluency level of the language. Can be any text, such as 'Native', 'Fluent', 'Conversational', etc. or can also be a CEFR level (A1, A2, B1, B2, C1, C2)."
+										},
+										"level": {
+											"default": 0,
+											"description": "The proficiency level of the language, defined as a number between 0 and 5. If set to 0, the icons displaying the level will be hidden.",
+											"type": "number",
+											"minimum": 0,
+											"maximum": 5
+										}
+									},
+									"required": [
+										"id",
+										"hidden",
+										"language",
+										"fluency",
+										"level"
+									],
+									"additionalProperties": {}
+								},
+								"description": "The items to display in the custom section. Items follow the schema of the section type."
+							}
+						},
+						"required": [
+							"title",
+							"icon",
+							"columns",
+							"hidden",
+							"keepTogether",
+							"startOnNewPage",
+							"id",
+							"type",
+							"items"
+						]
+					},
+					{
+						"type": "object",
+						"properties": {
+							"title": {
+								"type": "string",
+								"description": "The title of the section."
+							},
+							"icon": {
+								"default": "",
+								"description": "Phosphor icon name to display before the section title in the PDF output. Empty string uses the default section icon; 'none' hides the icon.",
+								"type": "string"
+							},
+							"columns": {
+								"default": 1,
+								"description": "The number of columns the section should span across.",
+								"type": "integer",
+								"minimum": 1,
+								"maximum": 6
+							},
+							"hidden": {
+								"type": "boolean",
+								"description": "Whether to hide the section from the resume."
+							},
+							"showHeading": {
+								"default": true,
+								"description": "Whether to show the section heading, icon, and decoration while retaining section content.",
+								"type": "boolean"
+							},
+							"keepTogether": {
+								"default": false,
+								"description": "If true, the section is kept on a single page instead of splitting across a page break.",
+								"type": "boolean"
+							},
+							"startOnNewPage": {
+								"default": false,
+								"description": "If true, the section always begins on a new page.",
+								"type": "boolean"
+							},
+							"keywordLayout": {},
+							"id": {
+								"type": "string",
+								"description": "The unique identifier for the custom section. Usually generated as a UUID."
+							},
+							"type": {
+								"type": "string",
+								"const": "interests",
+								"description": "The type of items this custom section contains. Determines which item schema and form fields to use."
+							},
+							"items": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"properties": {
+										"id": {
+											"type": "string",
+											"description": "The unique identifier for the item. Usually generated as a UUID."
+										},
+										"hidden": {
+											"type": "boolean",
+											"description": "Whether to hide the item from the resume."
+										},
+										"icon": {
+											"type": "string",
+											"description": "The icon to display for the custom field. Must be a valid icon name from @phosphor-icons/web icon set, or an empty string to hide. Default to '' (empty string) when unsure which icons are available."
+										},
+										"iconColor": {
+											"default": "",
+											"description": "Custom color for the icon, defined as rgba(r, g, b, a). Leave blank to use the template default icon color.",
+											"type": "string"
+										},
+										"name": {
+											"type": "string",
+											"description": "The name of the interest/hobby. Empty while the entry is a draft, which isn't printed."
+										},
+										"keywords": {
+											"default": [],
+											"description": "The keywords associated with the interest/hobby, if any. These are displayed as tags below the name.",
+											"type": "array",
+											"items": {
+												"type": "string"
+											}
+										}
+									},
+									"required": [
+										"id",
+										"hidden",
+										"icon",
+										"iconColor",
+										"name",
+										"keywords"
+									],
+									"additionalProperties": {}
+								},
+								"description": "The items to display in the custom section. Items follow the schema of the section type."
+							}
+						},
+						"required": [
+							"title",
+							"icon",
+							"columns",
+							"hidden",
+							"keepTogether",
+							"startOnNewPage",
+							"id",
+							"type",
+							"items"
+						]
+					},
+					{
+						"type": "object",
+						"properties": {
+							"title": {
+								"type": "string",
+								"description": "The title of the section."
+							},
+							"icon": {
+								"default": "",
+								"description": "Phosphor icon name to display before the section title in the PDF output. Empty string uses the default section icon; 'none' hides the icon.",
+								"type": "string"
+							},
+							"columns": {
+								"default": 1,
+								"description": "The number of columns the section should span across.",
+								"type": "integer",
+								"minimum": 1,
+								"maximum": 6
+							},
+							"hidden": {
+								"type": "boolean",
+								"description": "Whether to hide the section from the resume."
+							},
+							"showHeading": {
+								"default": true,
+								"description": "Whether to show the section heading, icon, and decoration while retaining section content.",
+								"type": "boolean"
+							},
+							"keepTogether": {
+								"default": false,
+								"description": "If true, the section is kept on a single page instead of splitting across a page break.",
+								"type": "boolean"
+							},
+							"startOnNewPage": {
+								"default": false,
+								"description": "If true, the section always begins on a new page.",
+								"type": "boolean"
+							},
+							"keywordLayout": {},
+							"id": {
+								"type": "string",
+								"description": "The unique identifier for the custom section. Usually generated as a UUID."
+							},
+							"type": {
+								"type": "string",
+								"const": "awards",
+								"description": "The type of items this custom section contains. Determines which item schema and form fields to use."
+							},
+							"items": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"properties": {
+										"id": {
+											"type": "string",
+											"description": "The unique identifier for the item. Usually generated as a UUID."
+										},
+										"hidden": {
+											"type": "boolean",
+											"description": "Whether to hide the item from the resume."
+										},
+										"title": {
+											"type": "string",
+											"description": "The title of the award. Empty while the entry is a draft, which isn't printed."
+										},
+										"awarder": {
+											"type": "string",
+											"description": "The awarder of the award."
+										},
+										"date": {
+											"type": "string",
+											"description": "The date when the award was received, as text. Written from `dates` on every save; write `dates` instead."
+										},
+										"dates": {
+											"type": "object",
+											"properties": {
+												"start": {
+													"default": null,
+													"description": "When it started, or the date itself for single-date entries (awards, certifications, publications).",
+													"anyOf": [
+														{
+															"type": "string",
+															"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+															"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"end": {
+													"default": null,
+													"description": "When it ended. Null while ongoing or for single dates.",
+													"anyOf": [
+														{
+															"type": "string",
+															"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+															"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"present": {
+													"default": false,
+													"description": "Whether it's ongoing, printed as 'Present'.",
+													"type": "boolean"
+												},
+												"raw": {
+													"description": "The original text when it couldn't be read exactly, such as 'Summer 2016'. It's printed as written until the dates are edited, which removes it.",
+													"type": "string"
+												}
+											},
+											"required": [
+												"start",
+												"end",
+												"present"
+											],
+											"description": "Structured dates. Write these rather than the legacy text field (`period` or `date`), which is kept in sync from them."
+										},
+										"website": {
+											"default": {
+												"url": "",
+												"label": "",
+												"inlineLink": false
+											},
+											"description": "The website of the award, if any.",
+											"type": "object",
+											"properties": {
+												"url": {
+													"type": "string",
+													"description": "The URL to show as a link. Must be a valid URL with a protocol (http:// or https://)."
+												},
+												"label": {
+													"type": "string",
+													"description": "The label to display for the URL. Leave blank to display the URL as-is."
+												},
+												"inlineLink": {
+													"default": false,
+													"description": "If true, the website URL is rendered as a hyperlink on the title instead of a separate link at the bottom.",
+													"type": "boolean"
+												}
+											},
+											"required": [
+												"url",
+												"label",
+												"inlineLink"
+											]
+										},
+										"description": {
+											"type": "string",
+											"description": "The description of the award. This should be a HTML-formatted string."
+										}
+									},
+									"required": [
+										"id",
+										"hidden",
+										"title",
+										"awarder",
+										"date",
+										"website",
+										"description"
+									],
+									"additionalProperties": {}
+								},
+								"description": "The items to display in the custom section. Items follow the schema of the section type."
+							}
+						},
+						"required": [
+							"title",
+							"icon",
+							"columns",
+							"hidden",
+							"keepTogether",
+							"startOnNewPage",
+							"id",
+							"type",
+							"items"
+						]
+					},
+					{
+						"type": "object",
+						"properties": {
+							"title": {
+								"type": "string",
+								"description": "The title of the section."
+							},
+							"icon": {
+								"default": "",
+								"description": "Phosphor icon name to display before the section title in the PDF output. Empty string uses the default section icon; 'none' hides the icon.",
+								"type": "string"
+							},
+							"columns": {
+								"default": 1,
+								"description": "The number of columns the section should span across.",
+								"type": "integer",
+								"minimum": 1,
+								"maximum": 6
+							},
+							"hidden": {
+								"type": "boolean",
+								"description": "Whether to hide the section from the resume."
+							},
+							"showHeading": {
+								"default": true,
+								"description": "Whether to show the section heading, icon, and decoration while retaining section content.",
+								"type": "boolean"
+							},
+							"keepTogether": {
+								"default": false,
+								"description": "If true, the section is kept on a single page instead of splitting across a page break.",
+								"type": "boolean"
+							},
+							"startOnNewPage": {
+								"default": false,
+								"description": "If true, the section always begins on a new page.",
+								"type": "boolean"
+							},
+							"keywordLayout": {},
+							"id": {
+								"type": "string",
+								"description": "The unique identifier for the custom section. Usually generated as a UUID."
+							},
+							"type": {
+								"type": "string",
+								"const": "certifications",
+								"description": "The type of items this custom section contains. Determines which item schema and form fields to use."
+							},
+							"items": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"properties": {
+										"id": {
+											"type": "string",
+											"description": "The unique identifier for the item. Usually generated as a UUID."
+										},
+										"hidden": {
+											"type": "boolean",
+											"description": "Whether to hide the item from the resume."
+										},
+										"title": {
+											"type": "string",
+											"description": "The title of the certification. Empty while the entry is a draft, which isn't printed."
+										},
+										"issuer": {
+											"type": "string",
+											"description": "The issuer of the certification."
+										},
+										"date": {
+											"type": "string",
+											"description": "The date when the certification was received, as text. Written from `dates` on every save; write `dates` instead."
+										},
+										"dates": {
+											"type": "object",
+											"properties": {
+												"start": {
+													"default": null,
+													"description": "When it started, or the date itself for single-date entries (awards, certifications, publications).",
+													"anyOf": [
+														{
+															"type": "string",
+															"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+															"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"end": {
+													"default": null,
+													"description": "When it ended. Null while ongoing or for single dates.",
+													"anyOf": [
+														{
+															"type": "string",
+															"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+															"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"present": {
+													"default": false,
+													"description": "Whether it's ongoing, printed as 'Present'.",
+													"type": "boolean"
+												},
+												"raw": {
+													"description": "The original text when it couldn't be read exactly, such as 'Summer 2016'. It's printed as written until the dates are edited, which removes it.",
+													"type": "string"
+												}
+											},
+											"required": [
+												"start",
+												"end",
+												"present"
+											],
+											"description": "Structured dates. Write these rather than the legacy text field (`period` or `date`), which is kept in sync from them."
+										},
+										"website": {
+											"default": {
+												"url": "",
+												"label": "",
+												"inlineLink": false
+											},
+											"description": "The website of the certification, if any.",
+											"type": "object",
+											"properties": {
+												"url": {
+													"type": "string",
+													"description": "The URL to show as a link. Must be a valid URL with a protocol (http:// or https://)."
+												},
+												"label": {
+													"type": "string",
+													"description": "The label to display for the URL. Leave blank to display the URL as-is."
+												},
+												"inlineLink": {
+													"default": false,
+													"description": "If true, the website URL is rendered as a hyperlink on the title instead of a separate link at the bottom.",
+													"type": "boolean"
+												}
+											},
+											"required": [
+												"url",
+												"label",
+												"inlineLink"
+											]
+										},
+										"description": {
+											"type": "string",
+											"description": "The description of the certification. This should be a HTML-formatted string."
+										}
+									},
+									"required": [
+										"id",
+										"hidden",
+										"title",
+										"issuer",
+										"date",
+										"website",
+										"description"
+									],
+									"additionalProperties": {}
+								},
+								"description": "The items to display in the custom section. Items follow the schema of the section type."
+							}
+						},
+						"required": [
+							"title",
+							"icon",
+							"columns",
+							"hidden",
+							"keepTogether",
+							"startOnNewPage",
+							"id",
+							"type",
+							"items"
+						]
+					},
+					{
+						"type": "object",
+						"properties": {
+							"title": {
+								"type": "string",
+								"description": "The title of the section."
+							},
+							"icon": {
+								"default": "",
+								"description": "Phosphor icon name to display before the section title in the PDF output. Empty string uses the default section icon; 'none' hides the icon.",
+								"type": "string"
+							},
+							"columns": {
+								"default": 1,
+								"description": "The number of columns the section should span across.",
+								"type": "integer",
+								"minimum": 1,
+								"maximum": 6
+							},
+							"hidden": {
+								"type": "boolean",
+								"description": "Whether to hide the section from the resume."
+							},
+							"showHeading": {
+								"default": true,
+								"description": "Whether to show the section heading, icon, and decoration while retaining section content.",
+								"type": "boolean"
+							},
+							"keepTogether": {
+								"default": false,
+								"description": "If true, the section is kept on a single page instead of splitting across a page break.",
+								"type": "boolean"
+							},
+							"startOnNewPage": {
+								"default": false,
+								"description": "If true, the section always begins on a new page.",
+								"type": "boolean"
+							},
+							"keywordLayout": {},
+							"id": {
+								"type": "string",
+								"description": "The unique identifier for the custom section. Usually generated as a UUID."
+							},
+							"type": {
+								"type": "string",
+								"const": "publications",
+								"description": "The type of items this custom section contains. Determines which item schema and form fields to use."
+							},
+							"items": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"properties": {
+										"id": {
+											"type": "string",
+											"description": "The unique identifier for the item. Usually generated as a UUID."
+										},
+										"hidden": {
+											"type": "boolean",
+											"description": "Whether to hide the item from the resume."
+										},
+										"title": {
+											"type": "string",
+											"description": "The title of the publication. Empty while the entry is a draft, which isn't printed."
+										},
+										"publisher": {
+											"type": "string",
+											"description": "The publisher of the publication."
+										},
+										"date": {
+											"type": "string",
+											"description": "The date when the publication was published, as text. Written from `dates` on every save; write `dates` instead."
+										},
+										"dates": {
+											"type": "object",
+											"properties": {
+												"start": {
+													"default": null,
+													"description": "When it started, or the date itself for single-date entries (awards, certifications, publications).",
+													"anyOf": [
+														{
+															"type": "string",
+															"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+															"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"end": {
+													"default": null,
+													"description": "When it ended. Null while ongoing or for single dates.",
+													"anyOf": [
+														{
+															"type": "string",
+															"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+															"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"present": {
+													"default": false,
+													"description": "Whether it's ongoing, printed as 'Present'.",
+													"type": "boolean"
+												},
+												"raw": {
+													"description": "The original text when it couldn't be read exactly, such as 'Summer 2016'. It's printed as written until the dates are edited, which removes it.",
+													"type": "string"
+												}
+											},
+											"required": [
+												"start",
+												"end",
+												"present"
+											],
+											"description": "Structured dates. Write these rather than the legacy text field (`period` or `date`), which is kept in sync from them."
+										},
+										"website": {
+											"default": {
+												"url": "",
+												"label": "",
+												"inlineLink": false
+											},
+											"description": "The link to the publication, if any.",
+											"type": "object",
+											"properties": {
+												"url": {
+													"type": "string",
+													"description": "The URL to show as a link. Must be a valid URL with a protocol (http:// or https://)."
+												},
+												"label": {
+													"type": "string",
+													"description": "The label to display for the URL. Leave blank to display the URL as-is."
+												},
+												"inlineLink": {
+													"default": false,
+													"description": "If true, the website URL is rendered as a hyperlink on the title instead of a separate link at the bottom.",
+													"type": "boolean"
+												}
+											},
+											"required": [
+												"url",
+												"label",
+												"inlineLink"
+											]
+										},
+										"description": {
+											"type": "string",
+											"description": "The description of the publication. This should be a HTML-formatted string."
+										}
+									},
+									"required": [
+										"id",
+										"hidden",
+										"title",
+										"publisher",
+										"date",
+										"website",
+										"description"
+									],
+									"additionalProperties": {}
+								},
+								"description": "The items to display in the custom section. Items follow the schema of the section type."
+							}
+						},
+						"required": [
+							"title",
+							"icon",
+							"columns",
+							"hidden",
+							"keepTogether",
+							"startOnNewPage",
+							"id",
+							"type",
+							"items"
+						]
+					},
+					{
+						"type": "object",
+						"properties": {
+							"title": {
+								"type": "string",
+								"description": "The title of the section."
+							},
+							"icon": {
+								"default": "",
+								"description": "Phosphor icon name to display before the section title in the PDF output. Empty string uses the default section icon; 'none' hides the icon.",
+								"type": "string"
+							},
+							"columns": {
+								"default": 1,
+								"description": "The number of columns the section should span across.",
+								"type": "integer",
+								"minimum": 1,
+								"maximum": 6
+							},
+							"hidden": {
+								"type": "boolean",
+								"description": "Whether to hide the section from the resume."
+							},
+							"showHeading": {
+								"default": true,
+								"description": "Whether to show the section heading, icon, and decoration while retaining section content.",
+								"type": "boolean"
+							},
+							"keepTogether": {
+								"default": false,
+								"description": "If true, the section is kept on a single page instead of splitting across a page break.",
+								"type": "boolean"
+							},
+							"startOnNewPage": {
+								"default": false,
+								"description": "If true, the section always begins on a new page.",
+								"type": "boolean"
+							},
+							"keywordLayout": {},
+							"id": {
+								"type": "string",
+								"description": "The unique identifier for the custom section. Usually generated as a UUID."
+							},
+							"type": {
+								"type": "string",
+								"const": "volunteer",
+								"description": "The type of items this custom section contains. Determines which item schema and form fields to use."
+							},
+							"items": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"properties": {
+										"id": {
+											"type": "string",
+											"description": "The unique identifier for the item. Usually generated as a UUID."
+										},
+										"hidden": {
+											"type": "boolean",
+											"description": "Whether to hide the item from the resume."
+										},
+										"organization": {
+											"type": "string",
+											"description": "The name of the organization or company. Empty while the entry is a draft, which isn't printed."
+										},
+										"location": {
+											"type": "string",
+											"description": "The location of the organization or company."
+										},
+										"period": {
+											"type": "string",
+											"description": "The period of time the author was volunteered at the organization or company, as text. Written from `dates` on every save; write `dates` instead."
+										},
+										"dates": {
+											"type": "object",
+											"properties": {
+												"start": {
+													"default": null,
+													"description": "When it started, or the date itself for single-date entries (awards, certifications, publications).",
+													"anyOf": [
+														{
+															"type": "string",
+															"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+															"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"end": {
+													"default": null,
+													"description": "When it ended. Null while ongoing or for single dates.",
+													"anyOf": [
+														{
+															"type": "string",
+															"pattern": "^\\d{4}(?:-(?:0[1-9]|1[0-2]))?$",
+															"description": "A year (\"2022\") or a year and month (\"2022-03\")."
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"present": {
+													"default": false,
+													"description": "Whether it's ongoing, printed as 'Present'.",
+													"type": "boolean"
+												},
+												"raw": {
+													"description": "The original text when it couldn't be read exactly, such as 'Summer 2016'. It's printed as written until the dates are edited, which removes it.",
+													"type": "string"
+												}
+											},
+											"required": [
+												"start",
+												"end",
+												"present"
+											],
+											"description": "Structured dates. Write these rather than the legacy text field (`period` or `date`), which is kept in sync from them."
+										},
+										"website": {
+											"default": {
+												"url": "",
+												"label": "",
+												"inlineLink": false
+											},
+											"description": "The link to the organization or company, if any.",
+											"type": "object",
+											"properties": {
+												"url": {
+													"type": "string",
+													"description": "The URL to show as a link. Must be a valid URL with a protocol (http:// or https://)."
+												},
+												"label": {
+													"type": "string",
+													"description": "The label to display for the URL. Leave blank to display the URL as-is."
+												},
+												"inlineLink": {
+													"default": false,
+													"description": "If true, the website URL is rendered as a hyperlink on the title instead of a separate link at the bottom.",
+													"type": "boolean"
+												}
+											},
+											"required": [
+												"url",
+												"label",
+												"inlineLink"
+											]
+										},
+										"description": {
+											"type": "string",
+											"description": "The description of the volunteer experience. This should be a HTML-formatted string."
+										}
+									},
+									"required": [
+										"id",
+										"hidden",
+										"organization",
+										"location",
+										"period",
+										"website",
+										"description"
+									],
+									"additionalProperties": {}
+								},
+								"description": "The items to display in the custom section. Items follow the schema of the section type."
+							}
+						},
+						"required": [
+							"title",
+							"icon",
+							"columns",
+							"hidden",
+							"keepTogether",
+							"startOnNewPage",
+							"id",
+							"type",
+							"items"
+						]
+					},
+					{
+						"type": "object",
+						"properties": {
+							"title": {
+								"type": "string",
+								"description": "The title of the section."
+							},
+							"icon": {
+								"default": "",
+								"description": "Phosphor icon name to display before the section title in the PDF output. Empty string uses the default section icon; 'none' hides the icon.",
+								"type": "string"
+							},
+							"columns": {
+								"default": 1,
+								"description": "The number of columns the section should span across.",
+								"type": "integer",
+								"minimum": 1,
+								"maximum": 6
+							},
+							"hidden": {
+								"type": "boolean",
+								"description": "Whether to hide the section from the resume."
+							},
+							"showHeading": {
+								"default": true,
+								"description": "Whether to show the section heading, icon, and decoration while retaining section content.",
+								"type": "boolean"
+							},
+							"keepTogether": {
+								"default": false,
+								"description": "If true, the section is kept on a single page instead of splitting across a page break.",
+								"type": "boolean"
+							},
+							"startOnNewPage": {
+								"default": false,
+								"description": "If true, the section always begins on a new page.",
+								"type": "boolean"
+							},
+							"keywordLayout": {},
+							"id": {
+								"type": "string",
+								"description": "The unique identifier for the custom section. Usually generated as a UUID."
+							},
+							"type": {
+								"type": "string",
+								"const": "references",
+								"description": "The type of items this custom section contains. Determines which item schema and form fields to use."
+							},
+							"items": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"properties": {
+										"id": {
+											"type": "string",
+											"description": "The unique identifier for the item. Usually generated as a UUID."
+										},
+										"hidden": {
+											"type": "boolean",
+											"description": "Whether to hide the item from the resume."
+										},
+										"name": {
+											"type": "string",
+											"description": "The name of the reference, or a note such as 'Available upon request'. Empty while the entry is a draft, which isn't printed."
+										},
+										"position": {
+											"type": "string",
+											"description": "The position or job title of the reference."
+										},
+										"website": {
+											"default": {
+												"url": "",
+												"label": "",
+												"inlineLink": false
+											},
+											"description": "The website or LinkedIn profile of the reference, if any.",
+											"type": "object",
+											"properties": {
+												"url": {
+													"type": "string",
+													"description": "The URL to show as a link. Must be a valid URL with a protocol (http:// or https://)."
+												},
+												"label": {
+													"type": "string",
+													"description": "The label to display for the URL. Leave blank to display the URL as-is."
+												},
+												"inlineLink": {
+													"default": false,
+													"description": "If true, the website URL is rendered as a hyperlink on the title instead of a separate link at the bottom.",
+													"type": "boolean"
+												}
+											},
+											"required": [
+												"url",
+												"label",
+												"inlineLink"
+											]
+										},
+										"phone": {
+											"type": "string",
+											"description": "The phone number of the reference."
+										},
+										"description": {
+											"type": "string",
+											"description": "The description of the reference. Can be used to display a quote, a testimonial, etc. This should be a HTML-formatted string."
+										}
+									},
+									"required": [
+										"id",
+										"hidden",
+										"name",
+										"position",
+										"website",
+										"phone",
+										"description"
+									],
+									"additionalProperties": {}
+								},
+								"description": "The items to display in the custom section. Items follow the schema of the section type."
+							}
+						},
+						"required": [
+							"title",
+							"icon",
+							"columns",
+							"hidden",
+							"keepTogether",
+							"startOnNewPage",
+							"id",
+							"type",
+							"items"
+						]
+					}
+				]
+			},
+			"description": "Custom sections of the resume, such as a custom section for notes, etc."
+		},
+		"metadata": {
+			"type": "object",
+			"properties": {
+				"template": {
+					"default": "onyx",
+					"description": "The template to use for the resume. Determines the overall design and appearance of the resume.",
+					"type": "string",
+					"enum": [
+						"azurill",
+						"bronzor",
+						"chikorita",
+						"ditgar",
+						"ditto",
+						"gengar",
+						"glalie",
+						"kakuna",
+						"lapras",
+						"leafish",
+						"meowth",
+						"onyx",
+						"persian",
+						"pikachu",
+						"porygon",
+						"rhyhorn",
+						"scizor",
+						"smeargle"
+					]
+				},
+				"layout": {
+					"type": "object",
+					"properties": {
+						"sidebarWidth": {
+							"default": 35,
+							"description": "The width of the sidebar column, defined as a percentage of the page width.",
+							"type": "number",
+							"minimum": 10,
+							"maximum": 50
+						},
+						"sidebarSide": {
+							"description": "Which side of the page the sidebar column sits on in two-column templates. When unset, each template uses its own side (and right-to-left resumes mirror it).",
+							"type": "string",
+							"enum": [
+								"left",
+								"right"
+							]
+						},
+						"pages": {
+							"type": "array",
+							"items": {
+								"type": "object",
+								"properties": {
+									"fullWidth": {
+										"type": "boolean",
+										"description": "Whether the layout of the page should be full width. If true, the main column will span the entire width of the page. This means that there should be no items in the sidebar column."
+									},
+									"main": {
+										"type": "array",
+										"items": {
+											"type": "string"
+										},
+										"description": "The items to display in the main column of the page. A string array of section IDs (experience, education, projects, skills, languages, interests, awards, certifications, publications, volunteer, references, profiles, summary or UUIDs for custom sections)."
+									},
+									"sidebar": {
+										"type": "array",
+										"items": {
+											"type": "string"
+										},
+										"description": "The items to display in the sidebar column of the page. A string array of section IDs (experience, education, projects, skills, languages, interests, awards, certifications, publications, volunteer, references, profiles, summary or UUIDs for custom sections)."
+									}
+								},
+								"required": [
+									"fullWidth",
+									"main",
+									"sidebar"
+								]
+							},
+							"description": "The pages to display in the layout."
+						}
+					},
+					"required": [
+						"sidebarWidth",
+						"pages"
+					],
+					"description": "The layout of the resume. Determines the structure and arrangement of the sections on the resume."
+				},
+				"page": {
+					"type": "object",
+					"properties": {
+						"gapX": {
+							"type": "number",
+							"minimum": 0,
+							"description": "The horizontal gap between the sections of the page, defined in points (pt)."
+						},
+						"gapY": {
+							"type": "number",
+							"minimum": 0,
+							"description": "The vertical gap between the sections of the page, defined in points (pt)."
+						},
+						"marginX": {
+							"default": 14,
+							"description": "The horizontal margin of the page, defined in points (pt).",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 100
+						},
+						"marginY": {
+							"default": 12,
+							"description": "The vertical margin of the page, defined in points (pt).",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 100
+						},
+						"format": {
+							"default": "a4",
+							"type": "string",
+							"enum": [
+								"a4",
+								"letter",
+								"free-form"
+							],
+							"description": "The format of the page. Can be 'a4', 'letter', or 'free-form'."
+						},
+						"locale": {
+							"default": "en-US",
+							"type": "string",
+							"description": "The locale of the page. Used for displaying pre-translated section headings, if not overridden."
+						},
+						"dateFormat": {
+							"description": "How dates print: 'short' (Mar 2022), 'long' (March 2022), 'numeric' (03/2022) or 'iso' (2022-03). When missing, it's read from how the dates were typed.",
+							"type": "string",
+							"enum": [
+								"short",
+								"long",
+								"numeric",
+								"iso"
+							]
+						},
+						"hideLinkUnderline": {
+							"default": false,
+							"type": "boolean",
+							"description": "Whether to hide the underlines of the links."
+						},
+						"hideIcons": {
+							"default": false,
+							"type": "boolean",
+							"description": "Whether to hide the item-level icons (skills, profiles, interests)."
+						},
+						"hideSectionIcons": {
+							"default": true,
+							"type": "boolean",
+							"description": "Whether to hide the section heading icons displayed before section titles."
+						}
+					},
+					"required": [
+						"gapX",
+						"gapY",
+						"marginX",
+						"marginY",
+						"format",
+						"locale",
+						"hideLinkUnderline",
+						"hideIcons",
+						"hideSectionIcons"
+					],
+					"description": "The page settings of the resume. Determines the margins, format, and locale of the resume."
+				},
+				"design": {
+					"type": "object",
+					"properties": {
+						"level": {
+							"type": "object",
+							"properties": {
+								"icon": {
+									"type": "string",
+									"description": "The icon to display for the custom field. Must be a valid icon name from @phosphor-icons/web icon set, or an empty string to hide. Default to '' (empty string) when unsure which icons are available."
+								},
+								"type": {
+									"type": "string",
+									"enum": [
+										"hidden",
+										"circle",
+										"square",
+										"rectangle",
+										"rectangle-full",
+										"progress-bar",
+										"icon"
+									],
+									"description": "The type of the level design. 'hidden' will hide the level design, 'circle' will display a circle, 'square' will display a square, 'rectangle' will display a rectangle, 'rectangle-full' will display a full rectangle, 'progress-bar' will display a progress bar, and 'icon' will display an icon. If 'icon' is selected, the icon to display should be specified in the 'icon' field."
+								}
+							},
+							"required": [
+								"icon",
+								"type"
+							]
+						},
+						"colors": {
+							"type": "object",
+							"properties": {
+								"primary": {
+									"type": "string",
+									"description": "The primary color of the design, defined as rgba(r, g, b, a)."
+								},
+								"text": {
+									"type": "string",
+									"description": "The text color of the design, defined as rgba(r, g, b, a). Usually set to black: rgba(0, 0, 0, 1)."
+								},
+								"background": {
+									"type": "string",
+									"description": "The background color of the design, defined as rgba(r, g, b, a). Usually set to white: rgba(255, 255, 255, 1)."
+								}
+							},
+							"required": [
+								"primary",
+								"text",
+								"background"
+							]
+						}
+					},
+					"required": [
+						"level",
+						"colors"
+					],
+					"description": "The design settings of the resume. Determines the colors, level designs, and typography of the resume."
+				},
+				"typography": {
+					"type": "object",
+					"properties": {
+						"body": {
+							"type": "object",
+							"properties": {
+								"fontFamily": {
+									"type": "string",
+									"description": "The family of the font to use. Must be a supported resume font."
+								},
+								"fontWeights": {
+									"default": [
+										"400"
+									],
+									"description": "The weight of the font, defined as a number between 100 and 900. Default to 400 when unsure if the weight is available in the font.",
+									"type": "array",
+									"items": {
+										"type": "string",
+										"enum": [
+											"100",
+											"200",
+											"300",
+											"400",
+											"500",
+											"600",
+											"700",
+											"800",
+											"900"
+										]
+									}
+								},
+								"fontSize": {
+									"default": 11,
+									"description": "The size of the font to use, defined in points (pt).",
+									"type": "number",
+									"minimum": 6,
+									"maximum": 24
+								},
+								"lineHeight": {
+									"default": 1.5,
+									"description": "The line height of the font to use, defined as a multiplier of the font size (e.g. 1.5 for 1.5x).",
+									"type": "number",
+									"minimum": 0.5,
+									"maximum": 4
+								}
+							},
+							"required": [
+								"fontFamily",
+								"fontWeights",
+								"fontSize",
+								"lineHeight"
+							],
+							"description": "The typography for the body of the resume."
+						},
+						"heading": {
+							"type": "object",
+							"properties": {
+								"fontFamily": {
+									"type": "string",
+									"description": "The family of the font to use. Must be a supported resume font."
+								},
+								"fontWeights": {
+									"default": [
+										"400"
+									],
+									"description": "The weight of the font, defined as a number between 100 and 900. Default to 400 when unsure if the weight is available in the font.",
+									"type": "array",
+									"items": {
+										"type": "string",
+										"enum": [
+											"100",
+											"200",
+											"300",
+											"400",
+											"500",
+											"600",
+											"700",
+											"800",
+											"900"
+										]
+									}
+								},
+								"fontSize": {
+									"default": 11,
+									"description": "The size of the font to use, defined in points (pt).",
+									"type": "number",
+									"minimum": 6,
+									"maximum": 24
+								},
+								"lineHeight": {
+									"default": 1.5,
+									"description": "The line height of the font to use, defined as a multiplier of the font size (e.g. 1.5 for 1.5x).",
+									"type": "number",
+									"minimum": 0.5,
+									"maximum": 4
+								}
+							},
+							"required": [
+								"fontFamily",
+								"fontWeights",
+								"fontSize",
+								"lineHeight"
+							],
+							"description": "The typography for the headings of the resume."
+						},
+						"hyphenation": {
+							"description": "Enable automatic PDF hyphenation using the resume language. Defaults to false.",
+							"type": "boolean"
+						}
+					},
+					"required": [
+						"body",
+						"heading"
+					],
+					"description": "The typography settings of the resume. Determines the fonts and sizes of the body and headings of the resume."
+				},
+				"notes": {
+					"type": "string",
+					"description": "Personal notes for the resume. Can be used to add any additional information or instructions for the resume. These notes are not displayed on the resume, they are only visible to the author of the resume when editing the resume. This should be a HTML-formatted string."
+				},
+				"styleRules": {
+					"description": "Structured style rules that target semantic resume sections and slots for PDF rendering.",
+					"type": "array",
+					"items": {}
+				},
+				"stylesheet": {
+					"type": "object",
+					"properties": {
+						"mode": {
+							"type": "string",
+							"enum": [
+								"legacy",
+								"semantic"
+							]
+						},
+						"source": {
+							"type": "object",
+							"properties": {
+								"languageVersion": {
+									"type": "integer",
+									"exclusiveMinimum": 0,
+									"maximum": 9007199254740991
+								},
+								"text": {
+									"type": "string"
+								}
+							},
+							"required": [
+								"languageVersion",
+								"text"
+							],
+							"additionalProperties": false
+						}
+					},
+					"required": [
+						"mode",
+						"source"
+					],
+					"additionalProperties": false
+				},
+				"check": {
+					"description": "The author's Check choices for this resume. Not printed; missing until a choice is made.",
+					"type": "object",
+					"properties": {
+						"ignored": {
+							"default": [],
+							"description": "Check issues the author chose to ignore, by issue key (the rule code and where it applies).",
+							"type": "array",
+							"items": {
+								"type": "string"
+							}
+						},
+						"hiddenTerms": {
+							"default": [],
+							"description": "Job-posting terms the author hid from Job match as not true for them.",
+							"type": "array",
+							"items": {
+								"type": "string"
+							}
+						}
+					},
+					"required": [
+						"ignored",
+						"hiddenTerms"
+					]
+				}
+			},
+			"required": [
+				"template",
+				"layout",
+				"page",
+				"design",
+				"typography",
+				"notes",
+				"styleRules"
+			],
+			"description": "Metadata for the resume, such as template, layout, typography, etc. This section describes the overall design and appearance of the resume."
+		}
+	},
+	"required": [
+		"picture",
+		"basics",
+		"summary",
+		"sections",
+		"customSections",
+		"metadata"
+	],
+	"additionalProperties": {}
+}
+```
+{/* RESUME-JSON-SCHEMA:END */}
+
+## Related guides
+
+- [Using the API](/guides/using-the-api): read and write resume data over REST.
+- [Using the patch API](/guides/using-the-patch-api): change parts of a resume with JSON Patch.
+- [Exporting your resume](/guides/exporting-your-resume): download a resume as JSON.

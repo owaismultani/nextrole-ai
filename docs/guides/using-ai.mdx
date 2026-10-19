@@ -1,0 +1,179 @@
+---
+title: "Connecting an AI provider"
+description: "Add your own AI provider key in Reactive Resume, test the connection, and choose which provider the assistant and other AI features use."
+---
+
+Reactive Resume doesn't include an AI model of its own. To use the assistant, AI imports, drafting and the other AI features, connect a provider such as OpenAI, Anthropic or Google Gemini. Everything else in the app works without AI.
+
+On a self-hosted instance, the administrator can [configure a shared provider](/self-hosting/job-search-and-ai).
+Settings then show that AI is enabled globally, and personal provider controls are hidden. You can use AI features
+without entering your own key. The steps below apply when personal providers are available.
+
+## Before you start
+
+- Get an API key from your provider's dashboard. You pay the provider directly for what you use. A local Ollama server can connect without a key.
+- Know which model you want to use, such as `gpt-4.1` or `claude-3-5-sonnet-latest`. Reactive Resume suggests a default for each provider, but your account may not have access to every model.
+
+## Add a provider
+
+<Steps>
+  <Step title="Open AI settings">
+    Select your name at the bottom of the sidebar, choose **Settings**, then choose **AI & developer**. You can also go to `https://rxresu.me/dashboard/settings/ai` directly. Self-hosted instances use their own address.
+  </Step>
+  <Step title="Start adding a provider">
+    Under **AI providers**, select **Add provider** (the dashed button below your saved providers).
+  </Step>
+  <Step title="Choose the provider and fill in the fields">
+    Pick your provider from the **Provider** list. Reactive Resume fills in that provider's usual **Model** and **Base URL** for you. Paste your key into **API key**, and change the model if you want a different one.
+
+    <Frame caption="The Add provider dialog">
+      <img src="/images/guides/using-ai/add-provider-dialog.webp" alt="Add provider dialog with Provider set to OpenAI, a hidden API key, Model gpt-4.1, Name Personal OpenAI and the default OpenAI base URL" />
+    </Frame>
+
+  </Step>
+  <Step title="Save and test">
+    Select **Save and test**. Reactive Resume saves the provider, then sends it a tiny request to check that the key, model and address work. If the test passes, the dialog closes and the provider is ready to use.
+  </Step>
+</Steps>
+
+If the test fails, the dialog shows the provider's own error message, such as an invalid key or an unknown model. The provider is still saved, so you can fix it later with **Edit** instead of starting again.
+
+### The fields
+
+| Field        | What to enter                                                                                                                                            |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Provider** | The company or service that runs the model.                                                                                                              |
+| **API key**  | The key from your provider's dashboard. Required except for Ollama, where you can leave it empty for a local server that doesn't require authentication. |
+| **Model**    | The model name exactly as your provider writes it. Required.                                                                                             |
+| **Name**     | A label you'll recognize, such as "Work OpenAI". If you leave it empty, the provider's name is used.                                                     |
+| **Base URL** | The address requests go to. Leave the default unless you use a gateway, a proxy or an OpenAI-compatible service.                                         |
+
+### Supported providers
+
+| Provider          | Default model                                       | Default base URL                                   |
+| ----------------- | --------------------------------------------------- | -------------------------------------------------- |
+| OpenAI            | `gpt-4.1`                                           | `https://api.openai.com/v1`                        |
+| Anthropic Claude  | `claude-3-5-sonnet-latest`                          | `https://api.anthropic.com/v1`                     |
+| Google Gemini     | `gemini-2.0-flash`                                  | `https://generativelanguage.googleapis.com/v1beta` |
+| Vercel AI Gateway | `openai/gpt-4.1`                                    | `https://ai-gateway.vercel.sh/v3/ai`               |
+| OpenRouter        | `openai/gpt-4.1`                                    | `https://openrouter.ai/api/v1`                     |
+| Mistral AI        | `mistral-large-latest`                              | `https://api.mistral.ai/v1`                        |
+| Cohere            | `command-a-03-2025`                                 | `https://api.cohere.com/v2`                        |
+| xAI Grok          | `grok-4`                                            | `https://api.x.ai/v1`                              |
+| Groq              | `llama-3.3-70b-versatile`                           | `https://api.groq.com/openai/v1`                   |
+| DeepSeek          | `deepseek-chat`                                     | `https://api.deepseek.com/v1`                      |
+| Together.ai       | `meta-llama/Meta-Llama-3.3-70B-Instruct-Turbo`      | `https://api.together.xyz/v1`                      |
+| Fireworks         | `accounts/fireworks/models/llama-v3p3-70b-instruct` | `https://api.fireworks.ai/inference/v1`            |
+| Cerebras          | `llama3.3-70b`                                      | `https://api.cerebras.ai/v1`                       |
+| Perplexity        | `sonar-pro`                                         | `https://api.perplexity.ai`                        |
+| Ollama            | `llama3.1`                                          | `https://ollama.com/api`                           |
+| OpenAI-compatible | none, enter your own                                | none, enter your own                               |
+
+Choose **OpenAI-compatible** for any other service that speaks the OpenAI API, such as a company gateway or LiteLLM. It needs both a model and a base URL.
+
+The base URL must start with `https://` and point to a public address. On the hosted instance, that means a model running on your own computer (for example, a local Ollama) can't be connected. Self-hosters can allow local and `http://` addresses; see [Environment variables](/self-hosting/environment-variables).
+
+## Test a provider again
+
+Each saved provider appears as a row under **AI providers**, showing its name, model and the last four characters of the key. The row shows **Off** next to the name when the provider isn't in use.
+
+<Frame caption="A provider after a successful test">
+  <img
+    src="/images/guides/using-ai/provider-row-connected.webp"
+    alt="AI providers section with one provider named Work gateway, model gpt-5-mini, and a Test button reading Connected · 40 ms, followed by the Add provider button"
+  />
+</Frame>
+
+Select **Test** on a row to check it again. The button changes to **Connected** with the round-trip time (for example, **Connected · 420 ms**), or to **Failed** with the provider's error message underneath. A passed test turns the provider on; a failed test turns it off, so the app never uses a provider that isn't answering.
+
+## Edit, turn off or delete a provider
+
+Select **Edit** on a provider's row.
+
+<Frame caption="Editing a saved provider">
+  <img
+    src="/images/guides/using-ai/edit-provider-dialog.webp"
+    alt="Edit dialog for a provider named Work gateway, with an empty API key field reading Leave empty to keep the saved key, the model, name and base URL fields, the Use this provider switch turned on, Delete provider and Save and test"
+  />
+</Frame>
+
+- **Change the key, model, name or base URL**, then select **Save and test**. Leave **API key** empty to keep the saved key. Changing the key, model or base URL turns the provider off until the new test passes.
+- **Turn it on or off** with **Use this provider**. Only a provider that passed its test can be turned on. A provider that is off stays saved but isn't offered anywhere in the app.
+- **Delete it** with **Delete provider**, then confirm. The provider and its stored key are removed.
+
+<Warning>
+  Deleting a provider can't be undone. Conversations that used it continue on your default provider. Documents and edits
+  you already accepted aren't affected.
+</Warning>
+
+## Which provider is used
+
+You can save several providers, for example one per account or one per model.
+
+- One provider is your **default**, marked **Default** in **Settings → AI & developer**. To change it, choose **Make default** on another provider that's on and tested. Every AI feature where you don't pick a provider uses the default, and the line under each AI action names it.
+- If you haven't chosen a default, or it's turned off, features use the enabled provider you used most recently, and if you haven't used one yet, the oldest enabled provider you added.
+- Conversations keep the provider they started with. When that provider is turned off or deleted, they continue on the default. A scheduled interview briefing does the same.
+- Voice practice uses the default when its provider offers speech models, otherwise another provider that does, otherwise your browser.
+- The **assistant** lets you switch models from the model menu in its header at any time. See [Using the assistant](/guides/using-the-assistant).
+- **Check → Writing** lets you pick the provider for each review.
+
+## Connect from the assistant instead
+
+If no provider is connected yet, opening the assistant in the editor shows **Connect an AI provider** with OpenAI, Anthropic and **Other · OpenAI-compatible**. Enter your key and model there and select **Connect**. It saves and tests the provider the same way as settings. For the other providers, use **AI & developer**.
+
+<Frame caption="Connecting a provider from the assistant panel">
+  <img
+    src="/images/guides/using-ai/assistant-connect-provider.webp"
+    alt="Assistant panel showing Connect an AI provider, with OpenAI, Anthropic and Other · OpenAI-compatible options and a link to Settings for more providers"
+  />
+</Frame>
+
+## How your key is stored
+
+Your personal API key is encrypted on the Reactive Resume server with AES-256-GCM before it's saved, and it's never shown again. Settings only ever show the last four characters. When a feature needs the key, the server decrypts it just long enough to call your provider.
+
+Self-hosted instances encrypt keys with the `ENCRYPTION_SECRET` environment variable. Until it's set, **AI & developer** shows "AI providers aren't available on this server until ENCRYPTION_SECRET is set." If the secret changes later, saved keys can no longer be decrypted. The error asks you to enter the key again: open **Settings → AI & developer**, select **Edit** on the provider, paste the key, and select **Save and test**.
+
+## What is sent to your provider
+
+Requests go from the Reactive Resume server to the provider you chose, using your key. Requests run when you use an AI action or when an AI schedule you enabled becomes due. Each action explains its inputs and connection:
+
+| Feature                      | What is sent                                                                                                                                                                                                                                  |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Assistant                    | Your message, the open resume or letter (unless you remove it from the message), the job posting and your notes on the linked application (unless you remove the posting), attachments you add, and the earlier messages in the conversation. |
+| **Improve selected line**    | The line you're improving and the rest of that field.                                                                                                                                                                                         |
+| **Check → Writing**          | The text of your resume.                                                                                                                                                                                                                      |
+| Importing a PDF or Word file | The file you import.                                                                                                                                                                                                                          |
+| Drafting a letter            | The linked resume and the application's job posting.                                                                                                                                                                                          |
+| Adding an application        | Job posting text you paste or import from a URL.                                                                                                                                                                                              |
+
+Career adds these uses:
+
+| Action                            | What is sent                                                                                                                                                                           |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Workspace drafting and review     | The application's posting and details, relevant interview, notes, selected sent or current documents, usable facts and stories, preferences, and the answer or message being reviewed. |
+| Career coach                      | Your message, earlier messages and attachments in the conversation, plus the application and Knowledge context you leave switched on. Web research is a separate opt-in.               |
+| Scheduled interview briefing      | The interview and application context used by Prepare, through the schedule's chosen AI connection.                                                                                    |
+| Voice transcription               | Your recording or chosen audio file, to the speech connection named beside the action.                                                                                                 |
+| Reading a practice question aloud | The question text, to the selected speech connection; browser speech can be used instead.                                                                                              |
+
+Workspace text actions use your default connection. **Voice settings** can use another speech-capable connection or browser speech. Speech usage can be billed separately from text coaching. Automatic role discovery uses your web search connection; it does not need an AI model. See [Career controls and data](/guides/career-workspace-reference#coach-context-and-ai-actions).
+
+Your provider handles that data under its own terms and privacy policy. Reactive Resume keeps assistant conversations and their attachments in your account until you delete the conversation.
+
+## Related guides
+
+<CardGroup cols={2}>
+  <Card title="Using the assistant" href="/guides/using-the-assistant">
+    Ask for changes and review the edits it proposes.
+  </Card>
+  <Card title="Assistant tools" href="/guides/ai-agent-tools">
+    What the assistant can read and do in a conversation.
+  </Card>
+  <Card title="Checking your resume" href="/guides/checking-your-resume">
+    Get an AI review of your wording in Check mode.
+  </Card>
+  <Card title="Importing resumes" href="/guides/importing-resumes">
+    Turn an existing PDF or Word resume into an editable one.
+  </Card>
+</CardGroup>

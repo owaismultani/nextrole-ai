@@ -1,0 +1,40 @@
+{
+	"name": "@reactive-resume/auth",
+	"version": "0.0.0",
+	"type": "module",
+	"private": true,
+	"exports": {
+		"./config": "./src/config.ts",
+		"./trusted-origins": "./src/trusted-origins.ts",
+		"./types": "./src/types.ts"
+	},
+	"scripts": {
+		"typecheck": "tsgo --noEmit",
+		"test": "vitest run --passWithNoTests",
+		"test:coverage": "vitest run --coverage --passWithNoTests",
+		"test:ci": "vitest run --reporter=default --reporter=github-actions --reporter=json --reporter=junit --outputFile.json=reports/vitest-results.json --outputFile.junit=reports/vitest-junit.xml --passWithNoTests",
+		"test:agent": "vitest run --reporter=agent --reporter=json --outputFile.json=reports/vitest-results.json --passWithNoTests"
+	},
+	"dependencies": {
+		"@better-auth/api-key": "catalog:",
+		"@better-auth/drizzle-adapter": "1.7.11",
+		"@better-auth/infra": "catalog:",
+		"@better-auth/oauth-provider": "catalog:",
+		"@better-auth/passkey": "catalog:",
+		"@reactive-resume/db": "workspace:*",
+		"@reactive-resume/email": "workspace:*",
+		"@reactive-resume/env": "workspace:*",
+		"@reactive-resume/utils": "workspace:*",
+		"bcryptjs": "catalog:",
+		"better-auth": "catalog:",
+		"drizzle-orm": "catalog:",
+		"jose": "^6.2.12",
+		"react": "catalog:"
+	},
+	"devDependencies": {
+		"@reactive-resume/config": "workspace:*",
+		"@types/react": "catalog:",
+		"@typescript/native-preview": "catalog:",
+		"typescript": "catalog:"
+	}
+}

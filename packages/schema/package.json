@@ -1,0 +1,31 @@
+{
+	"name": "@reactive-resume/schema",
+	"version": "0.0.0",
+	"type": "module",
+	"private": true,
+	"exports": {
+		"./career": "./src/career.ts",
+		"./cover-letter/data": "./src/cover-letter/data.ts",
+		"./applications/*": "./src/applications/*.ts",
+		"./icons": "./src/icons.ts",
+		"./resume/stylesheet": "./src/resume/stylesheet.ts",
+		"./resume/*": "./src/resume/*.ts",
+		"./templates": "./src/templates.ts"
+	},
+	"scripts": {
+		"typecheck": "tsgo --noEmit",
+		"test": "vitest run --passWithNoTests",
+		"test:coverage": "vitest run --coverage --passWithNoTests",
+		"test:ci": "vitest run --reporter=default --reporter=github-actions --reporter=json --reporter=junit --outputFile.json=reports/vitest-results.json --outputFile.junit=reports/vitest-junit.xml --passWithNoTests",
+		"test:agent": "vitest run --reporter=agent --reporter=json --outputFile.json=reports/vitest-results.json --passWithNoTests"
+	},
+	"dependencies": {
+		"@reactive-resume/utils": "workspace:*",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@reactive-resume/config": "workspace:*",
+		"@typescript/native-preview": "catalog:",
+		"typescript": "catalog:"
+	}
+}

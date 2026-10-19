@@ -1,0 +1,273 @@
+@import "tailwindcss" source(none);
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/hanken-grotesk";
+@import "@fontsource-variable/hanken-grotesk/wght-italic.css";
+@import "@fontsource-variable/newsreader/opsz.css";
+@import "@fontsource-variable/newsreader/opsz-italic.css";
+/* Phosphor's web font draws the icons inside resumes (their names are stored in resume data). */
+@import "@phosphor-icons/web/regular/style.css";
+
+@plugin "@tailwindcss/typography";
+
+@source "../**/*.{ts,tsx}";
+@source "../../../../apps/**/*.{ts,tsx}";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Desk & Paper tokens. oklch is the source of truth; the hex values are sRGB approximations.
+ * The resume page (--paper) is white in both themes and never inverts.
+ */
+:root {
+	color-scheme: light;
+
+	--bg: oklch(0.975 0.005 95); /* #F8F7F3 app desk */
+	--surface: oklch(0.995 0.002 95); /* #FEFDFC panels, cards */
+	--raised: oklch(1 0 0); /* #FFFFFF menus, dialogs, inputs */
+	--sunken: oklch(0.952 0.006 95); /* #F0EFEB wells, tracks, page canvas */
+	--line: oklch(0.9 0.006 95); /* #DFDEDA dividers */
+	--line-2: oklch(0.82 0.008 95); /* #C5C4BE input borders */
+	--ink: oklch(0.22 0.01 95); /* #1C1B15 primary text */
+	--ink-2: oklch(0.42 0.01 95); /* #4F4D47 secondary text */
+	--ink-3: oklch(0.53 0.01 95); /* #6D6C65 meta, placeholder (minimum for text) */
+	--accent: oklch(0.5 0.1 150); /* #337344 primary action, selection, focus */
+	--accent-hover: oklch(0.44 0.1 150); /* #206133 */
+	--on-accent: oklch(0.99 0.01 150); /* #F7FEF8 */
+	--accent-soft: oklch(0.94 0.035 150); /* #DCF2DF selected background, proposals */
+	--accent-text: oklch(0.42 0.1 150); /* #195C2E */
+	--danger: oklch(0.53 0.17 27); /* #BA3630 */
+	--danger-soft: oklch(0.95 0.03 27); /* #FFE7E4 */
+	--danger-text: oklch(0.48 0.17 27); /* #A92321 */
+	--warn: oklch(0.72 0.14 80); /* #D29922 check issues, stale edits */
+	--warn-soft: oklch(0.95 0.045 85); /* #FCEDCD */
+	--warn-text: oklch(0.48 0.1 70); /* #81520A */
+	--info-soft: oklch(0.95 0.03 250); /* #E0F1FF neutral guidance, assistant question */
+	--info-text: oklch(0.46 0.11 250); /* #1D5B92 */
+	--hover: oklch(0.22 0.01 95 / 0.05);
+	--press: oklch(0.22 0.01 95 / 0.09);
+	--scrim: oklch(0.2 0.01 95 / 0.32);
+	--scrim-sheet: oklch(0.2 0.01 95 / 0.18);
+	--paper: #ffffff;
+
+	--shadow-1: 0 1px 2px oklch(0.2 0.01 95 / 0.07);
+	--shadow-2: 0 1px 2px oklch(0.2 0.01 95 / 0.06), 0 10px 28px -8px oklch(0.2 0.01 95 / 0.18);
+	--shadow-3: 0 2px 6px oklch(0.2 0.01 95 / 0.08), 0 28px 64px -16px oklch(0.2 0.01 95 / 0.3);
+	--shadow-page: 0 1px 2px oklch(0.2 0.01 95 / 0.08), 0 12px 36px -12px oklch(0.2 0.01 95 / 0.25);
+
+	/* Application stages: shared lightness and chroma; only ever shown next to the stage name. */
+	--stage-saved: oklch(0.64 0.02 95); /* #908C7F */
+	--stage-applied: oklch(0.64 0.11 250); /* #5590CC */
+	--stage-screening: oklch(0.64 0.11 200); /* #00A0A6 */
+	--stage-interview: oklch(0.64 0.11 80); /* #AF8433 */
+	--stage-offer: oklch(0.64 0.11 150); /* #579F68 */
+	--stage-closed: oklch(0.64 0.11 27); /* #C67067 */
+
+	/* Motion: quick for hover and toggles, standard for menus and expand, emphasized for sheets and toasts. */
+	--d1: 120ms;
+	--d2: 200ms;
+	--d3: 320ms;
+	--ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+	/* Layout constants */
+	--editor-bar: 56px;
+	--editor-panel: 400px;
+	--app-sidebar: 240px;
+	--sheet-share: 440px;
+	--sheet-detail: 480px;
+	--assistant: 400px;
+}
+
+.dark {
+	color-scheme: dark;
+
+	--bg: oklch(0.17 0.006 95); /* #100F0C */
+	--surface: oklch(0.2 0.006 95); /* #171613 */
+	--raised: oklch(0.235 0.007 95); /* #1F1E1A */
+	--sunken: oklch(0.145 0.006 95); /* #0B0A08 */
+	--line: oklch(0.29 0.007 95); /* #2C2B27 */
+	--line-2: oklch(0.4 0.008 95); /* #494843 */
+	--ink: oklch(0.95 0.005 95); /* #EFEEEB */
+	--ink-2: oklch(0.79 0.008 95); /* #BCBAB5 */
+	--ink-3: oklch(0.67 0.008 95); /* #979590 */
+	--accent: oklch(0.74 0.12 150); /* #6FC082 */
+	--accent-hover: oklch(0.8 0.12 150); /* #83D494 */
+	--on-accent: oklch(0.18 0.03 150); /* #07150A */
+	--accent-soft: oklch(0.3 0.05 150); /* #1A3520 */
+	--accent-text: oklch(0.82 0.11 150); /* #8FD89E */
+	--danger: oklch(0.62 0.17 27); /* #D9544B */
+	--danger-soft: oklch(0.3 0.06 27); /* #47211D */
+	--danger-text: oklch(0.8 0.11 27); /* #FDA297 */
+	--warn: oklch(0.8 0.13 85); /* #E4B750 */
+	--warn-soft: oklch(0.31 0.05 80); /* #3E2D10 */
+	--warn-text: oklch(0.86 0.1 85); /* #EFCC83 */
+	--info-soft: oklch(0.3 0.05 250); /* #192F46 */
+	--info-text: oklch(0.82 0.08 250); /* #9DC9F7 */
+	--hover: oklch(1 0 0 / 0.06);
+	--press: oklch(1 0 0 / 0.1);
+	--scrim: oklch(0 0 0 / 0.5);
+	--scrim-sheet: oklch(0 0 0 / 0.5);
+
+	--shadow-1: 0 1px 2px oklch(0 0 0 / 0.4);
+	--shadow-2: 0 1px 2px oklch(0 0 0 / 0.4), 0 12px 32px -8px oklch(0 0 0 / 0.55);
+	--shadow-3: 0 2px 6px oklch(0 0 0 / 0.4), 0 28px 64px -12px oklch(0 0 0 / 0.7);
+	--shadow-page: 0 1px 2px oklch(0 0 0 / 0.4), 0 12px 36px -12px oklch(0 0 0 / 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	:root {
+		--d1: 1ms;
+		--d2: 1ms;
+		--d3: 1ms;
+	}
+}
+
+@theme {
+	--font-display: "Newsreader Variable", Georgia, serif;
+	--font-ui: "Hanken Grotesk Variable", system-ui, sans-serif;
+	--font-sans: var(--font-ui);
+	--font-mono: ui-monospace, monospace;
+
+	/* 6 chips and small buttons · 8 controls · 10 list items · 12 cards and menus · 16 dialogs · 18 mobile sheets */
+	--radius-sm: 6px;
+	--radius-md: 8px;
+	--radius-lg: 10px;
+	--radius-xl: 12px;
+	--radius-2xl: 16px;
+	--radius-3xl: 18px;
+	--radius-4xl: 24px;
+
+	--aspect-page: 210 / 297;
+}
+
+@theme inline {
+	--color-bg: var(--bg);
+	--color-surface: var(--surface);
+	--color-raised: var(--raised);
+	--color-sunken: var(--sunken);
+	--color-line: var(--line);
+	--color-line-2: var(--line-2);
+	--color-ink: var(--ink);
+	--color-ink-2: var(--ink-2);
+	--color-ink-3: var(--ink-3);
+	--color-accent: var(--accent);
+	--color-accent-hover: var(--accent-hover);
+	--color-on-accent: var(--on-accent);
+	--color-accent-soft: var(--accent-soft);
+	--color-accent-text: var(--accent-text);
+	--color-danger: var(--danger);
+	--color-danger-soft: var(--danger-soft);
+	--color-danger-text: var(--danger-text);
+	--color-warn: var(--warn);
+	--color-warn-soft: var(--warn-soft);
+	--color-warn-text: var(--warn-text);
+	--color-info-soft: var(--info-soft);
+	--color-info-text: var(--info-text);
+	--color-hover: var(--hover);
+	--color-press: var(--press);
+	--color-scrim: var(--scrim);
+	--color-paper: var(--paper);
+	--color-stage-saved: var(--stage-saved);
+	--color-stage-applied: var(--stage-applied);
+	--color-stage-screening: var(--stage-screening);
+	--color-stage-interview: var(--stage-interview);
+	--color-stage-offer: var(--stage-offer);
+	--color-stage-closed: var(--stage-closed);
+
+	--shadow-e1: var(--shadow-1);
+	--shadow-e2: var(--shadow-2);
+	--shadow-e3: var(--shadow-3);
+	--shadow-page: var(--shadow-page);
+
+	--transition-duration-quick: var(--d1);
+	--transition-duration-standard: var(--d2);
+	--transition-duration-emphasized: var(--d3);
+	--ease-enter: var(--ease);
+	/* Bare `transition-*` utilities get the house values: quick, on the entering curve. */
+	--default-transition-duration: var(--d1);
+	--default-transition-timing-function: var(--ease);
+
+	/* On-screen movement (sliding indicators, reorder, settling): `ease-in-out-strong`. */
+	--ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+	/* Marketing pages only (routes/_home). App UI uses `ease-enter`. */
+	--ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+	/* Drag release of a swipeable bottom sheet (plan 011). */
+	--ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@layer base {
+	* {
+		@apply min-w-0 border-line;
+	}
+
+	html {
+		@apply font-sans;
+	}
+
+	body {
+		@apply bg-bg text-sm text-ink proportional-nums antialiased selection:bg-accent-soft selection:text-ink;
+	}
+
+	h1 {
+		@apply font-display;
+	}
+
+	/* A 2px accent ring with a 2px gap on every interactive element; never removed. */
+	:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+
+	input[type="number"] {
+		margin: 0;
+		@apply [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none;
+	}
+
+	button:not(:disabled),
+	[role="button"]:not(:disabled) {
+		cursor: pointer;
+	}
+
+	.wysiwyg {
+		@apply prose prose-sm max-w-none prose-stone dark:prose-invert prose-p:my-3! prose-ol:my-3! prose-ul:my-3! prose-li:my-3!;
+	}
+}
+
+/* Outside layers so text-size utilities cannot undo the iOS zoom prevention. */
+@media (pointer: coarse) {
+	input,
+	select,
+	textarea {
+		font-size: max(16px, 1em);
+	}
+}
+
+/*
+ * Touch screens: a control's hit area grows to at least 44×44, centred on it, without changing how it looks
+ * (README §4.7). The control needs `position: relative`.
+ */
+@utility touch-target {
+	@media (pointer: coarse) {
+		&::after {
+			content: "";
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			width: max(100%, 44px);
+			height: max(100%, 44px);
+			translate: -50% -50%;
+		}
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	/* Spinners are status, not decoration: freezing them makes a loading app look hung. */
+	:where(*:not([data-slot="spinner"] *)),
+	:where(*:not([data-slot="spinner"] *))::before,
+	:where(*:not([data-slot="spinner"] *))::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}

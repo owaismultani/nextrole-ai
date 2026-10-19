@@ -1,0 +1,128 @@
+---
+title: "Self-hosting on Hostinger"
+description: "Deploy Reactive Resume on a Hostinger VPS in one click, then add email, your own domain and sign-up limits."
+---
+
+Hostinger offers a ready-made Reactive Resume template on its VPS plans. It sets up the Docker containers, the
+database, file storage and HTTPS for you, so you get your own Reactive Resume server without writing a Compose file.
+Plans with the template start at $6.49/month.
+
+<a href="https://www.hostg.xyz/aff_c?offer_id=48&aff_id=232413&url_id=6857">
+  <img src="https://assets.hostinger.com/vps/deploy.svg" alt="Deploy on Hostinger" width="148" height="32" />
+</a>
+
+<Note>
+  Hostinger sponsors Reactive Resume, and the Hostinger links on this page are partner links. Hostinger builds and
+  maintains the template. If you'd rather set everything up yourself, follow [Self-hosting with
+  Docker](/self-hosting/docker); it runs the same app.
+</Note>
+
+## What the template sets up
+
+The template deploys a Docker Compose project with five containers:
+
+| Container            | Purpose                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------------ |
+| Reactive Resume      | The app, from the `amruthpillai/reactive-resume:latest` image.                             |
+| PostgreSQL 16        | Stores accounts, resumes, cover letters and applications.                                  |
+| SeaweedFS            | S3-compatible storage for uploaded pictures and files.                                     |
+| Bucket setup         | A one-off job that creates the storage bucket, then exits.                                 |
+| Browserless (Chrome) | A headless browser. Reactive Resume v6 renders PDFs itself and doesn't use this container. |
+
+The database and storage run on your VPS next to the app, not as separate managed services. Redis isn't included; a
+single app container doesn't need it. See [How the pieces fit](/self-hosting/docker#how-the-pieces-fit) for what each
+service does.
+
+The secrets and other required settings are generated for you when the project is created. The app is served at an
+address like `https://<project>.srvXXXX.hstgr.cloud`, with an HTTPS certificate from Let's Encrypt set up by a Traefik
+proxy on the VPS.
+
+## Deploy
+
+<Steps>
+  <Step title="Choose a plan">
+    Open the [Reactive Resume template on
+    Hostinger](https://www.hostg.xyz/aff_c?offer_id=48&aff_id=232413&url_id=6857), pick a VPS plan and finish
+    checkout.
+  </Step>
+  <Step title="Let Hostinger set up the server">
+    Hostinger creates the VPS, installs Docker and starts the Reactive Resume project. The first start also applies the
+    database migrations, so give it a few minutes.
+  </Step>
+  <Step title="Open your instance">
+    Open the project in Hostinger's Docker Manager and select its address (`https://<project>.srvXXXX.hstgr.cloud`).
+  </Step>
+  <Step title="Create your account">
+    Sign up with your email address; see [Creating an account](/guides/creating-an-account). You're signed in right
+    away. Until you add SMTP settings, verification emails aren't sent; their links are written to the app log
+    instead.
+  </Step>
+</Steps>
+
+## Finish the setup
+
+The template leaves a few things for you to configure. Each one is an environment variable on the Reactive Resume
+container. Change them in the project's settings in Docker Manager, or over SSH by editing the project's Compose
+file and running `docker compose up -d` in its folder. The app restarts with the new values.
+
+- **Keep it private.** After your own account exists, set `FLAG_DISABLE_SIGNUPS="true"`. Nobody else can sign up;
+  existing accounts keep working.
+- **Send real emails.** Add the `SMTP_*` settings from the [reference](/self-hosting/environment-variables#email) so
+  verification and password-reset emails reach your inbox.
+- **Use your own domain.** Point a DNS record for the domain at your VPS, add the domain to the project's proxy
+  settings, and set `APP_URL` to the new `https://` address.
+- **Sign in with Google, GitHub or SSO.** Add the provider settings from [Single sign-on (SSO)](/self-hosting/sso).
+- **Turn on job search and AI.** Connect shared Firecrawl and AI services, or let users save their own AI keys. See
+  [Job search and AI](/self-hosting/job-search-and-ai).
+
+<Warning>
+  `APP_URL` must match the address in the browser's address bar exactly, including `https://`. If it doesn't, sign-in
+  redirects go to the wrong place and session cookies don't stick.
+</Warning>
+
+## Update your instance
+
+The template runs the `latest` image, which tracks the newest Reactive Resume release. Hostinger doesn't update a
+project after it's deployed, so pulling a new version is up to you:
+
+<Steps>
+  <Step title="Back up first">
+    Back up the database and uploads before every update. See [Back up your data](#back-up-your-data).
+  </Step>
+  <Step title="Pull the new image and recreate the app">
+    Redeploy the project from Docker Manager, or over SSH run this in the project's folder:
+
+    ```bash
+    docker compose pull
+    docker compose up -d
+    ```
+
+    The new version applies its database migrations on startup.
+
+  </Step>
+</Steps>
+
+Updating from v5? Read [Migrating from v5](/self-hosting/upgrading-to-v6) first.
+
+## Back up your data
+
+Hostinger VPS plans include weekly backups of the whole server. For backups you can restore on their own, or to
+another host, dump the database and copy the uploads as described in [Back up your
+data](/self-hosting/docker#back-up-your-data). Keep a copy of the generated secrets as well: without the same
+`AUTH_SECRET`, a restored instance signs everyone out.
+
+## Troubleshooting
+
+Check the app container's log in Docker Manager, or run `docker compose logs` in the project's folder. Most problems,
+such as sign-in loops or missing emails, are covered in the [Docker guide's
+troubleshooting](/self-hosting/docker#troubleshooting). `GET /api/health` on your address reports whether the app can
+reach its database and storage; see [Check the health endpoint](/self-hosting/docker#check-the-health-endpoint).
+
+For problems with the VPS itself or the template, contact Hostinger support.
+
+## Related pages
+
+- [Self-hosting with Docker](/self-hosting/docker): the same setup, done by hand.
+- [Environment variables](/self-hosting/environment-variables): every setting, with defaults.
+- [Single sign-on (SSO)](/self-hosting/sso): Google, GitHub and OpenID Connect sign-in.
+- [Job search and AI](/self-hosting/job-search-and-ai): Firecrawl, SearXNG and shared or personal AI providers.

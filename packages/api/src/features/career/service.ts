@@ -1,0 +1,1069 @@
+import type { CareerSource } from "@reactive-resume/schema/career";
+import type z from "zod";
+import { createHash } from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
+import { ORPCError } from "@orpc/client";
+import { and, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import { db } from "@reactive-resume/db/client";
+import * as tables from "@reactive-resume/db/schema";
+import { buildMarkdown } from "@reactive-resume/resume/markdown";
+import {
+	careerProfileDataSchema,
+	careerWorkspaceSchema,
+	EMPTY_WORKSPACE,
+	type CareerWorkspace,
+	type careerFactInputSchema,
+	type careerStoryInputSchema,
+	type SavedItemData,
+} from "@reactive-resume/schema/career";
+import { generateId } from "@reactive-resume/utils/string";
+import { requestRunCancellation } from "../agent/cancellation";
+import { applicationService, recordSentResume } from "../applications/service";
+import { matchPosting } from "./matching";
+import { noticeText } from "./notices";
+
+type Owned = { userId: string; applicationId?: string | null | undefined };
+type FactInput = z.infer<typeof careerFactInputSchema>;
+type StoryInput = z.infer<typeof careerStoryInputSchema>;
+const hash = (text: string) => createHash("sha256").update(text).digest("hex");
+const visible = (column: typeof tables.careerFact.applicationId, applicationId?: string | null) =>
+	applicationId ? or(isNull(column), eq(column, applicationId)) : isNull(column);
+const ownedFact = (id: string, userId: string) =>
+	and(eq(tables.careerFact.id, id), eq(tables.careerFact.userId, userId));
+
+export async function requireCareerApplication(input: Owned & { interviewId?: string | null | undefined }) {
+	if (!input.applicationId) {
+		if (input.interviewId) throw new ORPCError("BAD_REQUEST", { message: "An interview needs an application." });
+		return null;
+	}
+	const application = await applicationService.getById({ id: input.applicationId, userId: input.userId });
+	if (
+		input.interviewId &&
+		!application.activity.some((entry) => entry.type === "interview" && entry.id === input.interviewId)
+	)
+		throw new ORPCError("NOT_FOUND", { message: "This interview is no longer part of this application." });
+	return application;
+}
+
+async function sourceText(userId: string, source: CareerSource, applicationId: string | null) {
+	// Typed or confirmed by the user in the app.
+	if (source.kind === "manual" || source.kind === "debrief") return source.quote;
+	if (source.kind === "user-message") {
+		const [row] = await db
+			.select({
+				message: tables.agentMessage.uiMessage,
+				applicationId: tables.agentThread.applicationId,
+				scope: tables.agentThread.scope,
+			})
+			.from(tables.agentMessage)
+			.innerJoin(tables.agentThread, eq(tables.agentMessage.threadId, tables.agentThread.id))
+			.where(
+				and(
+					eq(tables.agentMessage.id, source.id),
+					eq(tables.agentMessage.userId, userId),
+					eq(tables.agentMessage.role, "user"),
+					isNull(tables.agentThread.deletedAt),
+				),
+			);
+		if (!row || (row.applicationId && row.applicationId !== applicationId)) throw new ORPCError("NOT_FOUND");
+		const parts = row.message.parts;
+		return Array.isArray(parts)
+			? parts
+					.flatMap((part: { type?: string; text?: string }) => (part.type === "text" ? [part.text ?? ""] : []))
+					.join("\n")
+			: "";
+	}
+	if (source.kind === "resume-version") {
+		const [row] = await db
+			.select()
+			.from(tables.resumeVersion)
+			.where(and(eq(tables.resumeVersion.id, source.id), eq(tables.resumeVersion.userId, userId)));
+		if (!row) throw new ORPCError("NOT_FOUND");
+		return buildMarkdown(row.data);
+	}
+	if (source.kind === "letter-version") {
+		const [row] = await db
+			.select()
+			.from(tables.coverLetterVersion)
+			.where(and(eq(tables.coverLetterVersion.id, source.id), eq(tables.coverLetterVersion.userId, userId)));
+		if (!row) throw new ORPCError("NOT_FOUND");
+		return row.data.content;
+	}
+	if (source.kind === "resume") {
+		const [row] = await db
+			.select({ data: tables.resume.data })
+			.from(tables.resume)
+			.where(and(eq(tables.resume.id, source.id), eq(tables.resume.userId, userId)));
+		if (!row) throw new ORPCError("NOT_FOUND");
+		return buildMarkdown(row.data);
+	}
+	if (source.kind === "letter") {
+		const [row] = await db
+			.select({ content: tables.coverLetter.content })
+			.from(tables.coverLetter)
+			.where(and(eq(tables.coverLetter.id, source.id), eq(tables.coverLetter.userId, userId)));
+		if (!row) throw new ORPCError("NOT_FOUND");
+		return row.content;
+	}
+	throw new ORPCError("BAD_REQUEST", {
+		message: "Use a user statement or an owned document as evidence for a career fact.",
+	});
+}
+
+/** How many stories each fact backs and how many saved items used it. */
+const factUsage = {
+	stories: sql<number>`(select count(*)::int from ${tables.careerStory} s where s.user_id = ${tables.careerFact.userId} and s.data->'factIds' ? ${tables.careerFact.id})`,
+	savedItems: sql<number>`(select count(*)::int from ${tables.careerArtifact} a where a.user_id = ${tables.careerFact.userId} and a.evidence->'factIds' ? ${tables.careerFact.id})`,
+};
+
+async function requireFacts(input: Owned, ids: string[], reader: typeof db | CareerTransaction = db) {
+	if (!ids.length) return [];
+	const rows = await reader
+		.select()
+		.from(tables.careerFact)
+		.where(
+			and(
+				eq(tables.careerFact.userId, input.userId),
+				inArray(tables.careerFact.id, ids),
+				eq(tables.careerFact.status, "active"),
+				visible(tables.careerFact.applicationId, input.applicationId),
+			),
+		);
+	if (new Set(rows.map((row) => row.id)).size !== new Set(ids).size)
+		throw new ORPCError("BAD_REQUEST", { message: "Some supporting facts are unavailable in this context." });
+	return rows;
+}
+
+export const modelFact = (fact: typeof tables.careerFact.$inferSelect) => ({
+	id: fact.id,
+	text: fact.text,
+	category: fact.category,
+	applicationId: fact.applicationId,
+	source: { kind: fact.source.kind, id: fact.source.id },
+	updatedAt: fact.updatedAt,
+});
+
+type CareerTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+async function lockCareerUser(tx: CareerTransaction, userId: string) {
+	const [owner] = await tx
+		.select({ id: tables.user.id })
+		.from(tables.user)
+		.where(eq(tables.user.id, userId))
+		.for("no key update");
+	if (!owner) throw new ORPCError("NOT_FOUND");
+}
+
+async function memoryVersion(userId: string, reader: typeof db | CareerTransaction = db) {
+	// New facts can be remembered within a turn; corrections/exclusions invalidate every in-flight draft.
+	const revisions = await reader
+		.select({
+			id: tables.careerFact.id,
+			text: tables.careerFact.text,
+			status: tables.careerFact.status,
+			revisions: tables.careerFact.revisions,
+		})
+		.from(tables.careerFact)
+		.where(
+			and(
+				eq(tables.careerFact.userId, userId),
+				or(sql`${tables.careerFact.status} <> 'active'`, sql`jsonb_array_length(${tables.careerFact.revisions}) > 0`),
+			),
+		)
+		.orderBy(tables.careerFact.id);
+	return hash(JSON.stringify(revisions));
+}
+
+/** Structured generation is read-only: any change to its Knowledge/preferences invalidates the result. */
+function knowledgeSignature(
+	profile: z.infer<typeof careerProfileDataSchema>,
+	facts: Array<typeof tables.careerFact.$inferSelect>,
+	stories: Array<typeof tables.careerStory.$inferSelect>,
+	timezone: string,
+) {
+	return hash(
+		JSON.stringify([
+			profile,
+			timezone,
+			facts
+				.map(({ id, applicationId, text, category, status, revisions, source, updatedAt }) => ({
+					id,
+					applicationId,
+					text,
+					category,
+					status,
+					revisions,
+					source,
+					updatedAt,
+				}))
+				.sort((a, b) => a.id.localeCompare(b.id)),
+			stories
+				.map(({ id, applicationId, data, updatedAt }) => ({ id, applicationId, data, updatedAt }))
+				.sort((a, b) => a.id.localeCompare(b.id)),
+		]),
+	);
+}
+
+async function knowledgeVersion(input: Owned, reader: typeof db | CareerTransaction = db) {
+	const [[profile], facts, stories, [owner]] = await Promise.all([
+		reader.select().from(tables.careerProfile).where(eq(tables.careerProfile.userId, input.userId)),
+		reader
+			.select()
+			.from(tables.careerFact)
+			.where(
+				and(
+					eq(tables.careerFact.userId, input.userId),
+					visible(tables.careerFact.applicationId, input.applicationId),
+					sql`${tables.careerFact.status} <> 'forgotten'`,
+				),
+			),
+		reader
+			.select()
+			.from(tables.careerStory)
+			.where(
+				and(
+					eq(tables.careerStory.userId, input.userId),
+					input.applicationId
+						? or(isNull(tables.careerStory.applicationId), eq(tables.careerStory.applicationId, input.applicationId))
+						: isNull(tables.careerStory.applicationId),
+				),
+			),
+		reader.select({ timezone: tables.user.timezone }).from(tables.user).where(eq(tables.user.id, input.userId)),
+	]);
+	return knowledgeSignature(
+		careerProfileDataSchema.parse(profile?.data ?? {}),
+		facts,
+		stories,
+		owner?.timezone ?? "UTC",
+	);
+}
+
+/**
+ * A fact changed: stop in-flight coach replies that read the old text. A forgotten fact is also unlinked from
+ * stories and saved items, so nothing keeps pointing at it.
+ */
+async function invalidateMemory(userId: string, id: string, tx: CareerTransaction, forgotten = false) {
+	if (forgotten) {
+		const unlink = (column: typeof tables.careerStory.data | typeof tables.careerArtifact.evidence) =>
+			sql`jsonb_set(${column}, '{factIds}', coalesce((select jsonb_agg(f) from jsonb_array_elements(${column}->'factIds') f where f <> to_jsonb(${id}::text)), '[]'::jsonb))`;
+		await tx
+			.update(tables.careerStory)
+			.set({ data: sql`jsonb_set(${tables.careerStory.data}, '{factIds}', '[]'::jsonb)` })
+			.where(and(eq(tables.careerStory.userId, userId), sql`${tables.careerStory.data}->'factIds' ? ${id}`));
+		await tx
+			.update(tables.careerArtifact)
+			.set({ evidence: unlink(tables.careerArtifact.evidence) })
+			.where(and(eq(tables.careerArtifact.userId, userId), sql`${tables.careerArtifact.evidence}->'factIds' ? ${id}`));
+	}
+	const threads = await tx
+		.select({ runId: tables.agentThread.activeRunId })
+		.from(tables.agentThread)
+		.where(
+			and(
+				eq(tables.agentThread.userId, userId),
+				sql`${tables.agentThread.scope} <> 'document'`,
+				sql`${tables.agentThread.activeRunId} is not null`,
+			),
+		);
+	await Promise.all(
+		threads.flatMap((thread) => (thread.runId ? [requestRunCancellation(thread.runId, "MEMORY_CHANGED")] : [])),
+	);
+}
+
+export const careerService = {
+	memoryVersion,
+	memoryCutoff: async (userId: string) => {
+		const [row] = await db
+			.select({ at: tables.careerFact.updatedAt })
+			.from(tables.careerFact)
+			.where(
+				and(
+					eq(tables.careerFact.userId, userId),
+					or(sql`${tables.careerFact.status} <> 'active'`, sql`jsonb_array_length(${tables.careerFact.revisions}) > 0`),
+				),
+			)
+			.orderBy(desc(tables.careerFact.updatedAt))
+			.limit(1);
+		return row?.at ?? null;
+	},
+	profile: async (userId: string) => {
+		const [row] = await db.select().from(tables.careerProfile).where(eq(tables.careerProfile.userId, userId));
+		return careerProfileDataSchema.parse(row?.data ?? {});
+	},
+	saveProfile: async (userId: string, data: z.infer<typeof careerProfileDataSchema>) => {
+		await db.transaction(async (tx) => {
+			await lockCareerUser(tx, userId);
+			await tx
+				.insert(tables.careerProfile)
+				.values({ userId, data })
+				.onConflictDoUpdate({ target: tables.careerProfile.userId, set: { data, updatedAt: new Date() } });
+		});
+		return data;
+	},
+	/** Facts the coach can use for an application (or shared ones). `all` lists every scope, for Knowledge. */
+	facts: async (input: Owned & { query?: string | undefined; all?: boolean | undefined }) => {
+		await requireCareerApplication(input);
+		const rows = await db
+			.select({ fact: tables.careerFact, company: tables.application.company, ...factUsage })
+			.from(tables.careerFact)
+			.leftJoin(tables.application, eq(tables.application.id, tables.careerFact.applicationId))
+			.where(
+				and(
+					eq(tables.careerFact.userId, input.userId),
+					input.all ? undefined : visible(tables.careerFact.applicationId, input.applicationId),
+					sql`${tables.careerFact.status} <> 'forgotten'`,
+					input.query?.trim()
+						? sql`to_tsvector('simple', ${tables.careerFact.text}) @@ plainto_tsquery('simple', ${input.query.trim()})`
+						: undefined,
+				),
+			)
+			.orderBy(desc(tables.careerFact.createdAt), desc(tables.careerFact.id));
+		return rows.map(({ fact, company, stories, savedItems }) => ({
+			...fact,
+			company,
+			usedBy: { stories, savedItems },
+		}));
+	},
+	saveFact: async (userId: string, input: FactInput, automatic = false) => {
+		await requireCareerApplication({ userId, applicationId: input.applicationId });
+		if (automatic && (input.source.kind !== "user-message" || input.text !== input.source.quote))
+			throw new ORPCError("BAD_REQUEST", { message: "Automatic memory must quote the user's own words exactly." });
+		if (automatic && (await careerService.profile(userId)).memoryMode !== "auto") return null;
+		const original = await sourceText(userId, input.source, input.applicationId);
+		if (!input.source.quote.trim() || !original.includes(input.source.quote))
+			throw new ORPCError("BAD_REQUEST", { message: "The source does not contain that quotation." });
+		const sourceKey = hash(`${input.source.kind}:${input.source.id}:${input.source.quote.trim().toLocaleLowerCase()}`);
+		return db.transaction(async (tx) => {
+			await lockCareerUser(tx, userId);
+			if (automatic) {
+				const [profile] = await tx.select().from(tables.careerProfile).where(eq(tables.careerProfile.userId, userId));
+				if (careerProfileDataSchema.parse(profile?.data ?? {}).memoryMode !== "auto") return null;
+			}
+			const [suppressed] = await tx
+				.select({ id: tables.careerFact.id })
+				.from(tables.careerFact)
+				.where(
+					and(
+						eq(tables.careerFact.userId, userId),
+						sql`${tables.careerFact.source}->>'kind' = ${input.source.kind}`,
+						sql`${tables.careerFact.source}->>'id' = ${input.source.id}`,
+						or(
+							eq(tables.careerFact.status, "forgotten"),
+							eq(tables.careerFact.status, "excluded"),
+							sql`jsonb_array_length(${tables.careerFact.revisions}) > 0`,
+						),
+					),
+				)
+				.limit(1);
+			if (suppressed) return null;
+			// A forgotten source key remains a content-free tombstone; retries cannot recreate the fact.
+			const [fact] = await tx
+				.insert(tables.careerFact)
+				.values({ userId, ...input, sourceKey })
+				.onConflictDoNothing()
+				.returning();
+			return fact ?? null;
+		});
+	},
+	updateFact: async (
+		userId: string,
+		input: {
+			id: string;
+			text?: string | undefined;
+			status?: "active" | "excluded" | undefined;
+			share?: boolean | undefined;
+		},
+	) => {
+		const updated = await db.transaction(async (tx) => {
+			await lockCareerUser(tx, userId);
+			const [row] = await tx.select().from(tables.careerFact).where(ownedFact(input.id, userId)).for("update");
+			if (!row || row.status === "forgotten") throw new ORPCError("NOT_FOUND");
+			const [updated] = await tx
+				.update(tables.careerFact)
+				.set({
+					...(input.text !== undefined
+						? {
+								text: input.text,
+								revisions: [...row.revisions, { text: row.text, at: new Date().toISOString() }].slice(-50),
+							}
+						: {}),
+					...(input.status ? { status: input.status } : {}),
+					...(input.share ? { applicationId: null } : {}),
+				})
+				.where(ownedFact(input.id, userId))
+				.returning();
+			if (input.text !== undefined || input.status !== undefined) await invalidateMemory(userId, input.id, tx);
+			if (!updated) throw new ORPCError("NOT_FOUND");
+			return updated;
+		});
+		return updated;
+	},
+	forgetFact: async (userId: string, id: string) => {
+		await db.transaction(async (tx) => {
+			await lockCareerUser(tx, userId);
+			const [row] = await tx
+				.update(tables.careerFact)
+				.set({
+					text: "",
+					status: "forgotten",
+					source: sql`jsonb_set(${tables.careerFact.source}, '{quote}', '""'::jsonb)`,
+					revisions: [],
+				})
+				.where(ownedFact(id, userId))
+				.returning();
+			if (!row) throw new ORPCError("NOT_FOUND");
+			await invalidateMemory(userId, id, tx, true);
+		});
+	},
+	stories: async (input: Owned) => {
+		await requireCareerApplication(input);
+		return db
+			.select()
+			.from(tables.careerStory)
+			.where(
+				and(
+					eq(tables.careerStory.userId, input.userId),
+					input.applicationId
+						? or(isNull(tables.careerStory.applicationId), eq(tables.careerStory.applicationId, input.applicationId))
+						: isNull(tables.careerStory.applicationId),
+				),
+			)
+			.orderBy(desc(tables.careerStory.updatedAt));
+	},
+	saveStory: async (userId: string, input: StoryInput, id?: string, expectedMemoryVersion?: string) => {
+		await requireCareerApplication({ userId, applicationId: input.applicationId });
+		return db.transaction(async (tx) => {
+			await lockCareerUser(tx, userId);
+			if (expectedMemoryVersion && expectedMemoryVersion !== (await memoryVersion(userId, tx)))
+				throw new ORPCError("CONFLICT", { message: "Career memory changed. Start a fresh reply." });
+			await requireFacts({ userId, applicationId: input.applicationId }, input.factIds, tx);
+			const values = { applicationId: input.applicationId, data: input };
+			const [row] = id
+				? await tx
+						.update(tables.careerStory)
+						.set(values)
+						.where(and(eq(tables.careerStory.id, id), eq(tables.careerStory.userId, userId)))
+						.returning()
+				: await tx
+						.insert(tables.careerStory)
+						.values({ userId, ...values })
+						.returning();
+			if (!row) throw new ORPCError("NOT_FOUND");
+			return row;
+		});
+	},
+	deleteStory: async (userId: string, id: string) => {
+		await db.transaction(async (tx) => {
+			await lockCareerUser(tx, userId);
+			await tx
+				.delete(tables.careerStory)
+				.where(and(eq(tables.careerStory.id, id), eq(tables.careerStory.userId, userId)));
+		});
+	},
+	context: async (input: Owned & { interviewId?: string | null | undefined }) => {
+		const memoryRevision = await memoryVersion(input.userId);
+		const application = await requireCareerApplication(input);
+		const [preferences, facts, stories, [owner]] = await Promise.all([
+			careerService.profile(input.userId),
+			careerService.facts(input),
+			careerService.stories(input),
+			db.select({ timezone: tables.user.timezone }).from(tables.user).where(eq(tables.user.id, input.userId)),
+		]);
+		// The coach reads times in the user's timezone (Settings → Preferences) with the rest of their preferences.
+		const profile = { ...preferences, timezone: owner?.timezone ?? "UTC" };
+		const knowledgeRevision = knowledgeSignature(preferences, facts, stories, profile.timezone);
+		let resume: { text: string; version: string; submitted: boolean; source: { kind: string; id: string } } | null =
+			null;
+		let letter: { text: string; version: string; submitted: boolean; source: { kind: string; id: string } } | null =
+			null;
+		if (application?.sentResumeVersionId) {
+			const [row] = await db
+				.select()
+				.from(tables.resumeVersion)
+				.where(
+					and(
+						eq(tables.resumeVersion.id, application.sentResumeVersionId),
+						eq(tables.resumeVersion.userId, input.userId),
+					),
+				);
+			if (row)
+				resume = {
+					text: buildMarkdown(row.data),
+					version: row.id,
+					submitted: true,
+					source: { kind: "resume-version", id: row.id },
+				};
+		} else if (application?.resumeId) {
+			const [row] = await db
+				.select()
+				.from(tables.resume)
+				.where(and(eq(tables.resume.id, application.resumeId), eq(tables.resume.userId, input.userId)));
+			if (row)
+				resume = {
+					text: buildMarkdown(row.data),
+					version: row.updatedAt.toISOString(),
+					submitted: false,
+					source: { kind: "resume", id: row.id },
+				};
+		}
+		if (application?.sentCoverLetterVersionId) {
+			const [row] = await db
+				.select()
+				.from(tables.coverLetterVersion)
+				.where(
+					and(
+						eq(tables.coverLetterVersion.id, application.sentCoverLetterVersionId),
+						eq(tables.coverLetterVersion.userId, input.userId),
+					),
+				);
+			if (row)
+				letter = {
+					text: row.data.content,
+					version: row.id,
+					submitted: true,
+					source: { kind: "letter-version", id: row.id },
+				};
+		} else if (application?.coverLetterId) {
+			const [row] = await db
+				.select()
+				.from(tables.coverLetter)
+				.where(and(eq(tables.coverLetter.id, application.coverLetterId), eq(tables.coverLetter.userId, input.userId)));
+			if (row)
+				letter = {
+					text: row.content,
+					version: row.updatedAt.toISOString(),
+					submitted: false,
+					source: { kind: "letter", id: row.id },
+				};
+		}
+		const blockedSources = await db
+			.select({ source: tables.careerFact.source })
+			.from(tables.careerFact)
+			.where(
+				and(
+					eq(tables.careerFact.userId, input.userId),
+					or(sql`${tables.careerFact.status} <> 'active'`, sql`jsonb_array_length(${tables.careerFact.revisions}) > 0`),
+				),
+			);
+		if (
+			blockedSources.some(
+				({ source }) =>
+					(source.kind === "resume" && source.id === application?.resumeId) ||
+					(source.kind === "resume-version" && source.id === application?.sentResumeVersionId),
+			)
+		)
+			resume = null;
+		if (
+			blockedSources.some(
+				({ source }) =>
+					(source.kind === "letter" && source.id === application?.coverLetterId) ||
+					(source.kind === "letter-version" && source.id === application?.sentCoverLetterVersionId),
+			)
+		)
+			letter = null;
+		const interview = input.interviewId
+			? (application?.activity.find((entry) => entry.type === "interview" && entry.id === input.interviewId) ?? null)
+			: null;
+		const activeFacts = facts.filter((fact) => fact.status === "active").map(modelFact);
+		const usableStories = stories.filter(
+			(story) =>
+				story.data.factIds.length > 0 &&
+				story.data.factIds.every((id) =>
+					facts.some(
+						(fact) =>
+							fact.id === id &&
+							fact.status === "active" &&
+							(fact.revisions.length === 0 || story.updatedAt >= fact.updatedAt),
+					),
+				),
+		);
+		if (memoryRevision !== (await memoryVersion(input.userId)) || knowledgeRevision !== (await knowledgeVersion(input)))
+			throw new ORPCError("CONFLICT", { message: "Career memory changed while preparing context. Please retry." });
+		const version = hash(
+			JSON.stringify([
+				memoryRevision,
+				application?.updatedAt,
+				profile,
+				facts.map((fact) => [fact.id, fact.updatedAt]),
+				stories.map((story) => [story.id, story.updatedAt]),
+				resume?.version,
+				letter?.version,
+			]),
+		);
+		return {
+			application,
+			interview,
+			profile,
+			facts: activeFacts,
+			stories: usableStories,
+			resume,
+			letter,
+			version,
+			memoryVersion: memoryRevision,
+			knowledgeVersion: knowledgeRevision,
+		};
+	},
+	/** Saved items for one application (or across all of them for one kind), newest first. */
+	savedItems: async (input: Owned & { kind?: SavedItemData["kind"] | undefined }) => {
+		const context = input.applicationId ? await careerService.context(input) : null;
+		const rows = await db
+			.select({ item: tables.careerArtifact, company: tables.application.company, role: tables.application.role })
+			.from(tables.careerArtifact)
+			.leftJoin(tables.application, eq(tables.application.id, tables.careerArtifact.applicationId))
+			.where(
+				and(
+					eq(tables.careerArtifact.userId, input.userId),
+					input.applicationId ? eq(tables.careerArtifact.applicationId, input.applicationId) : undefined,
+					input.kind ? sql`${tables.careerArtifact.data}->>'kind' = ${input.kind}` : undefined,
+				),
+			)
+			.orderBy(desc(tables.careerArtifact.createdAt));
+		return rows.map(({ item, company, role }) => ({
+			...item,
+			application: company === null ? null : { company, role: role ?? "" },
+			// Knowledge, the posting or documents changed since it was written.
+			outdated: item.data.kind !== "answers" && context !== null && item.inputVersion !== context.version,
+		}));
+	},
+	saveSavedItem: (input: {
+		userId: string;
+		applicationId: string;
+		interviewId: string | null;
+		title: string;
+		data: SavedItemData;
+		evidence: { factIds: string[]; storyIds: string[] };
+		inputVersion: string;
+		jobId?: string;
+		jobLease?: string;
+		expectedMemoryVersion?: string;
+		expectedKnowledgeVersion?: string;
+	}) =>
+		db.transaction(async (tx) => {
+			const { expectedMemoryVersion, expectedKnowledgeVersion, jobLease, ...values } = input;
+			// User → application → schedule → job. No key update permits unrelated FK inserts for this user.
+			await lockCareerUser(tx, input.userId);
+			const [application] = await tx
+				.select()
+				.from(tables.application)
+				.where(and(eq(tables.application.id, input.applicationId), eq(tables.application.userId, input.userId)))
+				.for("update");
+			if (!application) throw new ORPCError("NOT_FOUND");
+			if (input.jobId) {
+				// Match the schedule editor's lock order. Pausing and publishing cannot pass each other.
+				const [job] = await tx
+					.select()
+					.from(tables.careerJob)
+					.where(and(eq(tables.careerJob.id, input.jobId), eq(tables.careerJob.userId, input.userId)));
+				if (!job) return null;
+				const [schedule] = await tx
+					.select()
+					.from(tables.careerSchedule)
+					.where(eq(tables.careerSchedule.id, job.scheduleId))
+					.for("update");
+				const [current] = await tx.select().from(tables.careerJob).where(eq(tables.careerJob.id, job.id)).for("update");
+				if (
+					!schedule?.enabled ||
+					!current ||
+					current.status !== "running" ||
+					current.lease !== jobLease ||
+					!current.leaseUntil ||
+					current.leaseUntil <= new Date()
+				)
+					return null;
+			}
+			if (
+				(expectedMemoryVersion !== undefined && expectedMemoryVersion !== (await memoryVersion(input.userId, tx))) ||
+				(expectedKnowledgeVersion !== undefined && expectedKnowledgeVersion !== (await knowledgeVersion(input, tx)))
+			)
+				throw new ORPCError("CONFLICT", {
+					message: "Career knowledge changed while generating this result. Please generate it again.",
+				});
+			const [row] = await tx
+				.insert(tables.careerArtifact)
+				.values({ ...values, jobId: input.jobId ?? null })
+				.onConflictDoNothing()
+				.returning();
+			return row ?? null;
+		}),
+	assertMemoryVersion: (userId: string, expected: string, knowledge?: { applicationId: string; version: string }) =>
+		db.transaction(async (tx) => {
+			await lockCareerUser(tx, userId);
+			if (
+				expected !== (await memoryVersion(userId, tx)) ||
+				(knowledge &&
+					knowledge.version !== (await knowledgeVersion({ userId, applicationId: knowledge.applicationId }, tx)))
+			)
+				throw new ORPCError("CONFLICT", {
+					message: "Career knowledge changed while generating this result. Please generate it again.",
+				});
+		}),
+	deleteSavedItem: async (userId: string, id: string) => {
+		await db
+			.delete(tables.careerArtifact)
+			.where(and(eq(tables.careerArtifact.id, id), eq(tables.careerArtifact.userId, userId)));
+	},
+	/** Applies the ticked changes of a read employer message. Reaching Applied goes through Mark as applied. */
+	applyReply: async (userId: string, id: string, selected: number[]) => {
+		const [saved] = await db
+			.select()
+			.from(tables.careerArtifact)
+			.where(and(eq(tables.careerArtifact.id, id), eq(tables.careerArtifact.userId, userId)));
+		if (!saved?.applicationId || saved.data.kind !== "reply") throw new ORPCError("NOT_FOUND");
+		if (saved.data.applied) return;
+		const applicationId = saved.applicationId;
+		const context = await careerService.context({ userId, applicationId });
+		await db.transaction(async (tx) => {
+			await lockCareerUser(tx, userId);
+			const [application] = await tx
+				.select()
+				.from(tables.application)
+				.where(and(eq(tables.application.id, applicationId), eq(tables.application.userId, userId)))
+				.for("update");
+			if (!application) throw new ORPCError("NOT_FOUND");
+			const [item] = await tx
+				.select()
+				.from(tables.careerArtifact)
+				.where(and(eq(tables.careerArtifact.id, id), eq(tables.careerArtifact.userId, userId)))
+				.for("update");
+			if (!item?.applicationId || item.data.kind !== "reply") throw new ORPCError("NOT_FOUND");
+			const data = item.data;
+			if (data.applied) return;
+
+			if (
+				selected.some((index) => !Number.isInteger(index) || index < 0 || index >= data.changes.length) ||
+				new Set(selected).size !== selected.length
+			)
+				throw new ORPCError("BAD_REQUEST", { message: "Choose valid proposed changes." });
+			if (
+				selected.length &&
+				(item.inputVersion !== context.version ||
+					application.updatedAt.getTime() !== context.application?.updatedAt.getTime() ||
+					context.memoryVersion !== (await memoryVersion(userId, tx)))
+			)
+				throw new ORPCError("CONFLICT", {
+					message:
+						"This application or its knowledge changed since the message was read. Read the message again before applying changes.",
+				});
+			const changes = data.changes.filter((_, index) => selected.includes(index));
+			const now = new Date();
+			let status = application.status;
+			let followUpAt = application.followUpAt;
+			let followUpNote = application.followUpNote;
+			const activity = [...application.activity];
+			for (const change of changes) {
+				if (change.type === "stage" && change.stage !== application.status) {
+					if (application.status === "saved")
+						throw new ORPCError("BAD_REQUEST", { message: "Mark the application as applied first." });
+					status = change.stage;
+					activity.push({ id: generateId(), type: "stage", stage: change.stage, at: now });
+				}
+				// One change owns the next step, so its reminder and its words can't overwrite each other.
+				// The old reminder belonged to the old next step, so a next step with nothing due clears it.
+				if (change.type === "follow-up") {
+					followUpAt = change.at ? new Date(change.at) : null;
+					followUpNote = change.note || followUpNote;
+				}
+				if (change.type === "offer" && data.offer)
+					await tx.insert(tables.careerArtifact).values({
+						userId,
+						applicationId: application.id,
+						interviewId: null,
+						title: `${application.company} · ${data.offer.version === "verbal" ? "Verbal offer" : "Written offer"}`,
+						data: { kind: "offer", ...data.offer },
+						evidence: { factIds: [], storyIds: [] },
+						inputVersion: item.inputVersion,
+					});
+			}
+			await tx
+				.update(tables.application)
+				.set({ status, activity, followUpAt, followUpNote, ...(status !== "closed" ? { closedReason: null } : {}) })
+				.where(eq(tables.application.id, application.id));
+			await tx
+				.update(tables.careerArtifact)
+				.set({ data: { ...data, applied: { at: now.toISOString(), changes: selected } } })
+				.where(eq(tables.careerArtifact.id, id));
+		});
+	},
+	workspace: async (userId: string, applicationId: string) => {
+		await requireCareerApplication({ userId, applicationId });
+		const [row] = await db
+			.select({ data: tables.careerWorkspace.data })
+			.from(tables.careerWorkspace)
+			.where(and(eq(tables.careerWorkspace.applicationId, applicationId), eq(tables.careerWorkspace.userId, userId)));
+		return careerWorkspaceSchema.parse({ ...EMPTY_WORKSPACE, ...row?.data });
+	},
+	/** Each widget saves its whole key; keys it doesn't send keep their stored values. */
+	saveWorkspace: async (
+		userId: string,
+		applicationId: string,
+		patch: { [K in keyof CareerWorkspace]?: CareerWorkspace[K] | undefined },
+		expected: { [K in keyof CareerWorkspace]?: CareerWorkspace[K] | undefined },
+	) => {
+		await requireCareerApplication({ userId, applicationId });
+		// The application row is the lock, so two saves to different keys can't read the same old copy.
+		return db.transaction(async (tx) => {
+			const [application] = await tx
+				.select({ id: tables.application.id })
+				.from(tables.application)
+				.where(and(eq(tables.application.id, applicationId), eq(tables.application.userId, userId)))
+				.for("update");
+			const [row] = await tx
+				.select({ data: tables.careerWorkspace.data })
+				.from(tables.careerWorkspace)
+				.where(and(eq(tables.careerWorkspace.applicationId, applicationId), eq(tables.careerWorkspace.userId, userId)));
+			if (!application) throw new ORPCError("NOT_FOUND");
+			const current = careerWorkspaceSchema.parse({ ...EMPTY_WORKSPACE, ...row?.data });
+			for (const key of Object.keys(patch) as (keyof CareerWorkspace)[]) {
+				if (patch[key] === undefined) continue;
+				if (!Object.hasOwn(expected, key))
+					throw new ORPCError("BAD_REQUEST", {
+						message: "Include the previous value for every changed workspace field.",
+					});
+				if (!isDeepStrictEqual(current[key], expected[key]) && !isDeepStrictEqual(current[key], patch[key]))
+					throw new ORPCError("CONFLICT", {
+						message:
+							"This workspace changed elsewhere. Your draft has not been saved. Review the latest version before trying again.",
+					});
+			}
+			const data = careerWorkspaceSchema.parse({
+				...current,
+				...Object.fromEntries(Object.entries(patch).filter(([, value]) => value !== undefined)),
+			});
+			await tx
+				.insert(tables.careerWorkspace)
+				.values({ applicationId, userId, data })
+				.onConflictDoUpdate({ target: tables.careerWorkspace.applicationId, set: { data, updatedAt: new Date() } });
+			return data;
+		});
+	},
+	/** The submitted answers, document versions and stage are one committed action. */
+	submitApplication: async (
+		userId: string,
+		applicationId: string,
+		answers: CareerWorkspace["answers"],
+		expectedAnswers: CareerWorkspace["answers"],
+	) => {
+		const parsed = careerWorkspaceSchema.shape.answers.parse(answers);
+		await db.transaction(async (tx) => {
+			await lockCareerUser(tx, userId);
+			const [application] = await tx
+				.select()
+				.from(tables.application)
+				.where(and(eq(tables.application.id, applicationId), eq(tables.application.userId, userId)))
+				.for("update");
+			if (!application) throw new ORPCError("NOT_FOUND");
+			const [workspace] = await tx
+				.select()
+				.from(tables.careerWorkspace)
+				.where(and(eq(tables.careerWorkspace.applicationId, applicationId), eq(tables.careerWorkspace.userId, userId)));
+			const current = careerWorkspaceSchema.parse({ ...EMPTY_WORKSPACE, ...workspace?.data });
+			// A lost success response may be retried only while the committed submission still matches.
+			// Draft equality alone also matches a never-submitted application closed in another tab.
+			if (application.status !== "saved") {
+				const conflict = () =>
+					new ORPCError("CONFLICT", {
+						message: "This application has changed since submission. Reload it before continuing.",
+					});
+				const applied = application.activity.findLast((entry) => entry.type === "stage" && entry.stage === "applied");
+				if (application.status !== "applied" || !applied || !isDeepStrictEqual(current.answers, parsed))
+					throw conflict();
+				const sent = parsed.filter((answer) => answer.answer.trim());
+				if (sent.length) {
+					const [snapshot] = await tx
+						.select({ id: tables.careerArtifact.id })
+						.from(tables.careerArtifact)
+						.where(
+							and(
+								eq(tables.careerArtifact.userId, userId),
+								eq(tables.careerArtifact.applicationId, applicationId),
+								eq(tables.careerArtifact.inputVersion, hash(JSON.stringify([applicationId, applied.at, sent]))),
+							),
+						);
+					if (!snapshot) throw conflict();
+				}
+				if (application.resumeId) {
+					if (!application.sentResumeVersionId) throw conflict();
+					const [version] = await tx
+						.select({ id: tables.resumeVersion.id })
+						.from(tables.resumeVersion)
+						.where(
+							and(
+								eq(tables.resumeVersion.id, application.sentResumeVersionId),
+								eq(tables.resumeVersion.resumeId, application.resumeId),
+								eq(tables.resumeVersion.userId, userId),
+							),
+						);
+					if (!version) throw conflict();
+				}
+				if (application.coverLetterId) {
+					if (!application.sentCoverLetterVersionId) throw conflict();
+					const [version] = await tx
+						.select({ id: tables.coverLetterVersion.id })
+						.from(tables.coverLetterVersion)
+						.where(
+							and(
+								eq(tables.coverLetterVersion.id, application.sentCoverLetterVersionId),
+								eq(tables.coverLetterVersion.coverLetterId, application.coverLetterId),
+								eq(tables.coverLetterVersion.userId, userId),
+							),
+						);
+					if (!version) throw conflict();
+				}
+				return;
+			}
+			if (!isDeepStrictEqual(current.answers, expectedAnswers) && !isDeepStrictEqual(current.answers, parsed))
+				throw new ORPCError("CONFLICT", {
+					message: "Application answers changed elsewhere. Review them before marking as applied.",
+				});
+			const at = new Date();
+			const [submitted] = await tx
+				.update(tables.application)
+				.set({
+					status: "applied",
+					closedReason: null,
+					appliedAt: at,
+					activity: [...application.activity, { id: generateId(), type: "stage", stage: "applied", at }],
+				})
+				.where(eq(tables.application.id, applicationId))
+				.returning();
+			if (!submitted) throw new ORPCError("NOT_FOUND");
+			await recordSentResume(submitted, tx);
+			const data = { ...current, answers: parsed };
+			await tx
+				.insert(tables.careerWorkspace)
+				.values({ applicationId, userId, data })
+				.onConflictDoUpdate({ target: tables.careerWorkspace.applicationId, set: { data, updatedAt: at } });
+			const sent = parsed.filter((answer) => answer.answer.trim());
+			if (sent.length)
+				await tx.insert(tables.careerArtifact).values({
+					userId,
+					applicationId,
+					interviewId: null,
+					title: "Application answers",
+					data: { kind: "answers", answers: sent },
+					evidence: { factIds: [...new Set(sent.flatMap((answer) => answer.factIds))], storyIds: [] },
+					inputVersion: hash(JSON.stringify([applicationId, at, sent])),
+				});
+		});
+	},
+	/** Copies the workspace's answers into Saved when the application is marked as applied: what was sent. */
+	snapshotAnswers: (userId: string, applicationId: string) =>
+		db.transaction(async (tx) => {
+			const [application] = await tx
+				.select()
+				.from(tables.application)
+				.where(and(eq(tables.application.id, applicationId), eq(tables.application.userId, userId)))
+				.for("update");
+			if (!application) throw new ORPCError("NOT_FOUND");
+			if (application.status === "saved")
+				throw new ORPCError("BAD_REQUEST", {
+					message: "Mark the application as applied before recording sent answers.",
+				});
+			const [existing] = await tx
+				.select({ id: tables.careerArtifact.id })
+				.from(tables.careerArtifact)
+				.where(
+					and(
+						eq(tables.careerArtifact.applicationId, applicationId),
+						eq(tables.careerArtifact.userId, userId),
+						sql`${tables.careerArtifact.data}->>'kind' = 'answers'`,
+					),
+				);
+			if (existing) return;
+			const [workspace] = await tx
+				.select()
+				.from(tables.careerWorkspace)
+				.where(and(eq(tables.careerWorkspace.applicationId, applicationId), eq(tables.careerWorkspace.userId, userId)));
+			const answers = careerWorkspaceSchema
+				.parse({ ...EMPTY_WORKSPACE, ...workspace?.data })
+				.answers.filter((answer) => answer.answer.trim());
+			if (!answers.length) return;
+			await tx.insert(tables.careerArtifact).values({
+				userId,
+				applicationId,
+				interviewId: null,
+				title: "Application answers",
+				data: { kind: "answers", answers },
+				evidence: { factIds: [...new Set(answers.flatMap((answer) => answer.factIds))], storyIds: [] },
+				inputVersion: hash(JSON.stringify(answers)),
+			});
+		}),
+	/** Saves a discovered role to Applications at Saved, with the posting link and why it matched. */
+	trackOpportunity: (userId: string, id: string) => {
+		// The opportunity row is the lock: a double click or a second tab returns the same application.
+		return db.transaction(async (tx) => {
+			const [opportunity] = await tx
+				.select()
+				.from(tables.careerOpportunity)
+				.where(and(eq(tables.careerOpportunity.id, id), eq(tables.careerOpportunity.userId, userId)))
+				.for("update");
+			if (!opportunity) throw new ORPCError("NOT_FOUND");
+			if (opportunity.trackedApplicationId) return { applicationId: opportunity.trackedApplicationId };
+			const [profile] = await tx.select().from(tables.careerProfile).where(eq(tables.careerProfile.userId, userId));
+			const { matches } = matchPosting(opportunity, careerProfileDataSchema.parse(profile?.data ?? {}));
+			const applicationId = generateId();
+			await tx.insert(tables.application).values({
+				id: applicationId,
+				userId,
+				company: opportunity.company || new URL(opportunity.url).hostname.replace(/^www\./, ""),
+				role: opportunity.role,
+				location: opportunity.location || null,
+				sourceUrl: opportunity.url,
+				jobDescription: opportunity.description || opportunity.snippet,
+				status: "saved",
+				activity: [{ id: generateId(), type: "stage", stage: "saved", at: new Date() }],
+				...(matches.length ? { notes: `Matched: ${matches.join(" · ")}` } : {}),
+			});
+			await tx
+				.update(tables.careerOpportunity)
+				.set({ trackedApplicationId: applicationId })
+				.where(eq(tables.careerOpportunity.id, id));
+			return { applicationId };
+		});
+	},
+	exportData: async (userId: string) => {
+		const [
+			profile,
+			facts,
+			stories,
+			artifacts,
+			schedules,
+			notifications,
+			threads,
+			messages,
+			attachments,
+			opportunities,
+			jobs,
+			transcripts,
+			workspaces,
+		] = await Promise.all([
+			careerService.profile(userId),
+			db.select().from(tables.careerFact).where(eq(tables.careerFact.userId, userId)),
+			db.select().from(tables.careerStory).where(eq(tables.careerStory.userId, userId)),
+			db.select().from(tables.careerArtifact).where(eq(tables.careerArtifact.userId, userId)),
+			db.select().from(tables.careerSchedule).where(eq(tables.careerSchedule.userId, userId)),
+			db.select().from(tables.careerNotification).where(eq(tables.careerNotification.userId, userId)),
+			db.select().from(tables.agentThread).where(eq(tables.agentThread.userId, userId)),
+			db.select().from(tables.agentMessage).where(eq(tables.agentMessage.userId, userId)),
+			db.select().from(tables.agentAttachment).where(eq(tables.agentAttachment.userId, userId)),
+			db.select().from(tables.careerOpportunity).where(eq(tables.careerOpportunity.userId, userId)),
+			db.select().from(tables.careerJob).where(eq(tables.careerJob.userId, userId)),
+			db.select().from(tables.careerTranscript).where(eq(tables.careerTranscript.userId, userId)),
+			db.select().from(tables.careerWorkspace).where(eq(tables.careerWorkspace.userId, userId)),
+		]);
+		return {
+			profile,
+			facts,
+			stories,
+			artifacts,
+			schedules,
+			notifications: notifications.map((row) => ({ ...row, ...noticeText(row.notice) })),
+			threads,
+			messages,
+			attachments,
+			opportunities,
+			jobs,
+			transcripts,
+			workspaces,
+		};
+	},
+};

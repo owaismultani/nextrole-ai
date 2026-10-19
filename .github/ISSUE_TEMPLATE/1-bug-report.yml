@@ -1,0 +1,126 @@
+name: 🐞 Bug Report
+
+description: Report a reproducible problem with Reactive Resume
+
+labels: ["bug", "status: needs triage"]
+assignees: []
+
+body:
+  - type: checkboxes
+    attributes:
+      label: Existing issue
+      description: Search open and closed issues before submitting a new report.
+      options:
+        - label: I searched the existing issues and could not find a matching report.
+          required: true
+
+  - type: dropdown
+    id: variant
+    attributes:
+      label: Product variant
+      description: Where does the problem occur?
+      options:
+        - Cloud
+        - Self-hosted
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Reactive Resume version
+      description: Find this in Settings or provide the container image tag or commit SHA.
+      placeholder: 5.2.6
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Choose the part of Reactive Resume most closely related to the problem.
+      options:
+        - Resume builder & data
+        - Templates, preview & export
+        - Accounts & sharing
+        - AI & Agent
+        - Language & localization
+        - Self-hosting
+        - API & integrations
+        - Applications & cover letters
+        - Other / unsure
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Include your operating system and browser. For self-hosted installations, also include the deployment method.
+      placeholder: Firefox 143 on Ubuntu 26.04, deployed with Docker Compose
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Briefly describe the problem and its impact.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Provide the smallest reliable sequence that demonstrates the problem.
+      placeholder: |
+        1. Open ...
+        2. Select ...
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: dropdown
+    id: template
+    attributes:
+      label: Template
+      description: Leave blank when the problem is not template-specific.
+      options:
+        - Azurill
+        - Bronzor
+        - Chikorita
+        - Ditgar
+        - Ditto
+        - Gengar
+        - Glalie
+        - Kakuna
+        - Lapras
+        - Leafish
+        - Meowth
+        - Onyx
+        - Pikachu
+        - Porygon
+        - Rhyhorn
+        - Scizor
+        - Smeargle
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs and screenshots
+      description: Add relevant logs, screenshots, or a minimal reproduction. Remove secrets and personal resume data first.

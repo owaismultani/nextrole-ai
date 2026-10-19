@@ -1,0 +1,199 @@
+---
+title: "Career platform rollout"
+description: "Enable, use, operate, and evaluate Career, the application workspace, and their optional scheduled work."
+---
+
+The career platform adds application-specific coaching, shared career knowledge, interview practice, and reviewable job-search assistance. This guide covers the implemented controls and operating limits for contributors and self-hosting operators.
+
+## Availability
+
+All career features ship together and are available without a release flag: Today, the coach, Knowledge, offer comparison, the application workspace (fit checks, application answers, interview preparation, practice, debriefs and employer messages), discovery, reminders, and recorded voice practice.
+
+AI generation requires a usable AI connection. Voice can use a speech-capable connection or supported browser speech. Scheduled work requires a working deployment scheduler and explicit user opt-in. The verification section below covers deterministic checks and live-provider evaluation before production deployment.
+
+The assistant uses the existing saved AI connections. Configure `ENCRYPTION_SECRET`, then add and test a provider in **Settings → AI & developer**. Users choose their provider; provider usage is billed under that connection. Public research uses the selected web-access connection. See [web access](/contributing/web-access) and [job search and AI configuration](/self-hosting/job-search-and-ai) for deployment and credential requirements.
+
+## Where things live
+
+The career platform has two places:
+
+- **Career** (sidebar): **Today** (notifications that need you, new roles from discovery, the next interview and your schedules), **Coach** (conversations across your whole search), **Knowledge** (facts, STARR stories and preferences) and **Offers** (two saved offers side by side).
+- **The application workspace** (open an application, then **Open workspace**): one job in seven tabs, in the order a search happens. **Fit**, **Apply**, **Prepare**, **Practise**, **Debrief**, **Messages** and **Saved**. The workspace opens on the tab for the application's stage, and **Ask the coach** opens the coach beside any tab. A job can have several conversations: start a new one, or reopen or delete an earlier one from the sheet's history.
+
+Each workspace tab is a purpose-built tool. Its AI action (**Check fit**, **Plan my preparation**, **Get feedback**, **Review my answer**, **Read it for me**, **Draft** or **Tighten**) asks the default AI connection for one structured result and saves it to **Saved**. While it works, the button names each step in turn. The result arrives whole rather than streamed, because its actions (apply, tick, add evidence) need the complete, checked result. Checklists, plans, saved briefings and the offer table are stored data, so they open without a working provider; when a provider call fails, the error says what didn't run.
+
+## Prepare for an interview
+
+1. Add the round with **Edit** in the workspace's **Next step** card: type, date and time (in a chosen timezone), length, who you'll meet, and what they asked you to prepare. A linked resume is optional.
+2. On **Prepare**, choose **Plan my preparation**. The briefing is a timed plan, questions to ask, the stories to bring and a 10-minute briefing (your focus, an opening line, two stories and what isn't evidenced yet).
+3. Switch on **Refresh the briefing 24 hours before** to run it again automatically. Editing the interview later moves that run with it.
+4. From 15 minutes before the start, **Prepare** becomes a short checklist that needs no AI or research, with **Rehearse one answer aloud**.
+
+The coach prioritizes the resume and letter versions recorded as sent for that application. If no sent version exists, it uses the linked current document, labelled as unsubmitted. Record submissions with **Mark as applied** (on **Apply**) so preparation has the correct snapshot.
+
+## Control knowledge and what is sent
+
+**Knowledge** holds facts, stories and preferences separately from document formatting. Add a few relevant accomplishments, or tell the coach about them; no questionnaire is required.
+
+- **Remember facts from my messages** has three modes. **Ask first** (the default) shows a proposal under the coach's answer; nothing is saved until you choose **Remember**. **Automatically** saves facts you state and shows **Undo**. **Never** turns memory off. Mock answers are never remembered.
+- **Facts** show where they came from and their correction history. **Correct** keeps the original in the history and marks stories that use the fact for review. Switching a fact off stops the coach from reading it; a switched-off fact can't back a story. Facts private to one application are used only when coaching for it, until you choose **Use for all applications**.
+- **Forget** removes the fact after a six-second undo, unlinks it from stories and saved items, and keeps a content-free marker so it isn't re-extracted from the same source. The original resume, message or file isn't changed.
+- **STARR stories** contain Situation, Task, Action, Result and Reflection with the facts that back them. Leave a part blank until you can support it.
+- **Preferences** (target roles, places, what matters, minimum base salary, office days, notice period) feed discovery, the match chips on new roles, Fit's requirement checks and Offers. All times in Career are shown in the account's timezone, set in **Settings → Preferences** (UTC until changed).
+
+Every AI action shows a privacy line naming what is sent and to which connection. In **Coach**, the context chips decide what goes with the next message: **Applications** (summaries of your applications), **Knowledge** (switched-on facts, stories and preferences) and **Web research** (off by default; search terms go to your web search service). Choices persist per conversation. Turning context off can't recall information already sent to a provider. Comparing offers and editing Knowledge send nothing.
+
+## Use the workspace tabs
+
+| Tab      | What it does                                                                                                                                                                                                                                                        |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Fit      | Each requirement from the posting, stated or inferred, checked against your facts: supported, partly supported or no evidence yet. Missing evidence is not missing ability. **Add evidence** saves a shared fact.                                                   |
+| Apply    | Your answers for the application form with word counts, the facts behind them, **Draft** and **Tighten**, and a checklist before you submit on the employer's site yourself.                                                                                        |
+| Prepare  | The timed plan and briefing for the next round (see above).                                                                                                                                                                                                         |
+| Practise | One question at a time, typed or spoken, with feedback in a fixed shape: what works, what to strengthen and a stronger opening. Practice questions are simulated.                                                                                                   |
+| Debrief  | What they asked, what you said and how it landed, reviewed against your evidence, with a light plan for the week. Recalled questions become practisable.                                                                                                            |
+| Messages | Paste an employer message to get a summary, an editable reply you send yourself, and proposed changes to the application that only happen when you apply them: a stage, the next step (with a reminder when a reply is due) and offer terms to save for **Offers**. |
+| Saved    | Everything the coach wrote for this job; **Open in** shows a saved version read-only in its tab.                                                                                                                                                                    |
+
+**Offers** compares two saved offers in their own currency and pay period. Differences are marked only when the currency and period match, unknown or conditional values are flagged, and totals aren't added up. **Plan what to ask** opens the coach with both offers as context.
+
+Undo replaces confirmation dialogs throughout: forgetting, deleting, dismissing and applying changes all show a six-second **Undo**.
+
+## Operate scheduled work
+
+Supported deployments schedule career work automatically once a minute. Users still explicitly enable each schedule and configure any required AI/web connection.
+
+| Deployment       | How ticks run                                                                                                                               | Configuration                                                                                                             |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Node.js / Docker | The long-running server starts a timer after migrations and authentication initialization. Shutdown stops new ticks and drains active work. | No runner secret or external cron needed.                                                                                 |
+| Vercel           | The `crons` entry in root `vercel.json` sends `GET /api/career/run`.                                                                        | Set a random `CRON_SECRET` in the production environment, then redeploy. Vercel supplies the bearer header automatically. |
+| Cloudflare       | Root `wrangler.jsonc` defines a Cron Trigger; the Worker's `scheduled()` handler processes jobs directly.                                   | Deploy the checked-in trigger configuration. No HTTP runner secret needed.                                                |
+
+Vercel's checked-in once-per-minute schedule requires **Pro or Enterprise**. Hobby supports at most one invocation per day and rejects more frequent schedules during deployment. On Hobby, change the schedule to `0 0 * * *`; daily ticks can delay reminders and preparation by a day. See [Vercel Cron limits](https://vercel.com/docs/cron-jobs/usage-and-pricing). Native Vercel Cron runs on production deployments. Cloudflare trigger changes can take up to 15 minutes to propagate; see [Cron Triggers](https://developers.cloudflare.com/workers/configuration/cron-triggers/).
+
+Generate the Vercel token with `openssl rand -hex 32`, supply it through the deployment's secret mechanism, and never log authorization headers. The UI checks deployment configuration, not successful delivery of ticks. Verify a due test reminder in a dedicated installation after deployment. Minute-by-minute polling queries PostgreSQL even when no schedules are due, so a database that scales to zero can remain awake.
+
+All adapters await the same bounded PostgreSQL-backed processor. Node prevents overlapping ticks within its process; database claims coordinate multiple processes and native platform invocations. Cloudflare keeps scheduled work alive with `waitUntil()` and releases its invocation's database pool after work completes. No task depends on an open browser.
+
+### Optional manual invocation
+
+An operator can trigger a tick for diagnostics or use a custom scheduler. Set `CRON_SECRET` (at least 16 characters), then call `GET` or `POST /api/career/run` with `Authorization: Bearer <secret>`. Without this token the HTTP endpoint returns `404`; invalid authorization returns `401`. Internal Node and Cloudflare ticks continue without this token.
+
+From a source checkout with Node.js 24, a manual tick can use a protected environment file outside the repository:
+
+```dotenv
+APP_URL=https://resume.example.com
+CRON_SECRET=replace-with-at-least-16-random-characters
+```
+
+```sh
+node --env-file=/etc/reactive-resume/career-runner.env tooling/career/run.mjs
+```
+
+The CLI rejects redirects, and times out after 250 seconds. The HTTP response waits for the processing result. Monitor unsuccessful native ticks and long gaps between invocations; a successful empty tick alone does not prove a provider or a user's schedule is functioning.
+
+### Enable a user's schedule
+
+In **Career → Today**, **Schedules → Add** (or a schedule's row) opens the schedule sheet:
+
+- **Find roles:** a public search (it starts from Preferences) run every day, every 3 days or every week. Results wait in Today for review; tracking one creates an application at Saved only when the user chooses **Track in Applications**.
+- **Prepare:** an interview, when the briefing runs (24 hours before, 2 hours before, or Morning of: 08:00 on the day, moving earlier to two hours before interviews starting before 10:00) and a tested AI connection. If the interview starts sooner than that, saving runs it now.
+- **Remind me:** an application and a time; it fires once into Today.
+
+Dates and times are entered in the account's timezone. Recurring discovery preserves its local time across daylight-saving changes; a local time that doesn't exist during a clock change moves forward to a valid time. Missed intervals are coalesced rather than replaying every missed scan.
+
+Pause or delete a schedule to cancel its queued or running work. Rescheduling an interview moves its briefing schedules to the new time and cancels work queued for the old one. Removing the interview pauses them and adds a notification to Today. Cancellation prevents later result publication but can't undo provider calls already made.
+
+### Understand delivery and retry limits
+
+PostgreSQL owns due work, leases, attempts, and deduplication. A tick handles at most two jobs, and active work is serialized per user. Duplicate ticks and reclaimed leases are designed to avoid duplicate visible results. Failed jobs wait five minutes before a later tick can retry, with at most three attempts. Retries can repeat provider work and incur usage. Scheduled preparation uses its selected AI connection while that connection is usable; if it is disabled, deleted, or cannot be resolved, it falls back to the default usable connection. This can change which provider receives the context and incurs usage. A generation failure does not immediately switch providers; it follows the normal retry schedule. Exhausted work produces an actionable in-app failure.
+
+Discovery reads each new search result and keeps it only when it is one open role's posting: the page describes exactly one schema.org `JobPosting` whose closing date hasn't passed, or it sits at a posting address on a common applicant tracking system or job board (Greenhouse, Lever, Ashby, Workable, SmartRecruiters, Workday, LinkedIn, Recruitee, Personio, Teamtailor, Wellfound or Welcome to the Jungle). Job-board lists, careers pages and articles never reach **New roles** and aren't read again. Pages are read with the built-in reader first and with the web search connection only when that fails. URLs are canonicalized and common tracking parameters stripped, so a result seen before stays quiet. Untracked visible postings found again are rechecked after a week to refresh their description and open status without another new-role notice. Tracking a role saves its posting text, company and location with the application, so **Fit** can check it at once. Dismissed results stay hidden. A posting being found is an observation, not proof that it is open or genuine.
+
+Owner-email notifications require explicit opt-in, a verified account email, and working SMTP configuration. In-app results are retained independently. The email attempt is recorded before contacting SMTP, with a deterministic message ID. A claim left unfinished by a stopped worker becomes eligible again after ten minutes. Completed sends and recorded failures are not retried. A crash after SMTP accepts a message but before completion is recorded can cause a duplicate; SMTP acceptance does not establish inbox delivery. A recorded failure appears in-app; use the in-app result as the durable record.
+
+Notifications are written in English for now. Each one is stored as what happened (its type and details), and its words are written when it's shown, so a later release can show notifications in your language and their times in your timezone.
+
+## Optional voice practice
+
+On **Practise**, choose **Speak**. Voice starts with the default connection when it supports speech, otherwise another usable speech connection; **Voice settings** chooses another, or a different model.
+
+| Provider          | Transcribes answers                                                                 | Reads questions aloud                                                               |
+| ----------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| OpenAI            | `gpt-4o-mini-transcribe`, `gpt-4o-transcribe`, `whisper-1`                          | `gpt-4o-mini-tts`, `tts-1`                                                          |
+| Google Gemini     | `gemini-3.5-transcribe`                                                             | `gemini-3.8-flash-tts`, `gemini-3.8-flash-lite-tts`, `gemini-2.5-flash-preview-tts` |
+| Mistral           | `voxtral-mini-latest`                                                               | `voxtral-mini-tts-latest`                                                           |
+| xAI               | `grok-voice-transcribe-2.0`                                                         | Grok's speech model                                                                 |
+| Groq              | `whisper-large-v3-turbo`, `whisper-large-v3`                                        | —                                                                                   |
+| Vercel AI Gateway | `openai/gpt-4o-mini-transcribe`, `google/gemini-3.5-transcribe`, `openai/whisper-1` | `openai/tts-1`, `google/gemini-3.8-flash-tts`                                       |
+
+Speech calls are billed separately from text coaching and may use tokens on the connection's account; the page says so where they happen. Without a connection for a job, the browser does it: its own voice reads questions aloud (every major browser), and its dictation turns your answer into text (Chrome, Edge and Safari; not Firefox). Browser speech is free, but depending on the browser, its maker may process the audio. Where neither is available, typing remains a complete alternative.
+
+With a connection, record up to two minutes, or choose a nonempty WebM, MP4/M4A, MP3, WAV, or Ogg file of at most **2 MiB**. With the browser's dictation, your words appear as you speak, for up to two minutes. Check the transcript (it becomes your answer and can be edited), then choose **Get feedback**. Original and edited transcripts remain distinguishable and can be deleted.
+
+The server keeps the transcript, not the raw recording. After successful transcription, browser audio is cleared unless you choose to keep it locally for download. Failed transcription leaves the current recording available for retry. Local audio is temporary and clears when the panel unmounts. Provider retention follows the selected provider's policies. Spoken questions send only the question's text.
+
+## Migrations, export, and deletion
+
+Career storage ships through additive migrations, including new user-owned tables and conversation context fields. Back up your database and file storage, review generated SQL, and apply the normal migration workflow before deploying the update. Server startup also applies migrations.
+
+Account export includes `career.json`: preferences, facts and source/revision metadata, stories, saved items, workspace state (answers, checklist, plan ticks), schedules, notifications, discovery results, jobs, voice transcripts, and career conversations/messages with attachment metadata. Conversations include their application context. Provider credentials are not included. Attachment metadata is not a backup of the attachment's binary contents.
+
+Account deletion removes the user's dependent career records along with the existing account data and private upload storage. Deleting an individual fact, saved item, transcript, application, or conversation has narrower effects; it does not delete copies previously exported or sent to a provider. Include database backups and externally retained data in your installation's retention policy.
+
+## Verify before rollout
+
+Use a disposable PostgreSQL database and synthetic users. These integration suites create an isolated schema, apply the complete migration chain, and remove their schema afterward. Never point test environment variables at production data.
+
+```sh
+export INTEGRATIONS_TEST_DATABASE_URL='postgresql://postgres:postgres@127.0.0.1:5432/career_test'
+pnpm --filter @reactive-resume/api test src/features/career
+pnpm --filter server test src/http/career-jobs.test.ts src/startup/career-scheduler.test.ts src/cloudflare/index.test.ts
+pnpm --filter web test src/features/settings/account/export.test.ts
+```
+
+Use credentials for your disposable database in the first command. Without `INTEGRATIONS_TEST_DATABASE_URL` or the supported `COVER_LETTER_TEST_DATABASE_URL` fallback, the career database suites skip; a green run with skipped suites is not verification. Follow [development setup](/contributing/development) for the remaining environment and package prerequisites.
+
+The deterministic cases cover ownership, submitted-version isolation, correction/forget behavior, practice/debrief separation, stale material, exports/cascades, overlapping ticks, retries/cancellation, recurrence, and endpoint authorization. Also run affected package typechecks, existing assistant regression suites, boundary/lint/format checks, and the production build. Test the deployed endpoint and owner-email flow in a dedicated installation as described in [deployment checks](/contributing/deployment-checks).
+
+Career browser scenarios require `FLAG_ALLOW_UNSAFE_AI_BASE_URL=true` for the local synthetic provider. With the [browser test environment](https://github.com/reactive-resume/reactive-resume/blob/main/tests/e2e/README.md) configured, run `pnpm test:e2e tests/e2e/specs/career.spec.ts`. These cover offline urgent preparation, memory controls, selected submitted snapshots, persistence, and first-send context exclusions.
+
+### Opt-in live evaluation
+
+Live evaluation is a manual, separately authorized use of configured provider accounts; the deterministic suite makes no live quality claim. Use synthetic histories, known public sources, and a recorded provider/model configuration. Include several professions (for example software engineering, nursing, and sales), junior and experienced candidates, and at least three supported UI/coaching languages. Include career changes, missing metrics, conflicting documents, and ambiguous interviewer identities.
+
+For each configuration, record the following outcomes without retaining private resumes or transcripts in operational logs:
+
+| Gate                     | Evidence to collect                                                                                                                                                                             |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Correct context          | Two applications share a live resume but have different sent versions; each briefing uses the selected company, round, and sent claims.                                                         |
+| Grounding                | Every personal claim traces to supplied evidence; unknown metrics remain unknown; public claims have usable citations and appropriate uncertainty.                                              |
+| Urgency and failure      | Measure time to useful output and completion. Test slow research, unavailable web access, invalid AI credentials, cancellation, and partial output. Saved context stays accessible.             |
+| Learning loop            | Preserve the original answer in debrief, keep simulations separate, and verify the next round uses real feedback without inventing employer evidence.                                           |
+| Privacy controls         | Remove application/memory context, correct/exclude/forget facts, and verify later provider requests do not reintroduce blocked material.                                                        |
+| Usefulness               | A human reviewer rates relevance, specificity, factual support, and actionable next steps across professions and languages. Fluent prose alone does not pass.                                   |
+| Accessibility            | Complete coaching, source review, memory correction, and practice with keyboard and screen reader; check focus, announcements, errors, mobile layout, and localized strings.                    |
+| Proactive work and voice | Restart/overlap runners, pause schedules, and inspect in-app/email outcomes. Test denied microphone permission, transcript correction, upload limits, provider failures, and the text fallback. |
+
+Treat any cross-account access, invented personal claim, wrong submitted document, or inability to remove private context as a release blocker. Record unresolved quality and accessibility findings before production deployment. Monitor latency, completion/failure counts, provider usage, corrections, and user-rated usefulness; avoid raw document, research-page, or transcript content in operational logs.
+
+## Keep product guides current
+
+Update user-facing guides in the same change as the behavior they describe. Start with the changed screen or service below, then follow its guide's related links. The [overview](/guides/career-overview) explains the product, the [first application tutorial](/guides/first-career-application) teaches the starting flow, and the [reference](/guides/career-workspace-reference) records controls and limits.
+
+| When this changes                                       | Check these guides                                                                                                            | Screenshot to refresh when the visible flow changes                                                          |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Career navigation, Today, coach or workspace shell      | `career-overview`, `first-career-application`, `career-workspace-reference`; existing tracker and assistant guides            | `today.png`, `coach.png`, `application-detail.png`                                                           |
+| Facts, stories, memory, corrections or context assembly | `building-career-knowledge`, `checking-job-fit`, `career-workspace-reference`                                                 | `facts.png`, `story.png`, `fit.png`                                                                          |
+| Form answers, counts, submission or snapshots           | `writing-application-answers`, `first-career-application`, `managing-an-application`                                          | `apply.jpg`, `saved.png`                                                                                     |
+| Interview form, briefing, practice, voice or debrief    | `preparing-for-interview-day`, `scheduling-interviews`, `career-workspace-reference`                                          | `interview.jpg`, `prepare.png`, `briefing.jpg`, `practise-speak.jpg`, `practice-feedback.jpg`, `debrief.png` |
+| Discovery, schedules, timing or delivery                | `finding-roles-automatically`, `preparing-for-interview-day`, `career-workspace-reference`; this page and self-hosting guides | `discovery-schedule.jpg`, `prepare-schedule.jpg`, `today.png`                                                |
+| Recruiter messages or proposed changes                  | `replying-to-recruiters`, `career-workspace-reference`                                                                        | `messages.png`                                                                                               |
+| Offer terms or comparison                               | `comparing-job-offers`, `career-workspace-reference`                                                                          | `offers.png`                                                                                                 |
+| Export or deletion                                      | `exporting-your-data`, `deleting-your-account`, `career-workspace-reference`                                                  | Refresh only when the account controls change.                                                               |
+
+Guide names above live in `docs/guides/`; screenshots live in `docs/images/guides/career/`. Keep new pages in `docs/docs.json`. Use fictional people, companies, messages and results for screenshots. Capture the actual interface, inspect the image and explain what the reader should notice in its caption and alt text.
+
+Verify labels in the web component and behavior in the owning API service before documenting them. Recheck opt-ins, default AI selection, chat versus workspace context, account timezone, the early-interview exception, voice fallback, unknown values and Undo. A fact is a user-confirmed record; it is not independently verified. Result fields can remain blank but do not enforce proof. Never promise fixed daily role counts, guaranteed inbox delivery or error-free AI claims.
+
+Check local links, image paths, navigation entries and formatting after edits. Preview changed pages when a documentation preview is available. Changes confined to prose do not need application tests; changed behavior still needs its normal checks.

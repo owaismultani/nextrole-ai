@@ -1,0 +1,34 @@
+{
+	"name": "@reactive-resume/ai",
+	"version": "0.0.0",
+	"type": "module",
+	"private": true,
+	"exports": {
+		"./types": "./src/types.ts",
+		"./prompts": "./src/prompts.ts",
+		"./tools/agent-tool-contracts": "./src/tools/agent-tool-contracts.ts",
+		"./tools/resume-tool-contracts": "./src/tools/resume-tool-contracts.ts",
+		"./resume/extraction-template": "./src/resume/extraction-template.ts",
+		"./resume/sanitize": "./src/resume/sanitize.ts"
+	},
+	"scripts": {
+		"typecheck": "tsgo --noEmit",
+		"test": "vitest run --passWithNoTests",
+		"test:coverage": "vitest run --coverage --passWithNoTests",
+		"test:ci": "vitest run --reporter=default --reporter=github-actions --reporter=json --reporter=junit --outputFile.json=reports/vitest-results.json --outputFile.junit=reports/vitest-junit.xml --passWithNoTests",
+		"test:agent": "vitest run --reporter=agent --reporter=json --outputFile.json=reports/vitest-results.json --passWithNoTests"
+	},
+	"dependencies": {
+		"@reactive-resume/resume": "workspace:*",
+		"@reactive-resume/schema": "workspace:*",
+		"@reactive-resume/utils": "workspace:*",
+		"jsonrepair": "catalog:",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@reactive-resume/config": "workspace:*",
+		"ai": "catalog:",
+		"@typescript/native-preview": "catalog:",
+		"typescript": "catalog:"
+	}
+}

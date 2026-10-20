@@ -40,7 +40,11 @@ vi.mock("@reactive-resume/env/server", async () => {
 	};
 });
 // The external-service boundary is deterministic; queue ownership and all persistence remain real.
-vi.mock("../applications/posting", () => ({ searchJobPostings: fixture.search, readOpenPosting: fixture.read }));
+vi.mock("../applications/posting", () => ({
+	searchJobPostings: fixture.search,
+	readOpenPosting: fixture.read,
+	jobSearchQuery: (query: string) => `${query} job posting`,
+}));
 vi.mock("../web-access/credentials", () => ({
 	webAccessService: { resolve: async () => ({ provider: "tavily", apiKey: "synthetic-web-key" }) },
 }));
@@ -564,5 +568,155 @@ describe.skipIf(!databaseUrl)("durable career scheduling", () => {
 		expect(fixture.email).toHaveBeenCalledOnce();
 		await run();
 		expect(fixture.email).toHaveBeenCalledOnce();
+	});
+
+	describe("recurring discovery you can observe", () => {
+		const hourly = (extra: Record<string, unknown> = {}) =>
+			jobs.save(
+				"alice",
+				careerScheduleInputSchema.parse({
+					kind: "discovery",
+					query: "Reliability engineering roles",
+					enabled: true,
+					timezone: "Europe/Berlin",
+					nextRunAt: due(),
+					intervalMinutes: 60,
+					...extra,
+				}),
+			);
+		const row = async (id: string) => {
+			const [found] = await getDb().select().from(tables.careerSchedule).where(eq(tables.careerSchedule.id, id));
+			if (!found) throw new Error("Schedule missing.");
+			return found;
+		};
+		const distinct = (count: number) =>
+			Array.from({ length: count }, (_, index) => ({
+				title: `Engineer ${index}`,
+				url: `https://jobs.example.test/opening/${index}`,
+				description: "Build things.",
+			}));
+
+		it("keeps a fixed gap for minute intervals and records what the run did", async () => {
+			const saved = await hourly();
+			expect(saved).toMatchObject({ intervalMinutes: 60, intervalDays: null });
+			await run();
+			const after = await row(saved.id);
+			expect(after.nextRunAt.getTime() - saved.nextRunAt.getTime()).toBe(3_600_000);
+			expect(after.nextRunAt.getTime()).toBeGreaterThan(Date.now());
+			expect(after.lastAttemptedAt).toBeInstanceOf(Date);
+			expect(after.lastSucceededAt).toBeInstanceOf(Date);
+			// Two tracking variants of one address: one new role, one repeat.
+			expect(after.lastRun).toMatchObject({
+				outcome: "success",
+				failure: null,
+				trigger: "schedule",
+				provider: "tavily",
+				queries: ["Reliability engineering roles job posting"],
+				sources: ["example.test"],
+				found: 2,
+				duplicates: 1,
+				rejected: 0,
+				matches: 1,
+				readFailures: 0,
+			});
+		});
+
+		it("shows repeated search results as duplicates on the next run, not as a scheduling fault", async () => {
+			const saved = await hourly();
+			await run();
+			await getDb()
+				.update(tables.careerSchedule)
+				.set({ nextRunAt: due(), lastQueuedAt: null })
+				.where(eq(tables.careerSchedule.id, saved.id));
+			await run();
+			expect((await row(saved.id)).lastRun).toMatchObject({ outcome: "success", found: 2, duplicates: 2, matches: 0 });
+		});
+
+		it("reports a partial run when some pages cannot be read", async () => {
+			const saved = await hourly();
+			fixture.search.mockResolvedValue(distinct(3));
+			fixture.read.mockReset().mockImplementation(async (url) => {
+				if (url.endsWith("/0")) return posting;
+				if (url.endsWith("/1")) throw new Error("unreachable");
+				return null;
+			});
+			await run();
+			const { lastRun, lastSucceededAt } = await row(saved.id);
+			expect(lastRun).toMatchObject({ outcome: "partial", failure: null, found: 3 });
+			expect(lastRun?.matches).toBe(1);
+			expect(lastRun).toMatchObject({ rejected: 1, readFailures: 1 });
+			expect(lastSucceededAt).toBeInstanceOf(Date);
+		});
+
+		it("reports a failed run, without a success time, when every page is unreadable", async () => {
+			const saved = await hourly();
+			fixture.search.mockResolvedValue(distinct(2));
+			fixture.read.mockReset().mockRejectedValue(new Error("blocked"));
+			await run();
+			const after = await row(saved.id);
+			expect(after.lastRun).toMatchObject({
+				outcome: "failed",
+				failure: "extraction",
+				found: 2,
+				readFailures: 2,
+				matches: 0,
+			});
+			expect(after.lastSucceededAt).toBeNull();
+			expect(after.lastAttemptedAt).toBeInstanceOf(Date);
+		});
+
+		it("reports a failed search with the query that was tried", async () => {
+			const saved = await hourly();
+			fixture.search.mockRejectedValue(new Error("service down"));
+			await run();
+			const after = await row(saved.id);
+			expect(after.lastRun).toMatchObject({
+				outcome: "failed",
+				failure: "search",
+				provider: "tavily",
+				queries: ["Reliability engineering roles job posting"],
+				found: 0,
+			});
+			expect(after.lastSucceededAt).toBeNull();
+			expect(after.lastAttemptedAt).toBeInstanceOf(Date);
+		});
+
+		it("runs on demand, even when paused, without moving the schedule", async () => {
+			const saved = await hourly({ enabled: false, nextRunAt: new Date(Date.now() + 3_600_000) });
+			await expect(jobs.runNow("alice", saved.id)).resolves.toEqual({ queued: true });
+			await expect(jobs.runNow("alice", saved.id)).resolves.toEqual({ queued: false });
+			expect((await jobs.list("alice"))[0]).toMatchObject({ activeRun: "queued" });
+			await run();
+			const after = await row(saved.id);
+			expect(after).toMatchObject({ enabled: false, lastRun: { trigger: "manual", outcome: "success", matches: 1 } });
+			expect(after.nextRunAt.getTime()).toBe(saved.nextRunAt.getTime());
+			expect((await jobs.list("alice"))[0]).toMatchObject({ activeRun: null });
+			await expect(jobs.runNow("alice", saved.id)).resolves.toEqual({ queued: true });
+		});
+
+		it("pauses by cancelling queued work and resumes on the original cadence", async () => {
+			const saved = await hourly();
+			await jobs.runNow("alice", saved.id);
+			await expect(jobs.setEnabled("alice", saved.id, false)).resolves.toMatchObject({ enabled: false });
+			expect((await getDb().select().from(tables.careerJob)).every((item) => item.status === "canceled")).toBe(true);
+			await run();
+			expect((await row(saved.id)).lastAttemptedAt).toBeNull();
+			const resumed = await jobs.setEnabled("alice", saved.id, true);
+			expect(resumed.enabled).toBe(true);
+			expect(resumed.nextRunAt.getTime()).toBeGreaterThan(Date.now());
+			expect((resumed.nextRunAt.getTime() - saved.nextRunAt.getTime()) % 3_600_000).toBe(0);
+		});
+
+		it("rejects mixing hours with days, and hours for anything but discovery", async () => {
+			await expect(hourly({ intervalDays: 1 })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+			await expect(jobs.runNow("alice", "missing")).rejects.toMatchObject({ code: "NOT_FOUND" });
+		});
+
+		it("leaves existing daily schedules on their wall-clock cadence", async () => {
+			const saved = await schedule();
+			expect(saved).toMatchObject({ intervalDays: 1, intervalMinutes: null });
+			await run();
+			expect(new Date((await row(saved.id)).nextRunAt).getTime()).toBeGreaterThan(Date.now());
+		});
 	});
 });

@@ -289,6 +289,37 @@ export const careerNoticeSchema = z.discriminatedUnion("type", [
 ]);
 export type CareerNotice = z.infer<typeof careerNoticeSchema>;
 
+/** Discovery cadences shorter than a day, in minutes. Longer ones keep `intervalDays` and its wall-clock behaviour. */
+export const careerIntervalMinutesSchema = z.union([z.literal(60), z.literal(180), z.literal(360)]);
+
+/**
+ * What one discovery run did, so a quiet schedule can be told apart from a broken one. The counts add up:
+ * `found` = `duplicates` + `rejected` + `readFailures` + `matches`.
+ */
+export const careerRunReportSchema = z.object({
+	/** `partial` ran to the end but some postings could not be read; `failed` produced nothing usable. */
+	outcome: z.enum(["success", "partial", "failed"]),
+	/** Where a failed run stopped: the search service, reading every posting, or something else. */
+	failure: z.enum(["search", "extraction", "unknown"]).nullable(),
+	trigger: z.enum(["schedule", "manual"]),
+	at: z.string(),
+	/** The searches sent to the search service. */
+	queries: z.array(z.string()),
+	/** The search service used, and the sites its results came from. */
+	provider: z.string(),
+	sources: z.array(z.string()),
+	found: z.number().int().min(0),
+	/** Already known, or listed more than once in this run. */
+	duplicates: z.number().int().min(0),
+	/** Not an open job posting (closed, a listing page, or an unusable address). */
+	rejected: z.number().int().min(0),
+	/** New roles added to Today. */
+	matches: z.number().int().min(0),
+	/** Pages that could not be fetched or read this run. */
+	readFailures: z.number().int().min(0),
+});
+export type CareerRunReport = z.infer<typeof careerRunReportSchema>;
+
 export const careerScheduleInputSchema = careerScopeSchema.extend({
 	kind: z.enum(["discovery", "prepare", "follow-up"]),
 	query: z.string().trim().max(500).default(""),
@@ -300,6 +331,8 @@ export const careerScheduleInputSchema = careerScopeSchema.extend({
 	nextRunAt: z.coerce.date(),
 	timezone: timezoneSchema,
 	intervalDays: z.number().int().min(1).max(30).nullable().default(null),
+	/** Discovery only, instead of `intervalDays`: a fixed gap between runs. */
+	intervalMinutes: careerIntervalMinutesSchema.nullable().default(null),
 	aiProviderId: z.string().min(1).nullable().default(null),
 	/** The interface language; a scheduled briefing is written in it. Kept when left out. */
 	locale: z.string().min(2).max(20).optional(),

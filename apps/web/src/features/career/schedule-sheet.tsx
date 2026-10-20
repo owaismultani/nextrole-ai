@@ -20,6 +20,8 @@ import { SwitchRow } from "@reactive-resume/ui/components/switch";
 import { toast } from "@reactive-resume/ui/components/toast";
 import { useBreakpoint } from "@reactive-resume/ui/hooks/use-breakpoint";
 import { fromZonedDateTime } from "@reactive-resume/utils/timezone";
+import { cadenceOf, EVERY_VALUES, everyLabel, everyOf, rollForwardMinutes } from "./discovery-run";
+import { DiscoveryStatus } from "./discovery-status";
 import { PrivacyLine, Swap, useCareerTime, useNow } from "./shared";
 import { collectInterviews, interviewKindOf } from "@/features/applications/interviews";
 import { applicationsListQueryOptions } from "@/features/applications/queries";
@@ -83,6 +85,17 @@ export function rollForward(at: Date, intervalDays: number, timeZone: string, no
 	return Number.isFinite(candidate.getTime()) ? candidate : at;
 }
 
+/** A repeating schedule's first run after `now`: hours keep a fixed gap, days keep the wall-clock time. */
+export function rollForwardRepeat(
+	at: Date,
+	repeat: Pick<Schedule, "intervalDays" | "intervalMinutes">,
+	timeZone: string,
+	now = new Date(),
+) {
+	if (repeat.intervalMinutes) return rollForwardMinutes(at, repeat.intervalMinutes, now);
+	return repeat.intervalDays ? rollForward(at, repeat.intervalDays, timeZone, now) : at;
+}
+
 /** When a briefing runs; mirrors the server, which recomputes it from the interview on save. */
 const prepareRunAt = (start: Date, lead: Lead, timeZone: string) =>
 	lead === "morning"
@@ -133,7 +146,11 @@ export function ScheduleSheet({ schedule, onScheduleChange, onDelete }: Schedule
 	const { when, timeZone, locale } = useCareerTime();
 	const context = useRouteContext({ strict: false });
 	const user = context.session?.user;
-	const { data: schedules } = useQuery(orpc.career.schedules.queryOptions({ input: {} }));
+	const { data: schedules } = useQuery({
+		...orpc.career.schedules.queryOptions({ input: {} }),
+		// A queued or running discovery run finishes on the server; follow it without a reload.
+		refetchInterval: (query) => (query.state.data?.some((row) => row.activeRun) ? 5_000 : false),
+	});
 	const { data: profile } = useQuery(orpc.career.profile.queryOptions());
 	const { data: applications } = useQuery(applicationsListQueryOptions());
 	const { data: webAccess } = useQuery(orpc.webAccess.status.queryOptions());
@@ -153,14 +170,12 @@ export function ScheduleSheet({ schedule, onScheduleChange, onDelete }: Schedule
 		const [head, kind, applicationId] = shown.split(":");
 		const existing = head === "new" ? null : (schedules.find((row) => row.id === shown) ?? null);
 		const at = existing
-			? existing.intervalDays
-				? rollForward(new Date(existing.nextRunAt), existing.intervalDays, timeZone, now)
-				: new Date(existing.nextRunAt)
+			? rollForwardRepeat(new Date(existing.nextRunAt), existing, timeZone, now)
 			: fromZoned(toZoned(new Date(now.getTime() + 86_400_000), timeZone).date, "08:00", timeZone);
 		const initial: Draft = {
 			kind: existing ? (existing.kind as Kind) : (KINDS.find((item) => item === kind) ?? "discovery"),
 			query: existing?.query || [...profile.targetRoles, ...profile.locations].join(" · "),
-			every: String(existing?.intervalDays ?? 1),
+			every: existing ? everyOf(existing) : "d1",
 			...toZoned(at, timeZone),
 			interviewId: existing?.interviewId ?? upcoming[0]?.interview.id ?? "",
 			lead: (existing?.lead as Lead | null) ?? "24h",
@@ -173,6 +188,8 @@ export function ScheduleSheet({ schedule, onScheduleChange, onDelete }: Schedule
 	}
 
 	const draft = form?.draft;
+	// The status panel follows the live row; the form keeps its own snapshot until saved.
+	const live = form?.existing ? (schedules?.find((row) => row.id === form.existing?.id) ?? null) : null;
 	const set = (patch: Partial<Draft>) =>
 		setForm((current) => current && { ...current, draft: { ...current.draft, ...patch } });
 	const touch = (field: keyof Form["touched"]) =>
@@ -225,7 +242,7 @@ export function ScheduleSheet({ schedule, onScheduleChange, onDelete }: Schedule
 				nextRunAt: runAt ?? fromZoned(draft.date, draft.time, timeZone),
 				timezone: timeZone,
 				locale,
-				intervalDays: draft.kind === "discovery" ? Number(draft.every) : null,
+				...(draft.kind === "discovery" ? cadenceOf(draft.every) : { intervalDays: null, intervalMinutes: null }),
 				aiProviderId: draft.kind === "prepare" ? draft.aiProviderId || null : null,
 			},
 			{
@@ -289,6 +306,22 @@ export function ScheduleSheet({ schedule, onScheduleChange, onDelete }: Schedule
 							]}
 						/>
 
+						{live?.kind === "discovery" && (
+							<DiscoveryStatus
+								schedule={live}
+								onEnabledChange={(enabled) =>
+									setForm(
+										(current) =>
+											current && {
+												...current,
+												initial: { ...current.initial, enabled },
+												draft: { ...current.draft, enabled },
+											},
+									)
+								}
+							/>
+						)}
+
 						<Swap id={draft.kind} className="flex flex-col gap-[18px]">
 							{draft.kind === "discovery" && (
 								<>
@@ -308,16 +341,28 @@ export function ScheduleSheet({ schedule, onScheduleChange, onDelete }: Schedule
 											/>
 										)}
 									</Field>
-									<Segments
+									<Field
 										label={t`How often`}
-										value={draft.every}
-										onChange={(every) => set({ every })}
-										options={[
-											{ value: "1", label: t`Every day` },
-											{ value: "3", label: t`Every 3 days` },
-											{ value: "7", label: t`Every week` },
-										]}
-									/>
+										hint={t`Hourly runs keep a fixed gap. Daily and longer keep the same time of day in ${timeZone}.`}
+									>
+										{(props) => (
+											<NativeSelect
+												{...props}
+												value={draft.every}
+												onChange={(event) => set({ every: event.target.value })}
+												className="pointer-coarse:text-base"
+											>
+												{/* A saved cadence outside the list (2 to 30 days) keeps its own entry. */}
+												{(EVERY_VALUES.includes(draft.every) ? EVERY_VALUES : [...EVERY_VALUES, draft.every]).map(
+													(value) => (
+														<option key={value} value={value}>
+															{everyLabel(value)}
+														</option>
+													),
+												)}
+											</NativeSelect>
+										)}
+									</Field>
 									<p className="flex gap-2.5 rounded-lg bg-info-soft px-3 py-2.5 text-[13px] leading-[19px] text-ink">
 										<Icon name="globe-simple" size={18} className="mt-px shrink-0 text-info-text" />
 										<Trans>

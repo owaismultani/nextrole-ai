@@ -1,7 +1,7 @@
 {
 	"info": {
 		"title": "Reactive Resume",
-		"version": "6.0.3",
+		"version": "6.0.4",
 		"description": "Reactive Resume API. Mutations do not support Idempotency-Key. Do not automatically retry POST, PUT, PATCH or DELETE requests after a timeout: first read the resource to determine whether the operation succeeded. Existing enum values and response shapes are retained for compatibility.",
 		"license": {
 			"name": "MIT",
@@ -36059,6 +36059,149 @@
 																	}
 																]
 															},
+															"intervalMinutes": {
+																"anyOf": [
+																	{
+																		"anyOf": [
+																			{
+																				"const": 60
+																			},
+																			{
+																				"const": 180
+																			},
+																			{
+																				"const": 360
+																			}
+																		]
+																	},
+																	{
+																		"type": "null"
+																	}
+																]
+															},
+															"lastAttemptedAt": {
+																"anyOf": [
+																	{
+																		"type": "string",
+																		"format": "date-time",
+																		"x-native-type": "date"
+																	},
+																	{
+																		"type": "null"
+																	}
+																]
+															},
+															"lastSucceededAt": {
+																"anyOf": [
+																	{
+																		"type": "string",
+																		"format": "date-time",
+																		"x-native-type": "date"
+																	},
+																	{
+																		"type": "null"
+																	}
+																]
+															},
+															"lastRun": {
+																"anyOf": [
+																	{
+																		"type": "object",
+																		"properties": {
+																			"outcome": {
+																				"enum": [
+																					"success",
+																					"partial",
+																					"failed"
+																				],
+																				"type": "string"
+																			},
+																			"failure": {
+																				"anyOf": [
+																					{
+																						"enum": [
+																							"search",
+																							"extraction",
+																							"unknown"
+																						],
+																						"type": "string"
+																					},
+																					{
+																						"type": "null"
+																					}
+																				]
+																			},
+																			"trigger": {
+																				"enum": [
+																					"schedule",
+																					"manual"
+																				],
+																				"type": "string"
+																			},
+																			"at": {
+																				"type": "string"
+																			},
+																			"queries": {
+																				"type": "array",
+																				"items": {
+																					"type": "string"
+																				}
+																			},
+																			"provider": {
+																				"type": "string"
+																			},
+																			"sources": {
+																				"type": "array",
+																				"items": {
+																					"type": "string"
+																				}
+																			},
+																			"found": {
+																				"type": "integer",
+																				"minimum": 0,
+																				"maximum": 9007199254740991
+																			},
+																			"duplicates": {
+																				"type": "integer",
+																				"minimum": 0,
+																				"maximum": 9007199254740991
+																			},
+																			"rejected": {
+																				"type": "integer",
+																				"minimum": 0,
+																				"maximum": 9007199254740991
+																			},
+																			"matches": {
+																				"type": "integer",
+																				"minimum": 0,
+																				"maximum": 9007199254740991
+																			},
+																			"readFailures": {
+																				"type": "integer",
+																				"minimum": 0,
+																				"maximum": 9007199254740991
+																			}
+																		},
+																		"required": [
+																			"outcome",
+																			"failure",
+																			"trigger",
+																			"at",
+																			"queries",
+																			"provider",
+																			"sources",
+																			"found",
+																			"duplicates",
+																			"rejected",
+																			"matches",
+																			"readFailures"
+																		]
+																	},
+																	{
+																		"type": "null"
+																	}
+																]
+															},
 															"aiProviderId": {
 																"anyOf": [
 																	{
@@ -36087,6 +36230,10 @@
 															"nextRunAt",
 															"lastQueuedAt",
 															"intervalDays",
+															"intervalMinutes",
+															"lastAttemptedAt",
+															"lastSucceededAt",
+															"lastRun",
 															"aiProviderId"
 														]
 													}
@@ -36761,6 +36908,9 @@
 																		"type": "null"
 																	}
 																]
+															},
+															"trigger": {
+																"type": "string"
 															}
 														},
 														"required": [
@@ -36774,7 +36924,8 @@
 															"attempts",
 															"lease",
 															"leaseUntil",
-															"error"
+															"error",
+															"trigger"
 														]
 													}
 												},
@@ -37784,9 +37935,166 @@
 													}
 												]
 											},
+											"intervalMinutes": {
+												"anyOf": [
+													{
+														"anyOf": [
+															{
+																"const": 60
+															},
+															{
+																"const": 180
+															},
+															{
+																"const": 360
+															}
+														]
+													},
+													{
+														"type": "null"
+													}
+												]
+											},
+											"lastAttemptedAt": {
+												"anyOf": [
+													{
+														"type": "string",
+														"format": "date-time",
+														"x-native-type": "date"
+													},
+													{
+														"type": "null"
+													}
+												]
+											},
+											"lastSucceededAt": {
+												"anyOf": [
+													{
+														"type": "string",
+														"format": "date-time",
+														"x-native-type": "date"
+													},
+													{
+														"type": "null"
+													}
+												]
+											},
+											"lastRun": {
+												"anyOf": [
+													{
+														"type": "object",
+														"properties": {
+															"outcome": {
+																"enum": [
+																	"success",
+																	"partial",
+																	"failed"
+																],
+																"type": "string"
+															},
+															"failure": {
+																"anyOf": [
+																	{
+																		"enum": [
+																			"search",
+																			"extraction",
+																			"unknown"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"type": "null"
+																	}
+																]
+															},
+															"trigger": {
+																"enum": [
+																	"schedule",
+																	"manual"
+																],
+																"type": "string"
+															},
+															"at": {
+																"type": "string"
+															},
+															"queries": {
+																"type": "array",
+																"items": {
+																	"type": "string"
+																}
+															},
+															"provider": {
+																"type": "string"
+															},
+															"sources": {
+																"type": "array",
+																"items": {
+																	"type": "string"
+																}
+															},
+															"found": {
+																"type": "integer",
+																"minimum": 0,
+																"maximum": 9007199254740991
+															},
+															"duplicates": {
+																"type": "integer",
+																"minimum": 0,
+																"maximum": 9007199254740991
+															},
+															"rejected": {
+																"type": "integer",
+																"minimum": 0,
+																"maximum": 9007199254740991
+															},
+															"matches": {
+																"type": "integer",
+																"minimum": 0,
+																"maximum": 9007199254740991
+															},
+															"readFailures": {
+																"type": "integer",
+																"minimum": 0,
+																"maximum": 9007199254740991
+															}
+														},
+														"required": [
+															"outcome",
+															"failure",
+															"trigger",
+															"at",
+															"queries",
+															"provider",
+															"sources",
+															"found",
+															"duplicates",
+															"rejected",
+															"matches",
+															"readFailures"
+														]
+													},
+													{
+														"type": "null"
+													}
+												]
+											},
 											"aiProviderId": {
 												"anyOf": [
 													{
+														"type": "string"
+													},
+													{
+														"type": "null"
+													}
+												]
+											},
+											"activeRun": {
+												"anyOf": [
+													{
+														"enum": [
+															"queued",
+															"running"
+														],
 														"type": "string"
 													},
 													{
@@ -37812,7 +38120,12 @@
 											"nextRunAt",
 											"lastQueuedAt",
 											"intervalDays",
-											"aiProviderId"
+											"intervalMinutes",
+											"lastAttemptedAt",
+											"lastSucceededAt",
+											"lastRun",
+											"aiProviderId",
+											"activeRun"
 										]
 									}
 								}
@@ -37965,6 +38278,27 @@
 										],
 										"default": null
 									},
+									"intervalMinutes": {
+										"anyOf": [
+											{
+												"anyOf": [
+													{
+														"const": 60
+													},
+													{
+														"const": 180
+													},
+													{
+														"const": 360
+													}
+												]
+											},
+											{
+												"type": "null"
+											}
+										],
+										"default": null
+									},
 									"aiProviderId": {
 										"anyOf": [
 											{
@@ -38096,6 +38430,149 @@
 												}
 											]
 										},
+										"intervalMinutes": {
+											"anyOf": [
+												{
+													"anyOf": [
+														{
+															"const": 60
+														},
+														{
+															"const": 180
+														},
+														{
+															"const": 360
+														}
+													]
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"lastAttemptedAt": {
+											"anyOf": [
+												{
+													"type": "string",
+													"format": "date-time",
+													"x-native-type": "date"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"lastSucceededAt": {
+											"anyOf": [
+												{
+													"type": "string",
+													"format": "date-time",
+													"x-native-type": "date"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"lastRun": {
+											"anyOf": [
+												{
+													"type": "object",
+													"properties": {
+														"outcome": {
+															"enum": [
+																"success",
+																"partial",
+																"failed"
+															],
+															"type": "string"
+														},
+														"failure": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"search",
+																		"extraction",
+																		"unknown"
+																	],
+																	"type": "string"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
+														"trigger": {
+															"enum": [
+																"schedule",
+																"manual"
+															],
+															"type": "string"
+														},
+														"at": {
+															"type": "string"
+														},
+														"queries": {
+															"type": "array",
+															"items": {
+																"type": "string"
+															}
+														},
+														"provider": {
+															"type": "string"
+														},
+														"sources": {
+															"type": "array",
+															"items": {
+																"type": "string"
+															}
+														},
+														"found": {
+															"type": "integer",
+															"minimum": 0,
+															"maximum": 9007199254740991
+														},
+														"duplicates": {
+															"type": "integer",
+															"minimum": 0,
+															"maximum": 9007199254740991
+														},
+														"rejected": {
+															"type": "integer",
+															"minimum": 0,
+															"maximum": 9007199254740991
+														},
+														"matches": {
+															"type": "integer",
+															"minimum": 0,
+															"maximum": 9007199254740991
+														},
+														"readFailures": {
+															"type": "integer",
+															"minimum": 0,
+															"maximum": 9007199254740991
+														}
+													},
+													"required": [
+														"outcome",
+														"failure",
+														"trigger",
+														"at",
+														"queries",
+														"provider",
+														"sources",
+														"found",
+														"duplicates",
+														"rejected",
+														"matches",
+														"readFailures"
+													]
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
 										"aiProviderId": {
 											"anyOf": [
 												{
@@ -38124,6 +38601,10 @@
 										"nextRunAt",
 										"lastQueuedAt",
 										"intervalDays",
+										"intervalMinutes",
+										"lastAttemptedAt",
+										"lastSucceededAt",
+										"lastRun",
 										"aiProviderId"
 									]
 								}
@@ -38178,6 +38659,467 @@
 						"lang": "bash",
 						"label": "cURL",
 						"source": "curl --request POST \"https://rxresu.me/api/openapi/career/schedules\" --header \"x-api-key: <api-key>\" --header \"Content-Type: application/json\" --data '{\n  \"kind\": \"discovery\",\n  \"nextRunAt\": \"<string>\",\n  \"timezone\": \"<string>\"\n}'"
+					}
+				]
+			}
+		},
+		"/career/schedules/{id}/run": {
+			"post": {
+				"operationId": "runCareerSchedule",
+				"summary": "Run a discovery schedule now",
+				"description": "Queues one discovery run that starts on the next scheduler tick, even if the schedule is paused. The schedule's own timing is unchanged. Returns queued: false when a run is already queued or running.",
+				"tags": [
+					"Career"
+				],
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"minLength": 1
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"queued": {
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"queued"
+									]
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Structured API error. See status and code; do not branch on message text.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": [
+										"defined",
+										"code",
+										"status",
+										"message"
+									],
+									"properties": {
+										"defined": {
+											"type": "boolean"
+										},
+										"code": {
+											"type": "string"
+										},
+										"status": {
+											"type": "integer"
+										},
+										"message": {
+											"type": "string"
+										},
+										"data": {}
+									}
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"apiKey": []
+					},
+					{
+						"bearerAuth": []
+					},
+					{
+						"cookieAuth": []
+					}
+				],
+				"x-codeSamples": [
+					{
+						"lang": "bash",
+						"label": "cURL",
+						"source": "curl --request POST \"https://rxresu.me/api/openapi/career/schedules/<id>/run\" --header \"x-api-key: <api-key>\""
+					}
+				]
+			}
+		},
+		"/career/schedules/{id}/enabled": {
+			"post": {
+				"operationId": "setCareerScheduleEnabled",
+				"summary": "Pause or resume a discovery schedule",
+				"description": "Pausing cancels queued runs and keeps the schedule's settings. Resuming continues on the schedule's cadence from its next future run.",
+				"tags": [
+					"Career"
+				],
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"minLength": 1
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"enabled": {
+										"type": "boolean"
+									}
+								},
+								"required": [
+									"enabled"
+								]
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "OK",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"id": {
+											"type": "string"
+										},
+										"userId": {
+											"type": "string"
+										},
+										"createdAt": {
+											"type": "string",
+											"format": "date-time",
+											"x-native-type": "date"
+										},
+										"updatedAt": {
+											"type": "string",
+											"format": "date-time",
+											"x-native-type": "date"
+										},
+										"applicationId": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"interviewId": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"kind": {
+											"type": "string"
+										},
+										"query": {
+											"type": "string"
+										},
+										"lead": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"locale": {
+											"type": "string"
+										},
+										"timezone": {
+											"type": "string"
+										},
+										"enabled": {
+											"type": "boolean"
+										},
+										"email": {
+											"type": "boolean"
+										},
+										"nextRunAt": {
+											"type": "string",
+											"format": "date-time",
+											"x-native-type": "date"
+										},
+										"lastQueuedAt": {
+											"anyOf": [
+												{
+													"type": "string",
+													"format": "date-time",
+													"x-native-type": "date"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"intervalDays": {
+											"anyOf": [
+												{
+													"type": "integer",
+													"minimum": -2147483648,
+													"maximum": 2147483647
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"intervalMinutes": {
+											"anyOf": [
+												{
+													"anyOf": [
+														{
+															"const": 60
+														},
+														{
+															"const": 180
+														},
+														{
+															"const": 360
+														}
+													]
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"lastAttemptedAt": {
+											"anyOf": [
+												{
+													"type": "string",
+													"format": "date-time",
+													"x-native-type": "date"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"lastSucceededAt": {
+											"anyOf": [
+												{
+													"type": "string",
+													"format": "date-time",
+													"x-native-type": "date"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"lastRun": {
+											"anyOf": [
+												{
+													"type": "object",
+													"properties": {
+														"outcome": {
+															"enum": [
+																"success",
+																"partial",
+																"failed"
+															],
+															"type": "string"
+														},
+														"failure": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"search",
+																		"extraction",
+																		"unknown"
+																	],
+																	"type": "string"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
+														"trigger": {
+															"enum": [
+																"schedule",
+																"manual"
+															],
+															"type": "string"
+														},
+														"at": {
+															"type": "string"
+														},
+														"queries": {
+															"type": "array",
+															"items": {
+																"type": "string"
+															}
+														},
+														"provider": {
+															"type": "string"
+														},
+														"sources": {
+															"type": "array",
+															"items": {
+																"type": "string"
+															}
+														},
+														"found": {
+															"type": "integer",
+															"minimum": 0,
+															"maximum": 9007199254740991
+														},
+														"duplicates": {
+															"type": "integer",
+															"minimum": 0,
+															"maximum": 9007199254740991
+														},
+														"rejected": {
+															"type": "integer",
+															"minimum": 0,
+															"maximum": 9007199254740991
+														},
+														"matches": {
+															"type": "integer",
+															"minimum": 0,
+															"maximum": 9007199254740991
+														},
+														"readFailures": {
+															"type": "integer",
+															"minimum": 0,
+															"maximum": 9007199254740991
+														}
+													},
+													"required": [
+														"outcome",
+														"failure",
+														"trigger",
+														"at",
+														"queries",
+														"provider",
+														"sources",
+														"found",
+														"duplicates",
+														"rejected",
+														"matches",
+														"readFailures"
+													]
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"aiProviderId": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										}
+									},
+									"required": [
+										"id",
+										"userId",
+										"createdAt",
+										"updatedAt",
+										"applicationId",
+										"interviewId",
+										"kind",
+										"query",
+										"lead",
+										"locale",
+										"timezone",
+										"enabled",
+										"email",
+										"nextRunAt",
+										"lastQueuedAt",
+										"intervalDays",
+										"intervalMinutes",
+										"lastAttemptedAt",
+										"lastSucceededAt",
+										"lastRun",
+										"aiProviderId"
+									]
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Structured API error. See status and code; do not branch on message text.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": [
+										"defined",
+										"code",
+										"status",
+										"message"
+									],
+									"properties": {
+										"defined": {
+											"type": "boolean"
+										},
+										"code": {
+											"type": "string"
+										},
+										"status": {
+											"type": "integer"
+										},
+										"message": {
+											"type": "string"
+										},
+										"data": {}
+									}
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"apiKey": []
+					},
+					{
+						"bearerAuth": []
+					},
+					{
+						"cookieAuth": []
+					}
+				],
+				"x-codeSamples": [
+					{
+						"lang": "bash",
+						"label": "cURL",
+						"source": "curl --request POST \"https://rxresu.me/api/openapi/career/schedules/<id>/enabled\" --header \"x-api-key: <api-key>\" --header \"Content-Type: application/json\" --data '{\n  \"enabled\": true\n}'"
 					}
 				]
 			}

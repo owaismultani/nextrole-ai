@@ -2,7 +2,9 @@ import { createSelectSchema } from "drizzle-zod";
 import z from "zod";
 import * as tables from "@reactive-resume/db/schema";
 import {
+	careerIntervalMinutesSchema,
 	careerNoticeSchema,
+	careerRunReportSchema,
 	careerSourceSchema,
 	careerStoryInputSchema,
 	savedItemDataSchema,
@@ -22,7 +24,14 @@ export const savedItemSchema = createSelectSchema(tables.careerArtifact, {
 	data: savedItemDataSchema,
 	evidence: z.object({ factIds: z.array(z.string()), storyIds: z.array(z.string()) }),
 });
-export const careerScheduleSchema = createSelectSchema(tables.careerSchedule);
+export const careerScheduleSchema = createSelectSchema(tables.careerSchedule, {
+	intervalMinutes: careerIntervalMinutesSchema.nullable(),
+	lastRun: careerRunReportSchema.nullable(),
+});
+export const careerScheduleListItemSchema = careerScheduleSchema.extend({
+	/** A run waiting for the next scheduler tick, or in progress. */
+	activeRun: z.enum(["queued", "running"]).nullable(),
+});
 export const careerNotificationSchema = createSelectSchema(tables.careerNotification, {
 	notice: careerNoticeSchema,
 }).extend({

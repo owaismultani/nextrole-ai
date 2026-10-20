@@ -13,6 +13,7 @@ import {
 	careerFactSchema,
 	careerNotificationSchema,
 	careerOpportunitySchema,
+	careerScheduleListItemSchema,
 	careerScheduleSchema,
 	careerStorySchema,
 	savedItemSchema,
@@ -41,7 +42,7 @@ export const careerRouter = {
 			summary: "List career schedules",
 		})
 		.input(z.object({}))
-		.output(z.array(careerScheduleSchema))
+		.output(z.array(careerScheduleListItemSchema))
 		.handler(({ context }) => careerJobs.list(context.user.id)),
 	saveSchedule: protectedProcedure
 		.route({
@@ -54,6 +55,32 @@ export const careerRouter = {
 		.input(careerScheduleInputSchema.extend({ id: z.string().optional() }))
 		.output(careerScheduleSchema)
 		.handler(({ context, input }) => careerJobs.save(context.user.id, input)),
+	runSchedule: protectedProcedure
+		.route({
+			method: "POST",
+			path: "/career/schedules/{id}/run",
+			tags: ["Career"],
+			operationId: "runCareerSchedule",
+			summary: "Run a discovery schedule now",
+			description:
+				"Queues one discovery run that starts on the next scheduler tick, even if the schedule is paused. The schedule's own timing is unchanged. Returns queued: false when a run is already queued or running.",
+		})
+		.input(id)
+		.output(z.object({ queued: z.boolean() }))
+		.handler(({ context, input }) => careerJobs.runNow(context.user.id, input.id)),
+	setScheduleEnabled: protectedProcedure
+		.route({
+			method: "POST",
+			path: "/career/schedules/{id}/enabled",
+			tags: ["Career"],
+			operationId: "setCareerScheduleEnabled",
+			summary: "Pause or resume a discovery schedule",
+			description:
+				"Pausing cancels queued runs and keeps the schedule's settings. Resuming continues on the schedule's cadence from its next future run.",
+		})
+		.input(id.extend({ enabled: z.boolean() }))
+		.output(careerScheduleSchema)
+		.handler(({ context, input }) => careerJobs.setEnabled(context.user.id, input.id, input.enabled)),
 	deleteSchedule: protectedProcedure
 		.route({
 			method: "DELETE",

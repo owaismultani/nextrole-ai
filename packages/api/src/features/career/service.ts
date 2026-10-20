@@ -1,3 +1,4 @@
+import type { DbOrTx } from "@reactive-resume/db/client";
 import type { CareerSource } from "@reactive-resume/schema/career";
 import type z from "zod";
 import { createHash } from "node:crypto";
@@ -267,6 +268,40 @@ async function invalidateMemory(userId: string, id: string, tx: CareerTransactio
 	await Promise.all(
 		threads.flatMap((thread) => (thread.runId ? [requestRunCancellation(thread.runId, "MEMORY_CHANGED")] : [])),
 	);
+}
+
+/**
+ * Saves a discovered role as an application at Saved. The opportunity row is the lock: a double click, a second tab or
+ * a retried automation step all get the same application back.
+ */
+export async function trackOpportunityTx(tx: DbOrTx, userId: string, id: string) {
+	const [opportunity] = await tx
+		.select()
+		.from(tables.careerOpportunity)
+		.where(and(eq(tables.careerOpportunity.id, id), eq(tables.careerOpportunity.userId, userId)))
+		.for("update");
+	if (!opportunity) throw new ORPCError("NOT_FOUND");
+	if (opportunity.trackedApplicationId) return { applicationId: opportunity.trackedApplicationId };
+	const [profile] = await tx.select().from(tables.careerProfile).where(eq(tables.careerProfile.userId, userId));
+	const { matches } = matchPosting(opportunity, careerProfileDataSchema.parse(profile?.data ?? {}));
+	const applicationId = generateId();
+	await tx.insert(tables.application).values({
+		id: applicationId,
+		userId,
+		company: opportunity.company || new URL(opportunity.url).hostname.replace(/^www\./, ""),
+		role: opportunity.role,
+		location: opportunity.location || null,
+		sourceUrl: opportunity.url,
+		jobDescription: opportunity.description || opportunity.snippet,
+		status: "saved",
+		activity: [{ id: generateId(), type: "stage", stage: "saved", at: new Date() }],
+		...(matches.length ? { notes: `Matched: ${matches.join(" · ")}` } : {}),
+	});
+	await tx
+		.update(tables.careerOpportunity)
+		.set({ trackedApplicationId: applicationId })
+		.where(eq(tables.careerOpportunity.id, id));
+	return { applicationId };
 }
 
 export const careerService = {
@@ -988,38 +1023,7 @@ export const careerService = {
 			});
 		}),
 	/** Saves a discovered role to Applications at Saved, with the posting link and why it matched. */
-	trackOpportunity: (userId: string, id: string) => {
-		// The opportunity row is the lock: a double click or a second tab returns the same application.
-		return db.transaction(async (tx) => {
-			const [opportunity] = await tx
-				.select()
-				.from(tables.careerOpportunity)
-				.where(and(eq(tables.careerOpportunity.id, id), eq(tables.careerOpportunity.userId, userId)))
-				.for("update");
-			if (!opportunity) throw new ORPCError("NOT_FOUND");
-			if (opportunity.trackedApplicationId) return { applicationId: opportunity.trackedApplicationId };
-			const [profile] = await tx.select().from(tables.careerProfile).where(eq(tables.careerProfile.userId, userId));
-			const { matches } = matchPosting(opportunity, careerProfileDataSchema.parse(profile?.data ?? {}));
-			const applicationId = generateId();
-			await tx.insert(tables.application).values({
-				id: applicationId,
-				userId,
-				company: opportunity.company || new URL(opportunity.url).hostname.replace(/^www\./, ""),
-				role: opportunity.role,
-				location: opportunity.location || null,
-				sourceUrl: opportunity.url,
-				jobDescription: opportunity.description || opportunity.snippet,
-				status: "saved",
-				activity: [{ id: generateId(), type: "stage", stage: "saved", at: new Date() }],
-				...(matches.length ? { notes: `Matched: ${matches.join(" · ")}` } : {}),
-			});
-			await tx
-				.update(tables.careerOpportunity)
-				.set({ trackedApplicationId: applicationId })
-				.where(eq(tables.careerOpportunity.id, id));
-			return { applicationId };
-		});
-	},
+	trackOpportunity: (userId: string, id: string) => db.transaction((tx) => trackOpportunityTx(tx, userId, id)),
 	exportData: async (userId: string) => {
 		const [
 			profile,

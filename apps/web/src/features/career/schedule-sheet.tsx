@@ -9,6 +9,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useRouteContext } from "@tanstack/react-router";
 import { m } from "motion/react";
 import { useId, useState } from "react";
+import { RETRIEVAL_BUDGET } from "@reactive-resume/schema/career";
 import { Button } from "@reactive-resume/ui/components/button";
 import { Icon } from "@reactive-resume/ui/components/icon";
 import { Input } from "@reactive-resume/ui/components/input";
@@ -21,7 +22,6 @@ import { toast } from "@reactive-resume/ui/components/toast";
 import { useBreakpoint } from "@reactive-resume/ui/hooks/use-breakpoint";
 import { fromZonedDateTime } from "@reactive-resume/utils/timezone";
 import { cadenceOf, EVERY_VALUES, everyLabel, everyOf, rollForwardMinutes } from "./discovery-run";
-import { DiscoveryStatus } from "./discovery-status";
 import { PrivacyLine, Swap, useCareerTime, useNow } from "./shared";
 import { collectInterviews, interviewKindOf } from "@/features/applications/interviews";
 import { applicationsListQueryOptions } from "@/features/applications/queries";
@@ -108,6 +108,8 @@ type Draft = {
 	kind: Kind;
 	query: string;
 	every: string;
+	/** Results one discovery run may retrieve. */
+	budget: string;
 	date: string;
 	time: string;
 	interviewId: string;
@@ -146,11 +148,7 @@ export function ScheduleSheet({ schedule, onScheduleChange, onDelete }: Schedule
 	const { when, timeZone, locale } = useCareerTime();
 	const context = useRouteContext({ strict: false });
 	const user = context.session?.user;
-	const { data: schedules } = useQuery({
-		...orpc.career.schedules.queryOptions({ input: {} }),
-		// A queued or running discovery run finishes on the server; follow it without a reload.
-		refetchInterval: (query) => (query.state.data?.some((row) => row.activeRun) ? 5_000 : false),
-	});
+	const { data: schedules } = useQuery(orpc.career.schedules.queryOptions({ input: {} }));
 	const { data: profile } = useQuery(orpc.career.profile.queryOptions());
 	const { data: applications } = useQuery(applicationsListQueryOptions());
 	const { data: webAccess } = useQuery(orpc.webAccess.status.queryOptions());
@@ -175,7 +173,8 @@ export function ScheduleSheet({ schedule, onScheduleChange, onDelete }: Schedule
 		const initial: Draft = {
 			kind: existing ? (existing.kind as Kind) : (KINDS.find((item) => item === kind) ?? "discovery"),
 			query: existing?.query || [...profile.targetRoles, ...profile.locations].join(" · "),
-			every: existing ? everyOf(existing) : "d1",
+			every: existing ? everyOf(existing) : "m60",
+			budget: String(existing?.retrievalBudget ?? RETRIEVAL_BUDGET.default),
 			...toZoned(at, timeZone),
 			interviewId: existing?.interviewId ?? upcoming[0]?.interview.id ?? "",
 			lead: (existing?.lead as Lead | null) ?? "24h",
@@ -188,8 +187,6 @@ export function ScheduleSheet({ schedule, onScheduleChange, onDelete }: Schedule
 	}
 
 	const draft = form?.draft;
-	// The status panel follows the live row; the form keeps its own snapshot until saved.
-	const live = form?.existing ? (schedules?.find((row) => row.id === form.existing?.id) ?? null) : null;
 	const set = (patch: Partial<Draft>) =>
 		setForm((current) => current && { ...current, draft: { ...current.draft, ...patch } });
 	const touch = (field: keyof Form["touched"]) =>
@@ -202,10 +199,12 @@ export function ScheduleSheet({ schedule, onScheduleChange, onDelete }: Schedule
 	const runAt =
 		draft?.kind === "prepare" ? (interview ? prepareRunAt(interview.start, draft.lead, timeZone) : null) : null;
 	const enteredAt = draft ? fromZoned(draft.date, draft.time, timeZone) : null;
+	// A schedule on a fixed gap starts as soon as it is saved, so it has no first-run time to choose.
+	const immediate = draft?.kind === "discovery" && Boolean(cadenceOf(draft.every).intervalMinutes);
 	const errors = {
 		query: draft?.kind === "discovery" && draft.query.trim().length < 3 ? t`Add a role or company to look for.` : null,
 		when:
-			draft && draft.kind !== "prepare" && enteredAt && !(enteredAt > now)
+			draft && draft.kind !== "prepare" && !immediate && enteredAt && !(enteredAt > now)
 				? Number.isNaN(enteredAt.getTime())
 					? t`This time does not exist in your timezone. Choose another time.`
 					: t`Pick a time after now.`
@@ -239,7 +238,10 @@ export function ScheduleSheet({ schedule, onScheduleChange, onDelete }: Schedule
 				lead: draft.kind === "prepare" ? draft.lead : null,
 				enabled: draft.enabled,
 				email: smtp && verified && draft.email,
-				nextRunAt: runAt ?? fromZoned(draft.date, draft.time, timeZone),
+				nextRunAt: immediate
+					? new Date(form.existing?.nextRunAt ?? now)
+					: (runAt ?? fromZoned(draft.date, draft.time, timeZone)),
+				retrievalBudget: draft.kind === "discovery" ? Number(draft.budget) : null,
 				timezone: timeZone,
 				locale,
 				...(draft.kind === "discovery" ? cadenceOf(draft.every) : { intervalDays: null, intervalMinutes: null }),
@@ -306,22 +308,6 @@ export function ScheduleSheet({ schedule, onScheduleChange, onDelete }: Schedule
 							]}
 						/>
 
-						{live?.kind === "discovery" && (
-							<DiscoveryStatus
-								schedule={live}
-								onEnabledChange={(enabled) =>
-									setForm(
-										(current) =>
-											current && {
-												...current,
-												initial: { ...current.initial, enabled },
-												draft: { ...current.draft, enabled },
-											},
-									)
-								}
-							/>
-						)}
-
 						<Swap id={draft.kind} className="flex flex-col gap-[18px]">
 							{draft.kind === "discovery" && (
 								<>
@@ -360,6 +346,25 @@ export function ScheduleSheet({ schedule, onScheduleChange, onDelete }: Schedule
 														</option>
 													),
 												)}
+											</NativeSelect>
+										)}
+									</Field>
+									<Field
+										label={t`Results per search`}
+										hint={t`The most one run retrieves. Search services rank results, so this finds relevant postings but cannot promise to list every job.`}
+									>
+										{(props) => (
+											<NativeSelect
+												{...props}
+												value={draft.budget}
+												onChange={(event) => set({ budget: event.target.value })}
+												className="pointer-coarse:text-base"
+											>
+												{["5", "10", "15", "20"].map((value) => (
+													<option key={value} value={value}>
+														{value}
+													</option>
+												))}
 											</NativeSelect>
 										)}
 									</Field>
@@ -483,7 +488,12 @@ export function ScheduleSheet({ schedule, onScheduleChange, onDelete }: Schedule
 								</Field>
 							)}
 
-							{draft.kind !== "prepare" && (
+							{immediate && (
+								<p className="text-xs text-ink-3">
+									<Trans>Starts as soon as you save, then repeats on this gap.</Trans>
+								</p>
+							)}
+							{draft.kind !== "prepare" && !immediate && (
 								<div className="grid gap-1.5">
 									<div className="grid grid-cols-2 gap-3">
 										<Field label={dateLabel}>

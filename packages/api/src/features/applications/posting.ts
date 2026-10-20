@@ -1,4 +1,4 @@
-import type { WebAccessContext } from "../web-access/contracts";
+import type { SearchOptions, WebAccessContext } from "../web-access/contracts";
 import { z } from "zod";
 import { htmlToText } from "../web-access/builtin";
 import { MAX_CONTENT_CHARS, WebAccessError } from "../web-access/contracts";
@@ -42,8 +42,10 @@ export const postingSearchResult = z.object({
 /** The search sent for a discovery query. */
 export const jobSearchQuery = (query: string) => `${query} job posting`;
 
-export async function searchJobPostings(query: string, context: WebAccessContext) {
-	return (await searchWeb(jobSearchQuery(query), context))
+export async function searchJobPostings(query: string, context: WebAccessContext, options?: SearchOptions) {
+	return (
+		await (options ? searchWeb(jobSearchQuery(query), context, options) : searchWeb(jobSearchQuery(query), context))
+	)
 		.filter(({ url, title }) => !isListingUrl(url) && !/\b\d[\d,]*\+?\s+(?:[\w-]+\s+){0,4}jobs\b/i.test(title))
 		.map(({ url, title, snippet }) => ({
 			url,

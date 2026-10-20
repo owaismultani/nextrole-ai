@@ -7,6 +7,9 @@ import {
 	careerRunReportSchema,
 	careerSourceSchema,
 	careerStoryInputSchema,
+	preparationErrorSchema,
+	preparationKindSchema,
+	preparationStatusSchema,
 	savedItemDataSchema,
 } from "@reactive-resume/schema/career";
 
@@ -47,3 +50,73 @@ export const careerOpportunitySchema = createSelectSchema(tables.careerOpportuni
 		/** What the posting doesn't say. */
 		unknowns: z.array(z.enum(["salary", "office"])),
 	});
+
+export const careerAutomationSchema = z.object({
+	resumesEnabled: z.boolean(),
+	lettersEnabled: z.boolean(),
+	baselineResumeId: z.string().nullable(),
+	aiProviderId: z.string().nullable(),
+	dailyLimit: z.number(),
+	usage: z.object({ used: z.number(), limit: z.number(), resetsAt: z.date() }),
+	/** The discovery schedule in use, which Career → Schedules edits. */
+	discovery: z
+		.object({
+			scheduleId: z.string(),
+			enabled: z.boolean(),
+			query: z.string(),
+			intervalDays: z.number().nullable(),
+			intervalMinutes: careerIntervalMinutesSchema.nullable(),
+		})
+		.nullable(),
+});
+
+export const careerPreparationStepSchema = z.object({
+	id: z.string(),
+	kind: preparationKindSchema,
+	status: preparationStatusSchema,
+	error: preparationErrorSchema.nullable(),
+	issues: z.array(z.string()),
+	manual: z.boolean(),
+	generation: z.number(),
+	outputId: z.string().nullable(),
+	eligibleAt: z.date().nullable(),
+	completedAt: z.date().nullable(),
+	stale: z.boolean(),
+	edited: z.boolean(),
+});
+
+export const careerPreparationJobSchema = z.object({
+	opportunityId: z.string(),
+	applicationId: z.string().nullable(),
+	company: z.string(),
+	role: z.string(),
+	steps: z.array(careerPreparationStepSchema),
+	summary: z.enum(["skipped", "attention", "generating", "deferred", "queued", "ready"]),
+});
+
+const careerRunDocumentSchema = z
+	.object({ stepId: z.string(), status: preparationStatusSchema, outputId: z.string().nullable() })
+	.nullable();
+
+export const careerRunJobSchema = z.object({
+	opportunityId: z.string(),
+	role: z.string(),
+	company: z.string(),
+	url: z.string(),
+	applicationId: z.string().nullable(),
+	resume: careerRunDocumentSchema,
+	letter: careerRunDocumentSchema,
+	summary: z.enum(["skipped", "attention", "generating", "deferred", "queued", "ready"]),
+});
+
+export const careerRunListSchema = z.object({
+	total: z.number(),
+	items: z.array(
+		z.object({
+			id: z.string(),
+			createdAt: z.date(),
+			report: careerRunReportSchema,
+			jobs: z.array(careerRunJobSchema),
+		}),
+	),
+});

@@ -36202,6 +36202,18 @@
 																	}
 																]
 															},
+															"retrievalBudget": {
+																"anyOf": [
+																	{
+																		"type": "integer",
+																		"minimum": -2147483648,
+																		"maximum": 2147483647
+																	},
+																	{
+																		"type": "null"
+																	}
+																]
+															},
 															"aiProviderId": {
 																"anyOf": [
 																	{
@@ -36234,6 +36246,7 @@
 															"lastAttemptedAt",
 															"lastSucceededAt",
 															"lastRun",
+															"retrievalBudget",
 															"aiProviderId"
 														]
 													}
@@ -36811,6 +36824,16 @@
 																	}
 																]
 															},
+															"runId": {
+																"anyOf": [
+																	{
+																		"type": "string"
+																	},
+																	{
+																		"type": "null"
+																	}
+																]
+															},
 															"trackedApplicationId": {
 																"anyOf": [
 																	{
@@ -36836,6 +36859,7 @@
 															"firstSeenAt",
 															"lastSeenAt",
 															"dismissedAt",
+															"runId",
 															"trackedApplicationId"
 														]
 													}
@@ -38078,6 +38102,18 @@
 													}
 												]
 											},
+											"retrievalBudget": {
+												"anyOf": [
+													{
+														"type": "integer",
+														"minimum": -2147483648,
+														"maximum": 2147483647
+													},
+													{
+														"type": "null"
+													}
+												]
+											},
 											"aiProviderId": {
 												"anyOf": [
 													{
@@ -38124,6 +38160,7 @@
 											"lastAttemptedAt",
 											"lastSucceededAt",
 											"lastRun",
+											"retrievalBudget",
 											"aiProviderId",
 											"activeRun"
 										]
@@ -38292,6 +38329,19 @@
 														"const": 360
 													}
 												]
+											},
+											{
+												"type": "null"
+											}
+										],
+										"default": null
+									},
+									"retrievalBudget": {
+										"anyOf": [
+											{
+												"type": "integer",
+												"minimum": 5,
+												"maximum": 20
 											},
 											{
 												"type": "null"
@@ -38573,6 +38623,18 @@
 												}
 											]
 										},
+										"retrievalBudget": {
+											"anyOf": [
+												{
+													"type": "integer",
+													"minimum": -2147483648,
+													"maximum": 2147483647
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
 										"aiProviderId": {
 											"anyOf": [
 												{
@@ -38605,6 +38667,7 @@
 										"lastAttemptedAt",
 										"lastSucceededAt",
 										"lastRun",
+										"retrievalBudget",
 										"aiProviderId"
 									]
 								}
@@ -39034,6 +39097,18 @@
 												}
 											]
 										},
+										"retrievalBudget": {
+											"anyOf": [
+												{
+													"type": "integer",
+													"minimum": -2147483648,
+													"maximum": 2147483647
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
 										"aiProviderId": {
 											"anyOf": [
 												{
@@ -39066,6 +39141,7 @@
 										"lastAttemptedAt",
 										"lastSucceededAt",
 										"lastRun",
+										"retrievalBudget",
 										"aiProviderId"
 									]
 								}
@@ -39120,6 +39196,1273 @@
 						"lang": "bash",
 						"label": "cURL",
 						"source": "curl --request POST \"https://rxresu.me/api/openapi/career/schedules/<id>/enabled\" --header \"x-api-key: <api-key>\" --header \"Content-Type: application/json\" --data '{\n  \"enabled\": true\n}'"
+					}
+				]
+			}
+		},
+		"/career/automation": {
+			"get": {
+				"operationId": "getCareerAutomation",
+				"summary": "Get automation settings",
+				"description": "Discovery (its query, interval and on/off state live on the discovery schedule), automatic document preparation, the baseline resume, the daily generation limit and today's use of it.",
+				"tags": [
+					"Career"
+				],
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"resumesEnabled": {
+											"type": "boolean"
+										},
+										"lettersEnabled": {
+											"type": "boolean"
+										},
+										"baselineResumeId": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"aiProviderId": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"dailyLimit": {
+											"type": "number"
+										},
+										"usage": {
+											"type": "object",
+											"properties": {
+												"used": {
+													"type": "number"
+												},
+												"limit": {
+													"type": "number"
+												},
+												"resetsAt": {
+													"type": "string",
+													"format": "date-time",
+													"x-native-type": "date"
+												}
+											},
+											"required": [
+												"used",
+												"limit",
+												"resetsAt"
+											]
+										},
+										"discovery": {
+											"anyOf": [
+												{
+													"type": "object",
+													"properties": {
+														"scheduleId": {
+															"type": "string"
+														},
+														"enabled": {
+															"type": "boolean"
+														},
+														"query": {
+															"type": "string"
+														},
+														"intervalDays": {
+															"anyOf": [
+																{
+																	"type": "number"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
+														"intervalMinutes": {
+															"anyOf": [
+																{
+																	"anyOf": [
+																		{
+																			"const": 60
+																		},
+																		{
+																			"const": 180
+																		},
+																		{
+																			"const": 360
+																		}
+																	]
+																},
+																{
+																	"type": "null"
+																}
+															]
+														}
+													},
+													"required": [
+														"scheduleId",
+														"enabled",
+														"query",
+														"intervalDays",
+														"intervalMinutes"
+													]
+												},
+												{
+													"type": "null"
+												}
+											]
+										}
+									},
+									"required": [
+										"resumesEnabled",
+										"lettersEnabled",
+										"baselineResumeId",
+										"aiProviderId",
+										"dailyLimit",
+										"usage",
+										"discovery"
+									]
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Structured API error. See status and code; do not branch on message text.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": [
+										"defined",
+										"code",
+										"status",
+										"message"
+									],
+									"properties": {
+										"defined": {
+											"type": "boolean"
+										},
+										"code": {
+											"type": "string"
+										},
+										"status": {
+											"type": "integer"
+										},
+										"message": {
+											"type": "string"
+										},
+										"data": {}
+									}
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"apiKey": []
+					},
+					{
+						"bearerAuth": []
+					},
+					{
+						"cookieAuth": []
+					}
+				],
+				"x-codeSamples": [
+					{
+						"lang": "bash",
+						"label": "cURL",
+						"source": "curl \"https://rxresu.me/api/openapi/career/automation\" --header \"x-api-key: <api-key>\""
+					}
+				]
+			},
+			"put": {
+				"operationId": "saveCareerAutomation",
+				"summary": "Save automation settings",
+				"description": "Turning discovery on queues the first run at once. Turning a document type off cancels its waiting automatic work; finished documents stay. Turning one on affects future discoveries only.",
+				"tags": [
+					"Career"
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"resumesEnabled": {
+										"type": "boolean",
+										"default": false
+									},
+									"lettersEnabled": {
+										"type": "boolean",
+										"default": false
+									},
+									"baselineResumeId": {
+										"anyOf": [
+											{
+												"type": "string",
+												"minLength": 1
+											},
+											{
+												"type": "null"
+											}
+										],
+										"default": null
+									},
+									"aiProviderId": {
+										"anyOf": [
+											{
+												"type": "string",
+												"minLength": 1
+											},
+											{
+												"type": "null"
+											}
+										],
+										"default": null
+									},
+									"dailyLimit": {
+										"type": "integer",
+										"minimum": 1,
+										"maximum": 50,
+										"default": 10
+									}
+								}
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "OK",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"resumesEnabled": {
+											"type": "boolean"
+										},
+										"lettersEnabled": {
+											"type": "boolean"
+										},
+										"baselineResumeId": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"aiProviderId": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"dailyLimit": {
+											"type": "number"
+										},
+										"usage": {
+											"type": "object",
+											"properties": {
+												"used": {
+													"type": "number"
+												},
+												"limit": {
+													"type": "number"
+												},
+												"resetsAt": {
+													"type": "string",
+													"format": "date-time",
+													"x-native-type": "date"
+												}
+											},
+											"required": [
+												"used",
+												"limit",
+												"resetsAt"
+											]
+										},
+										"discovery": {
+											"anyOf": [
+												{
+													"type": "object",
+													"properties": {
+														"scheduleId": {
+															"type": "string"
+														},
+														"enabled": {
+															"type": "boolean"
+														},
+														"query": {
+															"type": "string"
+														},
+														"intervalDays": {
+															"anyOf": [
+																{
+																	"type": "number"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
+														"intervalMinutes": {
+															"anyOf": [
+																{
+																	"anyOf": [
+																		{
+																			"const": 60
+																		},
+																		{
+																			"const": 180
+																		},
+																		{
+																			"const": 360
+																		}
+																	]
+																},
+																{
+																	"type": "null"
+																}
+															]
+														}
+													},
+													"required": [
+														"scheduleId",
+														"enabled",
+														"query",
+														"intervalDays",
+														"intervalMinutes"
+													]
+												},
+												{
+													"type": "null"
+												}
+											]
+										}
+									},
+									"required": [
+										"resumesEnabled",
+										"lettersEnabled",
+										"baselineResumeId",
+										"aiProviderId",
+										"dailyLimit",
+										"usage",
+										"discovery"
+									]
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Structured API error. See status and code; do not branch on message text.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": [
+										"defined",
+										"code",
+										"status",
+										"message"
+									],
+									"properties": {
+										"defined": {
+											"type": "boolean"
+										},
+										"code": {
+											"type": "string"
+										},
+										"status": {
+											"type": "integer"
+										},
+										"message": {
+											"type": "string"
+										},
+										"data": {}
+									}
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"apiKey": []
+					},
+					{
+						"bearerAuth": []
+					},
+					{
+						"cookieAuth": []
+					}
+				],
+				"x-codeSamples": [
+					{
+						"lang": "bash",
+						"label": "cURL",
+						"source": "curl --request PUT \"https://rxresu.me/api/openapi/career/automation\" --header \"x-api-key: <api-key>\" --header \"Content-Type: application/json\" --data '{}'"
+					}
+				]
+			}
+		},
+		"/career/runs": {
+			"get": {
+				"operationId": "listCareerRuns",
+				"summary": "List discovery runs",
+				"description": "Discovery runs, newest first, with what each found and the jobs it led to, including the resume and cover letter made for each. Paginated with limit (default 10) and offset.",
+				"tags": [
+					"Career"
+				],
+				"parameters": [
+					{
+						"name": "limit",
+						"in": "query",
+						"schema": {
+							"type": "integer",
+							"minimum": 1,
+							"maximum": 100,
+							"description": "Maximum results (1–100). Omit both pagination fields for the legacy complete list."
+						},
+						"allowEmptyValue": true,
+						"allowReserved": true
+					},
+					{
+						"name": "offset",
+						"in": "query",
+						"schema": {
+							"type": "integer",
+							"minimum": 0,
+							"maximum": 9007199254740991,
+							"description": "Zero-based offset. Defaults to 0; limit defaults to 20 when only offset is given."
+						},
+						"allowEmptyValue": true,
+						"allowReserved": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"total": {
+											"type": "number"
+										},
+										"items": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"id": {
+														"type": "string"
+													},
+													"createdAt": {
+														"type": "string",
+														"format": "date-time",
+														"x-native-type": "date"
+													},
+													"report": {
+														"type": "object",
+														"properties": {
+															"outcome": {
+																"enum": [
+																	"success",
+																	"partial",
+																	"failed"
+																],
+																"type": "string"
+															},
+															"failure": {
+																"anyOf": [
+																	{
+																		"enum": [
+																			"search",
+																			"extraction",
+																			"unknown"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"type": "null"
+																	}
+																]
+															},
+															"trigger": {
+																"enum": [
+																	"schedule",
+																	"manual"
+																],
+																"type": "string"
+															},
+															"at": {
+																"type": "string"
+															},
+															"queries": {
+																"type": "array",
+																"items": {
+																	"type": "string"
+																}
+															},
+															"provider": {
+																"type": "string"
+															},
+															"sources": {
+																"type": "array",
+																"items": {
+																	"type": "string"
+																}
+															},
+															"found": {
+																"type": "integer",
+																"minimum": 0,
+																"maximum": 9007199254740991
+															},
+															"duplicates": {
+																"type": "integer",
+																"minimum": 0,
+																"maximum": 9007199254740991
+															},
+															"rejected": {
+																"type": "integer",
+																"minimum": 0,
+																"maximum": 9007199254740991
+															},
+															"matches": {
+																"type": "integer",
+																"minimum": 0,
+																"maximum": 9007199254740991
+															},
+															"readFailures": {
+																"type": "integer",
+																"minimum": 0,
+																"maximum": 9007199254740991
+															}
+														},
+														"required": [
+															"outcome",
+															"failure",
+															"trigger",
+															"at",
+															"queries",
+															"provider",
+															"sources",
+															"found",
+															"duplicates",
+															"rejected",
+															"matches",
+															"readFailures"
+														]
+													},
+													"jobs": {
+														"type": "array",
+														"items": {
+															"type": "object",
+															"properties": {
+																"opportunityId": {
+																	"type": "string"
+																},
+																"role": {
+																	"type": "string"
+																},
+																"company": {
+																	"type": "string"
+																},
+																"url": {
+																	"type": "string"
+																},
+																"applicationId": {
+																	"anyOf": [
+																		{
+																			"type": "string"
+																		},
+																		{
+																			"type": "null"
+																		}
+																	]
+																},
+																"resume": {
+																	"anyOf": [
+																		{
+																			"type": "object",
+																			"properties": {
+																				"stepId": {
+																					"type": "string"
+																				},
+																				"status": {
+																					"enum": [
+																						"queued",
+																						"running",
+																						"done",
+																						"failed",
+																						"canceled"
+																					],
+																					"type": "string"
+																				},
+																				"outputId": {
+																					"anyOf": [
+																						{
+																							"type": "string"
+																						},
+																						{
+																							"type": "null"
+																						}
+																					]
+																				}
+																			},
+																			"required": [
+																				"stepId",
+																				"status",
+																				"outputId"
+																			]
+																		},
+																		{
+																			"type": "null"
+																		}
+																	]
+																},
+																"letter": {
+																	"anyOf": [
+																		{
+																			"type": "object",
+																			"properties": {
+																				"stepId": {
+																					"type": "string"
+																				},
+																				"status": {
+																					"enum": [
+																						"queued",
+																						"running",
+																						"done",
+																						"failed",
+																						"canceled"
+																					],
+																					"type": "string"
+																				},
+																				"outputId": {
+																					"anyOf": [
+																						{
+																							"type": "string"
+																						},
+																						{
+																							"type": "null"
+																						}
+																					]
+																				}
+																			},
+																			"required": [
+																				"stepId",
+																				"status",
+																				"outputId"
+																			]
+																		},
+																		{
+																			"type": "null"
+																		}
+																	]
+																},
+																"summary": {
+																	"enum": [
+																		"skipped",
+																		"attention",
+																		"generating",
+																		"deferred",
+																		"queued",
+																		"ready"
+																	],
+																	"type": "string"
+																}
+															},
+															"required": [
+																"opportunityId",
+																"role",
+																"company",
+																"url",
+																"applicationId",
+																"resume",
+																"letter",
+																"summary"
+															]
+														}
+													}
+												},
+												"required": [
+													"id",
+													"createdAt",
+													"report",
+													"jobs"
+												]
+											}
+										}
+									},
+									"required": [
+										"total",
+										"items"
+									]
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Structured API error. See status and code; do not branch on message text.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": [
+										"defined",
+										"code",
+										"status",
+										"message"
+									],
+									"properties": {
+										"defined": {
+											"type": "boolean"
+										},
+										"code": {
+											"type": "string"
+										},
+										"status": {
+											"type": "integer"
+										},
+										"message": {
+											"type": "string"
+										},
+										"data": {}
+									}
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"apiKey": []
+					},
+					{
+						"bearerAuth": []
+					},
+					{
+						"cookieAuth": []
+					}
+				],
+				"x-codeSamples": [
+					{
+						"lang": "bash",
+						"label": "cURL",
+						"source": "curl \"https://rxresu.me/api/openapi/career/runs\" --header \"x-api-key: <api-key>\""
+					}
+				]
+			}
+		},
+		"/career/preparations": {
+			"get": {
+				"operationId": "listCareerPreparations",
+				"summary": "List document preparation",
+				"tags": [
+					"Career"
+				],
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"type": "object",
+										"properties": {
+											"opportunityId": {
+												"type": "string"
+											},
+											"applicationId": {
+												"anyOf": [
+													{
+														"type": "string"
+													},
+													{
+														"type": "null"
+													}
+												]
+											},
+											"company": {
+												"type": "string"
+											},
+											"role": {
+												"type": "string"
+											},
+											"steps": {
+												"type": "array",
+												"items": {
+													"type": "object",
+													"properties": {
+														"id": {
+															"type": "string"
+														},
+														"kind": {
+															"enum": [
+																"resume",
+																"letter"
+															],
+															"type": "string"
+														},
+														"status": {
+															"enum": [
+																"queued",
+																"running",
+																"done",
+																"failed",
+																"canceled"
+															],
+															"type": "string"
+														},
+														"error": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"setting-off",
+																		"daily-limit",
+																		"no-baseline",
+																		"no-description",
+																		"no-ai",
+																		"provider",
+																		"rate-limit",
+																		"invalid-output",
+																		"unknown"
+																	],
+																	"type": "string"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
+														"issues": {
+															"type": "array",
+															"items": {
+																"type": "string"
+															}
+														},
+														"manual": {
+															"type": "boolean"
+														},
+														"generation": {
+															"type": "number"
+														},
+														"outputId": {
+															"anyOf": [
+																{
+																	"type": "string"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
+														"eligibleAt": {
+															"anyOf": [
+																{
+																	"type": "string",
+																	"format": "date-time",
+																	"x-native-type": "date"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
+														"completedAt": {
+															"anyOf": [
+																{
+																	"type": "string",
+																	"format": "date-time",
+																	"x-native-type": "date"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
+														"stale": {
+															"type": "boolean"
+														},
+														"edited": {
+															"type": "boolean"
+														}
+													},
+													"required": [
+														"id",
+														"kind",
+														"status",
+														"error",
+														"issues",
+														"manual",
+														"generation",
+														"outputId",
+														"eligibleAt",
+														"completedAt",
+														"stale",
+														"edited"
+													]
+												}
+											},
+											"summary": {
+												"enum": [
+													"skipped",
+													"attention",
+													"generating",
+													"deferred",
+													"queued",
+													"ready"
+												],
+												"type": "string"
+											}
+										},
+										"required": [
+											"opportunityId",
+											"applicationId",
+											"company",
+											"role",
+											"steps",
+											"summary"
+										]
+									}
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Structured API error. See status and code; do not branch on message text.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": [
+										"defined",
+										"code",
+										"status",
+										"message"
+									],
+									"properties": {
+										"defined": {
+											"type": "boolean"
+										},
+										"code": {
+											"type": "string"
+										},
+										"status": {
+											"type": "integer"
+										},
+										"message": {
+											"type": "string"
+										},
+										"data": {}
+									}
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"apiKey": []
+					},
+					{
+						"bearerAuth": []
+					},
+					{
+						"cookieAuth": []
+					}
+				],
+				"x-codeSamples": [
+					{
+						"lang": "bash",
+						"label": "cURL",
+						"source": "curl \"https://rxresu.me/api/openapi/career/preparations\" --header \"x-api-key: <api-key>\""
+					}
+				]
+			},
+			"post": {
+				"operationId": "prepareCareerDocuments",
+				"summary": "Prepare documents for chosen jobs",
+				"description": "Queues a tailored resume and/or cover letter for existing discovered jobs, using the baseline resume. This is the only way existing jobs are processed.",
+				"tags": [
+					"Career"
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"opportunityIds": {
+										"type": "array",
+										"minItems": 1,
+										"maxItems": 25,
+										"items": {
+											"type": "string",
+											"minLength": 1
+										}
+									},
+									"resume": {
+										"type": "boolean"
+									},
+									"letter": {
+										"type": "boolean"
+									}
+								},
+								"required": [
+									"opportunityIds",
+									"resume",
+									"letter"
+								]
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "OK",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"queued": {
+											"type": "number"
+										}
+									},
+									"required": [
+										"queued"
+									]
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Structured API error. See status and code; do not branch on message text.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": [
+										"defined",
+										"code",
+										"status",
+										"message"
+									],
+									"properties": {
+										"defined": {
+											"type": "boolean"
+										},
+										"code": {
+											"type": "string"
+										},
+										"status": {
+											"type": "integer"
+										},
+										"message": {
+											"type": "string"
+										},
+										"data": {}
+									}
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"apiKey": []
+					},
+					{
+						"bearerAuth": []
+					},
+					{
+						"cookieAuth": []
+					}
+				],
+				"x-codeSamples": [
+					{
+						"lang": "bash",
+						"label": "cURL",
+						"source": "curl --request POST \"https://rxresu.me/api/openapi/career/preparations\" --header \"x-api-key: <api-key>\" --header \"Content-Type: application/json\" --data '{\n  \"opportunityIds\": [\n    \"<string>\"\n  ],\n  \"resume\": true,\n  \"letter\": true\n}'"
+					}
+				]
+			}
+		},
+		"/career/preparations/{id}/retry": {
+			"post": {
+				"operationId": "retryCareerPreparation",
+				"summary": "Retry a document step",
+				"tags": [
+					"Career"
+				],
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"minLength": 1
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK"
+					},
+					"default": {
+						"description": "Structured API error. See status and code; do not branch on message text.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": [
+										"defined",
+										"code",
+										"status",
+										"message"
+									],
+									"properties": {
+										"defined": {
+											"type": "boolean"
+										},
+										"code": {
+											"type": "string"
+										},
+										"status": {
+											"type": "integer"
+										},
+										"message": {
+											"type": "string"
+										},
+										"data": {}
+									}
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"apiKey": []
+					},
+					{
+						"bearerAuth": []
+					},
+					{
+						"cookieAuth": []
+					}
+				],
+				"x-codeSamples": [
+					{
+						"lang": "bash",
+						"label": "cURL",
+						"source": "curl --request POST \"https://rxresu.me/api/openapi/career/preparations/<id>/retry\" --header \"x-api-key: <api-key>\""
+					}
+				]
+			}
+		},
+		"/career/preparations/{id}/regenerate": {
+			"post": {
+				"operationId": "regenerateCareerPreparation",
+				"summary": "Regenerate a document",
+				"description": "Makes a new document from the current baseline and posting. The earlier one is never overwritten.",
+				"tags": [
+					"Career"
+				],
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"minLength": 1
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK"
+					},
+					"default": {
+						"description": "Structured API error. See status and code; do not branch on message text.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": [
+										"defined",
+										"code",
+										"status",
+										"message"
+									],
+									"properties": {
+										"defined": {
+											"type": "boolean"
+										},
+										"code": {
+											"type": "string"
+										},
+										"status": {
+											"type": "integer"
+										},
+										"message": {
+											"type": "string"
+										},
+										"data": {}
+									}
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"apiKey": []
+					},
+					{
+						"bearerAuth": []
+					},
+					{
+						"cookieAuth": []
+					}
+				],
+				"x-codeSamples": [
+					{
+						"lang": "bash",
+						"label": "cURL",
+						"source": "curl --request POST \"https://rxresu.me/api/openapi/career/preparations/<id>/regenerate\" --header \"x-api-key: <api-key>\""
 					}
 				]
 			}
@@ -39619,6 +40962,16 @@
 													}
 												]
 											},
+											"runId": {
+												"anyOf": [
+													{
+														"type": "string"
+													},
+													{
+														"type": "null"
+													}
+												]
+											},
 											"trackedApplicationId": {
 												"anyOf": [
 													{
@@ -39659,6 +41012,7 @@
 											"firstSeenAt",
 											"lastSeenAt",
 											"dismissedAt",
+											"runId",
 											"trackedApplicationId",
 											"matches",
 											"unknowns"

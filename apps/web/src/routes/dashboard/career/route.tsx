@@ -13,6 +13,7 @@ export const Route = createFileRoute("/dashboard/career")({
 type Place = {
 	to:
 		| "/dashboard/career"
+		| "/dashboard/career/pipeline"
 		| "/dashboard/career/coach/{-$conversationId}"
 		| "/dashboard/career/knowledge/facts"
 		| "/dashboard/career/offers";
@@ -21,11 +22,12 @@ type Place = {
 	label: string;
 };
 
-/** Career: Today, Coach, Knowledge and Offers under one header. The selected place's underline slides between them. */
+/** Career: Today, Pipeline, Coach, Knowledge and Offers under one header. The selected place's underline slides between them. */
 function CareerLayout() {
 	const matchRoute = useMatchRoute();
 	const places: Place[] = [
 		{ to: "/dashboard/career", match: "/dashboard/career/", icon: "tray", label: t`Today` },
+		{ to: "/dashboard/career/pipeline", match: "/dashboard/career/pipeline", icon: "list-checks", label: t`Pipeline` },
 		{
 			to: "/dashboard/career/coach/{-$conversationId}",
 			match: "/dashboard/career/coach",

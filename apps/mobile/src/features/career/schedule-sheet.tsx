@@ -6,11 +6,10 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Platform, View } from "react-native";
-import { careerScheduleInputSchema } from "@reactive-resume/schema/career";
+import { careerScheduleInputSchema, RETRIEVAL_BUDGET } from "@reactive-resume/schema/career";
 import { cadenceOf, EVERY_VALUES, everyOf } from "@reactive-resume/schema/career-run";
 import { fromZonedDateTime } from "@reactive-resume/utils/timezone";
 import { everyLabel } from "./discovery-run";
-import { DiscoveryStatus } from "./discovery-status";
 import { client, useCareerAction, useCareerQueries, useCareerTime, useNow } from "./hooks";
 import { collectInterviews, nextCareerRun, prepareRunAt, rollForwardRepeat, toZoned } from "./scheduling";
 import { EditorSheet, LoadState, SwitchRow } from "./shared";
@@ -100,14 +99,15 @@ function ScheduleForm({
 	const now = useNow();
 	const upcoming = collectInterviews(applications, now);
 	const open = applications.filter((application) => application.status !== "closed");
-	const [initial, setInitial] = useState(() => {
+	const [initial] = useState(() => {
 		const at = schedule
 			? rollForwardRepeat(new Date(schedule.nextRunAt), schedule, timezone)
 			: nextCareerRun(new Date(), 1, timezone);
 		return {
 			kind: (schedule?.kind as Input["kind"]) ?? initialKind,
 			query: schedule?.query || [...profile.targetRoles, ...profile.locations].join(" · "),
-			every: schedule ? everyOf(schedule) : "d1",
+			every: schedule ? everyOf(schedule) : "m60",
+			budget: String(schedule?.retrievalBudget ?? RETRIEVAL_BUDGET.default),
 			...toZoned(at, timezone),
 			time: schedule ? toZoned(at, timezone).time : "08:00",
 			interviewId: schedule?.interviewId ?? upcoming[0]?.interview.id ?? "",
@@ -126,7 +126,13 @@ function ScheduleForm({
 	const set = (patch: Partial<typeof draft>) => setDraft((current) => ({ ...current, ...patch }));
 	const interview = upcoming.find((row) => row.interview.id === draft.interviewId);
 	const at = fromZonedDateTime(draft.date, draft.time, timezone);
-	const runAt = draft.kind === "prepare" && interview ? prepareRunAt(interview.start, draft.lead, timezone) : at;
+	// A schedule on a fixed gap starts as soon as it is saved, so it has no first-run time to choose.
+	const immediate = draft.kind === "discovery" && Boolean(cadenceOf(draft.every).intervalMinutes);
+	const runAt = immediate
+		? new Date(schedule?.nextRunAt ?? now)
+		: draft.kind === "prepare" && interview
+			? prepareRunAt(interview.start, draft.lead, timezone)
+			: at;
 	const provider = ai.usableProviders.find((row) => row.id === draft.aiProviderId) ?? ai.defaultProvider;
 	const blocked =
 		(draft.enabled && !available) ||
@@ -140,7 +146,7 @@ function ScheduleForm({
 			return setValidation(t`Add a role or company to look for.`);
 		if (blocked) return;
 		if (!runAt) return setValidation(t`This date or time does not exist in your timezone. Choose another time.`);
-		if (draft.kind !== "prepare" && runAt <= now) return setValidation(t`Pick a time after now.`);
+		if (draft.kind !== "prepare" && !immediate && runAt <= now) return setValidation(t`Pick a time after now.`);
 		const input: Input = {
 			...(schedule ? { id: schedule.id } : {}),
 			kind: draft.kind,
@@ -159,6 +165,7 @@ function ScheduleForm({
 			locale,
 			nextRunAt: runAt,
 			...(draft.kind === "discovery" ? cadenceOf(draft.every) : { intervalDays: null, intervalMinutes: null }),
+			retrievalBudget: draft.kind === "discovery" ? Number(draft.budget) : null,
 			aiProviderId: draft.kind === "prepare" ? (provider?.id ?? null) : null,
 		};
 		if (!careerScheduleInputSchema.safeParse(input).success) return setValidation(t`Check the fields and try again.`);
@@ -190,15 +197,6 @@ function ScheduleForm({
 						message={t`Scheduled work is not available on this server. Ask the server owner to configure it.`}
 					/>
 				) : null}
-				{schedule?.kind === "discovery" ? (
-					<DiscoveryStatus
-						schedule={schedule}
-						onEnabledChange={(enabled) => {
-							setInitial((current) => ({ ...current, enabled }));
-							set({ enabled });
-						}}
-					/>
-				) : null}
 				<Text color="ink3">{t`Times are shown in ${timezone}. Change timezone in Settings → Preferences.`}</Text>
 				{draft.kind === "discovery" ? (
 					<>
@@ -219,6 +217,13 @@ function ScheduleForm({
 								}),
 							)}
 						/>
+						<SelectSheet
+							label={t`Results per search`}
+							value={draft.budget}
+							onChange={(budget) => set({ budget })}
+							options={["5", "10", "15", "20"].map((value) => ({ value, label: value }))}
+						/>
+						<Text color="ink3">{t`The most one run retrieves. Search services rank results, so this finds relevant postings but cannot promise to list every job.`}</Text>
 						<Text color="ink3">{t`Hourly runs keep a fixed gap. Daily and longer keep the same time of day in ${timezone}.`}</Text>
 						<Text color="ink3">{t`Uses web search set up in Settings. Results wait in Today. Applications and documents are never created for you.`}</Text>
 						{!search ? <Banner tone="warn" message={t`Set up web search in Settings to find roles.`} /> : null}
@@ -284,7 +289,8 @@ function ScheduleForm({
 						{!open.length ? <Banner tone="warn" message={t`Add an application first.`} /> : null}
 					</>
 				)}
-				{draft.kind !== "prepare" ? (
+				{immediate ? <Text color="ink3">{t`Starts as soon as you save, then repeats on this gap.`}</Text> : null}
+				{draft.kind !== "prepare" && !immediate ? (
 					<>
 						<TextField
 							label={draft.kind === "follow-up" ? t`Remind me on (YYYY-MM-DD)` : t`First run (YYYY-MM-DD)`}

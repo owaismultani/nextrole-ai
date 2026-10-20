@@ -1,4 +1,4 @@
-import type { CareerRunReport } from "./career";
+import type { CareerRunReport, PreparationError, PreparationKind, PreparationStatus } from "./career";
 
 /**
  * Pure logic for recurring discovery, shared by web and mobile: which cadences exist, where a schedule stands, and
@@ -58,4 +58,32 @@ export function diagnoseRun(report: CareerRunReport): Diagnosis | null {
 	if (report.found === 0) return "empty";
 	if (report.matches > 0) return null;
 	return report.duplicates === report.found ? "repeats" : "quiet";
+}
+
+// ---- Automation ----
+
+export type PreparationStep = {
+	kind: PreparationKind;
+	status: PreparationStatus;
+	error: PreparationError | null;
+};
+
+export type PreparationSummary = "skipped" | "attention" | "generating" | "deferred" | "queued" | "ready";
+
+/**
+ * Where a job's document preparation stands. Only requested, non-canceled steps count: a resume-only job is ready
+ * once its resume is, and a job whose steps were all canceled is skipped rather than ready. This is about the
+ * documents only, never the application's own status, and ready does not mean reviewed or sent.
+ */
+export function summarizePreparation(steps: PreparationStep[]): PreparationSummary {
+	const live = steps.filter((step) => step.status !== "canceled");
+	if (live.length === 0) return "skipped";
+	if (live.some((step) => step.status === "failed")) return "attention";
+	if (live.some((step) => step.status === "running")) return "generating";
+	if (live.some((step) => step.status === "queued"))
+		return live.every((step) => step.status !== "queued" || step.error === "daily-limit") &&
+			live.some((step) => step.error === "daily-limit")
+			? "deferred"
+			: "queued";
+	return "ready";
 }

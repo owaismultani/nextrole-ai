@@ -38,6 +38,12 @@ export default function SettingsScreen() {
 					chevron
 					onPress={() => router.push(routes.settings("preferences"))}
 				/>
+				<ListRow
+					title={t`Automation`}
+					leading="clock-counter-clockwise"
+					chevron
+					onPress={() => router.push(routes.settings("automation"))}
+				/>
 				<ListRow title={t`AI & developer`} leading="robot" chevron onPress={() => router.push(routes.settings("ai"))} />
 			</SettingsGroup>
 			<SettingsGroup>

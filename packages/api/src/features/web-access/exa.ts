@@ -1,10 +1,10 @@
 import type { ProviderRequest } from "./contracts";
 import z from "zod";
-import { MAX_CONTENT_CHARS, MAX_PAGE_BYTES, WebAccessError } from "./contracts";
+import { MAX_CONTENT_CHARS, MAX_PAGE_BYTES, searchLimit, WebAccessError } from "./contracts";
 import { normalizeSearch, parseResponse, postJson } from "./transport";
 
 const searchSchema = z.object({ results: z.array(z.unknown()).max(100) });
-export async function searchExa(query: string, { connection, signal }: ProviderRequest) {
+export async function searchExa(query: string, { connection, signal, search }: ProviderRequest) {
 	const response = parseResponse(
 		searchSchema,
 		await postJson(
@@ -12,7 +12,12 @@ export async function searchExa(query: string, { connection, signal }: ProviderR
 			{
 				"x-api-key": connection.apiKey ?? "",
 			},
-			{ query, numResults: 5, type: "auto" },
+			{
+				query,
+				numResults: searchLimit(search),
+				type: "auto",
+				...(search?.since ? { startPublishedDate: search.since.toISOString() } : {}),
+			},
 			signal,
 		),
 	);

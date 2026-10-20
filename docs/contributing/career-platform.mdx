@@ -75,6 +75,12 @@ Generate the Vercel token with `openssl rand -hex 32`, supply it through the dep
 
 All adapters await the same bounded PostgreSQL-backed processor. Node prevents overlapping ticks within its process; database claims coordinate multiple processes and native platform invocations. Cloudflare keeps scheduled work alive with `waitUntil()` and releases its invocation's database pool after work completes. No task depends on an open browser.
 
+### Automation and document preparation
+
+**Settings → Automation** keeps one `career_automation` row per user for document preparation (toggles, baseline, AI connection, daily limit). Discovery is an ordinary `career_schedule` edited in Career → Schedules, so its query, interval, results budget and on/off state have a single source; roles it finds get preparation steps when a toggle is on. Each tick, after discovery, a bounded number of `career_preparation` steps run (two, each for a different person, each limited to 90 seconds of AI time). Discovery never waits for them. Steps retry with backoff (honoring `Retry-After`) up to four attempts, then wait for a person. The daily limit is one conditional `UPDATE` on the automation row, so concurrent workers cannot exceed it. The day is the schedule's timezone.
+
+On Vercel the tick carries both jobs, so the function's maximum duration must cover a discovery run plus two generation steps. Search providers cap one search at 20 results, and none of the three supports paging; hourly runs add a date filter (Tavily `start_date`, Exa `startPublishedDate`, Firecrawl `tbs`) with at least two hours of overlap.
+
 ### Optional manual invocation
 
 An operator can trigger a tick for diagnostics or use a custom scheduler. Set `CRON_SECRET` (at least 16 characters), then call `GET` or `POST /api/career/run` with `Authorization: Bearer <secret>`. Without this token the HTTP endpoint returns `404`; invalid authorization returns `401`. Internal Node and Cloudflare ticks continue without this token.

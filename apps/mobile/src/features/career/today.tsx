@@ -6,9 +6,11 @@ import { openBrowserAsync } from "expo-web-browser";
 import { type ComponentRef, useRef, useState } from "react";
 import { RefreshControl, ScrollView, View } from "react-native";
 import Animated from "react-native-reanimated";
+import { repeats } from "@reactive-resume/schema/career-run";
+import { cadenceLabel, runState, runSummary, stateLabel } from "./discovery-run";
 import { client, useCareerAction, useCareerTime, useNow, useTodayQueries, useUndoRows } from "./hooks";
 import { ScheduleSheet, scheduleTitle } from "./schedule-sheet";
-import { collectInterviews, rollForward } from "./scheduling";
+import { collectInterviews, rollForwardRepeat } from "./scheduling";
 import { Actions, LoadState, Section, SwitchRow } from "./shared";
 import { getNextStep } from "@/features/applications/next-step";
 import { useApplications } from "@/features/applications/queries";
@@ -71,7 +73,7 @@ export function TodayScreen() {
 	const openSchedule = (schedule: Schedule) =>
 		setSheet({ schedule, kind: schedule.kind as "discovery" | "prepare" | "follow-up" });
 	const toggle = (row: Schedule, enabled: boolean) => {
-		if (enabled && !row.intervalDays && row.lastQueuedAt && new Date(row.nextRunAt) <= now) return openSchedule(row);
+		if (enabled && !repeats(row) && row.lastQueuedAt && new Date(row.nextRunAt) <= now) return openSchedule(row);
 		void action.run(() =>
 			client.career.saveSchedule({
 				id: row.id,
@@ -83,11 +85,12 @@ export function TodayScreen() {
 				enabled,
 				email: row.email,
 				nextRunAt:
-					enabled && row.intervalDays
-						? rollForward(new Date(row.nextRunAt), row.intervalDays, row.timezone)
+					enabled && repeats(row)
+						? rollForwardRepeat(new Date(row.nextRunAt), row, row.timezone)
 						: new Date(row.nextRunAt),
 				timezone: row.timezone,
 				intervalDays: row.intervalDays,
+				intervalMinutes: row.intervalMinutes,
 				aiProviderId: row.aiProviderId,
 			}),
 		);
@@ -341,12 +344,31 @@ export function TodayScreen() {
 											applications.data?.find((application) => application.id === row.applicationId)?.company}
 									</Text>
 									<Text color="ink3">
-										{!row.intervalDays && row.lastQueuedAt ? t`Done` : row.enabled ? t`On` : t`Paused`} ·{" "}
+										{!repeats(row) && row.lastQueuedAt ? t`Done` : row.enabled ? t`On` : t`Paused`} ·{" "}
 										{time.when(row.nextRunAt)}
 									</Text>
-									{row.intervalDays ? (
+									{row.intervalMinutes ? (
+										<Text color="ink3">
+											{cadenceLabel(row)} · {row.timezone}
+										</Text>
+									) : row.intervalDays ? (
 										<Text color="ink3">
 											{plural(row.intervalDays, { one: "Every day", other: "Every # days" })} · {row.timezone}
+										</Text>
+									) : null}
+									{row.kind === "discovery" && runSummary(row) ? (
+										<Text
+											color={
+												row.activeRun
+													? "infoText"
+													: row.lastRun?.outcome === "failed"
+														? "dangerText"
+														: row.lastRun?.outcome === "partial"
+															? "warnText"
+															: "ink3"
+											}
+										>
+											{row.activeRun ? stateLabel(runState(row)) : runSummary(row)}
 										</Text>
 									) : null}
 									<SwitchRow

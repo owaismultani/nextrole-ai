@@ -39,8 +39,11 @@ export const postingSearchResult = z.object({
 });
 
 /** Job-specific query intent belongs here, never in the generic retrieval service. */
+/** The search sent for a discovery query. */
+export const jobSearchQuery = (query: string) => `${query} job posting`;
+
 export async function searchJobPostings(query: string, context: WebAccessContext) {
-	return (await searchWeb(`${query} job posting`, context))
+	return (await searchWeb(jobSearchQuery(query), context))
 		.filter(({ url, title }) => !isListingUrl(url) && !/\b\d[\d,]*\+?\s+(?:[\w-]+\s+){0,4}jobs\b/i.test(title))
 		.map(({ url, title, snippet }) => ({
 			url,

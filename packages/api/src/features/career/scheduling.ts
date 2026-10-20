@@ -35,6 +35,26 @@ export function nextCareerRun(previous: Date, days: number, timezone: string): D
 	return new Date(guess);
 }
 
+type Repeat = { intervalDays: number | null; intervalMinutes: number | null; timezone: string };
+
+/**
+ * The first run of a repeating schedule after `now`, at least one step past `previous`. Minute intervals are a fixed
+ * gap; day intervals keep the wall-clock time in the schedule's timezone. A one-off schedule is returned unchanged.
+ */
+export function advanceRun(previous: Date, repeat: Repeat, now = new Date()): Date {
+	if (repeat.intervalMinutes) {
+		const gap = repeat.intervalMinutes * 60_000;
+		return new Date(
+			previous.getTime() + (Math.max(0, Math.floor((now.getTime() - previous.getTime()) / gap)) + 1) * gap,
+		);
+	}
+	if (!repeat.intervalDays) return previous;
+	let next = previous;
+	for (let i = 0; i < 400 && (i === 0 || next <= now); i++)
+		next = nextCareerRun(next, repeat.intervalDays, repeat.timezone);
+	return next;
+}
+
 export function canonicalOpportunityUrl(value: string): string | null {
 	try {
 		const url = new URL(value);

@@ -1,4 +1,5 @@
 import type { Application } from "@/features/applications/types";
+import { rollForwardMinutes } from "@reactive-resume/schema/career-run";
 import { fromZonedDateTime } from "@reactive-resume/utils/timezone";
 
 export function toZoned(at: Date, timeZone: string) {
@@ -44,6 +45,17 @@ export function rollForward(at: Date, days: number, timezone: string, now = new 
 	let next = nextCareerRun(at, steps * days, timezone);
 	while (next <= now) next = nextCareerRun(next, days, timezone);
 	return next;
+}
+
+/** A repeating schedule's first run after `now`: hours keep a fixed gap, days keep the wall-clock time. */
+export function rollForwardRepeat(
+	at: Date,
+	repeat: { intervalDays: number | null; intervalMinutes: number | null },
+	timezone: string,
+	now = new Date(),
+) {
+	if (repeat.intervalMinutes) return rollForwardMinutes(at, repeat.intervalMinutes, now);
+	return repeat.intervalDays ? rollForward(at, repeat.intervalDays, timezone, now) : at;
 }
 
 /** Morning-of moves to two hours before early interviews, as on the server. */

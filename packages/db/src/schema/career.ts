@@ -1,6 +1,7 @@
 import type {
 	CareerNotice,
 	CareerProfileData,
+	CareerRunReport,
 	CareerSource,
 	CareerStoryData,
 	CareerWorkspace,
@@ -98,6 +99,12 @@ export const careerSchedule = pg.pgTable(
 		nextRunAt: pg.timestamp("next_run_at", { withTimezone: true }).notNull(),
 		lastQueuedAt: pg.timestamp("last_queued_at", { withTimezone: true }),
 		intervalDays: pg.integer("interval_days"),
+		/** Hourly-style discovery: a fixed gap in minutes. Mutually exclusive with `intervalDays`, which keeps wall time. */
+		intervalMinutes: pg.integer("interval_minutes").$type<60 | 180 | 360>(),
+		lastAttemptedAt: pg.timestamp("last_attempted_at", { withTimezone: true }),
+		lastSucceededAt: pg.timestamp("last_succeeded_at", { withTimezone: true }),
+		/** Discovery only: what the latest run did. */
+		lastRun: pg.jsonb("last_run").$type<CareerRunReport>(),
 		aiProviderId: pg.text("ai_provider_id").references(() => aiProvider.id, { onDelete: "set null" }),
 	},
 	(t) => [pg.index().on(t.enabled, t.nextRunAt)],
@@ -116,6 +123,8 @@ export const careerJob = pg.pgTable(
 		lease: pg.text("lease"),
 		leaseUntil: pg.timestamp("lease_until", { withTimezone: true }),
 		error: pg.text("error"),
+		/** `manual` jobs (Run now) also run for a paused schedule. */
+		trigger: pg.text("trigger").notNull().default("schedule"),
 	},
 	(t) => [pg.uniqueIndex().on(t.scheduleId, t.dueAt), pg.index().on(t.status, t.leaseUntil)],
 );

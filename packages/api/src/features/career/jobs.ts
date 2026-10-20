@@ -1,4 +1,4 @@
-import type { careerScheduleInputSchema } from "@reactive-resume/schema/career";
+import type { CareerRunReport, careerScheduleInputSchema } from "@reactive-resume/schema/career";
 import type z from "zod";
 import { ORPCError } from "@orpc/client";
 import { and, asc, desc, eq, inArray, isNull, lte, or, sql } from "drizzle-orm";
@@ -9,13 +9,13 @@ import { env } from "@reactive-resume/env/server";
 import { generateId } from "@reactive-resume/utils/string";
 import { STALE_AGENT_RUN_TTL_MS } from "../agent/runs";
 import { aiProvidersService } from "../ai-providers/service";
-import { readOpenPosting, searchJobPostings } from "../applications/posting";
+import { jobSearchQuery, readOpenPosting, searchJobPostings } from "../applications/posting";
 import { webAccessService } from "../web-access/credentials";
 import { generateCareer } from "./generate";
 import { matchPosting } from "./matching";
 import { noticeText } from "./notices";
 import { isCareerSchedulingEnabled } from "./runner";
-import { canonicalOpportunityUrl, nextCareerRun, parseListingTitle, plainSnippet, prepareRunAt } from "./scheduling";
+import { advanceRun, canonicalOpportunityUrl, parseListingTitle, plainSnippet, prepareRunAt } from "./scheduling";
 import { careerService, requireCareerApplication } from "./service";
 
 const CAREER_URL = "/dashboard/career";
@@ -30,12 +30,24 @@ function assertRunner() {
 }
 
 export const careerJobs = {
-	list: (userId: string) =>
-		db
-			.select()
-			.from(tables.careerSchedule)
-			.where(eq(tables.careerSchedule.userId, userId))
-			.orderBy(desc(tables.careerSchedule.createdAt)),
+	list: async (userId: string) => {
+		const [schedules, active] = await Promise.all([
+			db
+				.select()
+				.from(tables.careerSchedule)
+				.where(eq(tables.careerSchedule.userId, userId))
+				.orderBy(desc(tables.careerSchedule.createdAt)),
+			db
+				.select({ scheduleId: tables.careerJob.scheduleId, status: tables.careerJob.status })
+				.from(tables.careerJob)
+				.where(and(eq(tables.careerJob.userId, userId), inArray(tables.careerJob.status, ["queued", "running"]))),
+		]);
+		// A running job outranks a queued one for the same schedule.
+		const states = new Map<string, "queued" | "running">();
+		for (const { scheduleId, status } of active)
+			if (status === "running" || !states.has(scheduleId)) states.set(scheduleId, status as "queued" | "running");
+		return schedules.map((schedule) => ({ ...schedule, activeRun: states.get(schedule.id) ?? null }));
+	},
 	save: async (userId: string, input: z.infer<typeof careerScheduleInputSchema> & { id?: string | undefined }) => {
 		if (input.enabled) assertRunner();
 		const application = await requireCareerApplication({ userId, ...input });
@@ -47,6 +59,8 @@ export const careerJobs = {
 			input.nextRunAt = prepareRunAt(new Date(interview.at), input.lead ?? "24h", input.timezone);
 		if (input.kind === "discovery" && !input.query)
 			throw new ORPCError("BAD_REQUEST", { message: "Supply a public job-search query." });
+		if (input.intervalMinutes && (input.kind !== "discovery" || input.intervalDays))
+			throw new ORPCError("BAD_REQUEST", { message: "Choose either hours or days between discovery runs." });
 		if (input.kind !== "discovery" && !input.applicationId)
 			throw new ORPCError("BAD_REQUEST", { message: "Choose an application." });
 		if (input.kind === "prepare" && !input.interviewId)
@@ -108,6 +122,66 @@ export const careerJobs = {
 			.delete(tables.careerSchedule)
 			.where(and(eq(tables.careerSchedule.id, id), eq(tables.careerSchedule.userId, userId)));
 	},
+	/** Queues a discovery run to start on the next scheduler tick (within a minute), leaving the schedule as it is. */
+	runNow: async (userId: string, id: string) => {
+		assertRunner();
+		return await db.transaction(async (tx) => {
+			const [schedule] = await tx
+				.select()
+				.from(tables.careerSchedule)
+				.where(and(eq(tables.careerSchedule.id, id), eq(tables.careerSchedule.userId, userId)))
+				.for("update");
+			if (!schedule) throw new ORPCError("NOT_FOUND");
+			if (schedule.kind !== "discovery")
+				throw new ORPCError("BAD_REQUEST", { message: "Only discovery schedules can be run on demand." });
+			const [active] = await tx
+				.select({ id: tables.careerJob.id })
+				.from(tables.careerJob)
+				.where(and(eq(tables.careerJob.scheduleId, id), inArray(tables.careerJob.status, ["queued", "running"])))
+				.limit(1);
+			if (active) return { queued: false };
+			await tx
+				.insert(tables.careerJob)
+				.values({ userId, scheduleId: id, dueAt: new Date(), trigger: "manual" })
+				.onConflictDoNothing();
+			return { queued: true };
+		});
+	},
+	/** Pause or resume a discovery schedule. Resuming picks the next future slot on its own cadence. */
+	setEnabled: async (userId: string, id: string, enabled: boolean) => {
+		if (enabled) assertRunner();
+		return await db.transaction(async (tx) => {
+			const [schedule] = await tx
+				.select()
+				.from(tables.careerSchedule)
+				.where(and(eq(tables.careerSchedule.id, id), eq(tables.careerSchedule.userId, userId)))
+				.for("update");
+			if (!schedule) throw new ORPCError("NOT_FOUND");
+			if (schedule.kind !== "discovery")
+				throw new ORPCError("BAD_REQUEST", { message: "Only discovery schedules can be paused here." });
+			const repeating = Boolean(schedule.intervalDays || schedule.intervalMinutes);
+			if (enabled && !repeating && schedule.lastQueuedAt && schedule.nextRunAt <= schedule.lastQueuedAt)
+				throw new ORPCError("BAD_REQUEST", {
+					message: "Choose a new run time when rescheduling completed or canceled work.",
+				});
+			if (!enabled)
+				await tx
+					.update(tables.careerJob)
+					.set({ status: "canceled", lease: null, leaseUntil: null })
+					.where(and(eq(tables.careerJob.scheduleId, id), inArray(tables.careerJob.status, ["queued", "running"])));
+			const nextRunAt =
+				enabled && repeating && schedule.nextRunAt <= new Date()
+					? advanceRun(schedule.nextRunAt, schedule)
+					: schedule.nextRunAt;
+			const [row] = await tx
+				.update(tables.careerSchedule)
+				.set({ enabled, nextRunAt })
+				.where(eq(tables.careerSchedule.id, id))
+				.returning();
+			if (!row) throw new ORPCError("NOT_FOUND");
+			return row;
+		});
+	},
 	notifications: async (userId: string) => {
 		const rows = await db
 			.select()
@@ -144,19 +218,64 @@ export const careerJobs = {
 
 type Posting = Awaited<ReturnType<typeof readOpenPosting>>;
 
+type Trigger = CareerRunReport["trigger"];
+
+/** A discovery search that never produced results; carries what was attempted so the schedule can show it. */
+class DiscoveryFailure extends Error {
+	readonly report: CareerRunReport;
+	constructor(report: CareerRunReport, cause: unknown) {
+		super("Discovery search failed.", { cause });
+		this.report = report;
+	}
+}
+
+const emptyReport = (trigger: Trigger, at: Date, queries: string[], provider: string): CareerRunReport => ({
+	outcome: "success",
+	failure: null,
+	trigger,
+	at: at.toISOString(),
+	queries,
+	provider,
+	sources: [],
+	found: 0,
+	duplicates: 0,
+	rejected: 0,
+	matches: 0,
+	readFailures: 0,
+});
+
+const hostOf = (url: string) => {
+	try {
+		return new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+	} catch {
+		return null;
+	}
+};
+
 /**
  * A discovery search's hits, each read once: by the built-in reader, then by the web connection (which renders
  * script-built pages). Only one open role's posting is kept as a role; anything else is remembered as not one, so it is
  * never read again. Untracked roles are rechecked weekly so saved descriptions do not remain stale forever.
+ *
+ * Also tallies what happened to every hit (see `careerRunReportSchema`); `matches` is filled in once roles are saved.
  */
-async function discover(userId: string, query: string) {
+async function discover(userId: string, query: string, trigger: Trigger, startedAt: Date) {
 	const connection = await webAccessService.resolve(userId);
 	const signal = AbortSignal.timeout(90_000);
-	const hits = await searchJobPostings(query, { userId, connection, signal });
+	const queries = [jobSearchQuery(query)];
+	const provider = connection?.provider ?? "builtin";
+	const hits = await searchJobPostings(query, { userId, connection, signal }).catch((error: unknown) => {
+		throw new DiscoveryFailure(
+			{ ...emptyReport(trigger, startedAt, queries, provider), outcome: "failed", failure: "search" },
+			error,
+		);
+	});
 	const found = new Map<string, (typeof hits)[number]>();
+	let invalid = 0;
 	for (const hit of hits) {
 		const url = canonicalOpportunityUrl(hit.url);
-		if (url && !found.has(url)) found.set(url, hit);
+		if (!url) invalid++;
+		else if (!found.has(url)) found.set(url, hit);
 	}
 	const known = found.size
 		? await db
@@ -172,22 +291,49 @@ async function discover(userId: string, query: string) {
 				)
 		: [];
 	const seen = new Map(known.map((row) => [row.url, row]));
-	return Promise.all(
+	const results = await Promise.all(
 		[...found].map(async ([url, hit]) => {
 			const prior = seen.get(url);
 			if (
 				prior &&
 				(prior.dismissedAt || prior.trackedApplicationId || prior.updatedAt.getTime() > Date.now() - 7 * 86_400_000)
 			)
-				return { url, hit, posting: undefined, existing: true };
+				return { url, hit, posting: undefined, existing: true, read: "skipped" as const };
 			// A failed read is undefined: skipped this run and tried again on the next, never taken for "not a posting".
+			let failed = false;
 			const read = (via: typeof connection) =>
-				readOpenPosting(url, { userId, connection: via, signal }).catch((): Posting | undefined => undefined);
+				readOpenPosting(url, { userId, connection: via, signal }).catch((): Posting | undefined => {
+					failed = true;
+					return undefined;
+				});
 			const builtin = await read(null);
 			const posting = builtin || !connection ? builtin : await read(connection);
-			return { url, hit, posting, existing: Boolean(prior) };
+			// The built-in reader failing is no failure when the connection then read the page.
+			if (posting !== undefined) failed = false;
+			return { url, hit, posting, existing: Boolean(prior), read: failed ? ("failed" as const) : ("read" as const) };
 		}),
 	);
+	const readFailures = results.filter((result) => result.read === "failed").length;
+	const sources = [...new Set(hits.map((hit) => hostOf(hit.url)).filter((host): host is string => Boolean(host)))];
+	const report: CareerRunReport = {
+		...emptyReport(trigger, startedAt, queries, provider),
+		sources: sources.slice(0, 25),
+		found: hits.length,
+		duplicates:
+			hits.length -
+			invalid -
+			found.size +
+			results.filter((result) => result.existing && result.posting !== null && result.read !== "failed").length,
+		rejected: invalid + results.filter((result) => result.posting === null).length,
+		readFailures,
+		// All unreadable: nothing was learned, so say that rather than report a quiet success.
+		...(results.length > 0 && readFailures === results.length
+			? { outcome: "failed" as const, failure: "extraction" as const }
+			: readFailures > 0
+				? { outcome: "partial" as const }
+				: {}),
+	};
+	return { results, report };
 }
 
 async function enqueue() {
@@ -223,11 +369,8 @@ async function enqueue() {
 				.insert(tables.careerJob)
 				.values({ userId: schedule.userId, scheduleId: schedule.id, dueAt: schedule.nextRunAt })
 				.onConflictDoNothing();
-			// Coalesce missed ticks into one job, rather than charging for an outage's backlog, keeping the wall time.
-			let nextRunAt = schedule.nextRunAt;
-			if (schedule.intervalDays)
-				for (let i = 0; i < 400 && nextRunAt <= new Date(); i++)
-					nextRunAt = nextCareerRun(nextRunAt, schedule.intervalDays, schedule.timezone);
+			// Coalesce missed ticks into one job, rather than charging for an outage's backlog; day intervals keep wall time.
+			const nextRunAt = advanceRun(schedule.nextRunAt, schedule);
 			await tx
 				.update(tables.careerSchedule)
 				.set({ lastQueuedAt: schedule.nextRunAt, nextRunAt })
@@ -297,14 +440,9 @@ async function execute(job: typeof tables.careerJob.$inferSelect) {
 	const [schedule] = await db
 		.select()
 		.from(tables.careerSchedule)
-		.where(
-			and(
-				eq(tables.careerSchedule.id, job.scheduleId),
-				eq(tables.careerSchedule.userId, job.userId),
-				eq(tables.careerSchedule.enabled, true),
-			),
-		);
-	if (!schedule || !job.lease) {
+		.where(and(eq(tables.careerSchedule.id, job.scheduleId), eq(tables.careerSchedule.userId, job.userId)));
+	// A paused schedule only runs for an explicit Run now.
+	if (!schedule || !job.lease || (!schedule.enabled && job.trigger !== "manual")) {
 		await db
 			.update(tables.careerJob)
 			.set({ status: "canceled", lease: null, leaseUntil: null })
@@ -316,7 +454,16 @@ async function execute(job: typeof tables.careerJob.$inferSelect) {
 		applicationId: schedule.applicationId,
 		interviewId: schedule.interviewId,
 	});
-	const results = schedule.kind === "discovery" ? await discover(job.userId, schedule.query) : [];
+	const startedAt = new Date();
+	await db
+		.update(tables.careerSchedule)
+		.set({ lastAttemptedAt: startedAt })
+		.where(eq(tables.careerSchedule.id, schedule.id));
+	const discovery =
+		schedule.kind === "discovery"
+			? await discover(job.userId, schedule.query, job.trigger === "manual" ? "manual" : "schedule", startedAt)
+			: null;
+	const results = discovery?.results ?? [];
 	if (schedule.kind === "prepare") {
 		if (!application || !schedule.interviewId) throw new Error("Preparation application unavailable.");
 		const [saved] = await db
@@ -434,11 +581,47 @@ async function execute(job: typeof tables.careerJob.$inferSelect) {
 					url: workspaceUrl(schedule.applicationId, schedule.kind === "prepare" ? "prepare" : undefined),
 				})
 				.onConflictDoNothing();
+		// A run that read nothing is not a success; partial ones still count, and say so in `lastRun`.
+		const report = discovery && { ...discovery.report, matches: changed };
+		await tx
+			.update(tables.careerSchedule)
+			.set({
+				...(report?.outcome === "failed" ? {} : { lastSucceededAt: new Date() }),
+				...(report ? { lastRun: report } : {}),
+			})
+			.where(eq(tables.careerSchedule.id, schedule.id));
 		await tx
 			.update(tables.careerJob)
 			.set({ status: "completed", lease: null, leaseUntil: null, error: null })
 			.where(eq(tables.careerJob.id, job.id));
 	});
+}
+
+/** Puts a failed discovery run on the schedule, so it shows there instead of only in server logs. */
+async function recordFailure(job: typeof tables.careerJob.$inferSelect, error?: unknown) {
+	try {
+		const [schedule] = await db
+			.select({ kind: tables.careerSchedule.kind, query: tables.careerSchedule.query })
+			.from(tables.careerSchedule)
+			.where(eq(tables.careerSchedule.id, job.scheduleId));
+		if (schedule?.kind !== "discovery") return;
+		const lastRun =
+			error instanceof DiscoveryFailure
+				? error.report
+				: {
+						...emptyReport(
+							job.trigger === "manual" ? "manual" : "schedule",
+							new Date(),
+							[jobSearchQuery(schedule.query)],
+							"",
+						),
+						outcome: "failed" as const,
+						failure: "unknown" as const,
+					};
+		await db.update(tables.careerSchedule).set({ lastRun }).where(eq(tables.careerSchedule.id, job.scheduleId));
+	} catch {
+		// Reporting must never stop the scheduler.
+	}
 }
 
 async function sendPendingEmail() {
@@ -525,7 +708,8 @@ export async function runCareerJobs() {
 			),
 		)
 		.returning();
-	for (const job of exhausted)
+	for (const job of exhausted) {
+		await recordFailure(job);
 		await db
 			.insert(tables.careerNotification)
 			.values({
@@ -535,6 +719,7 @@ export async function runCareerJobs() {
 				url: `${CAREER_URL}?schedule=${encodeURIComponent(job.scheduleId)}`,
 			})
 			.onConflictDoNothing();
+	}
 	await enqueue();
 	let processed = 0;
 	for (let i = 0; i < 2; i++) {
@@ -542,7 +727,8 @@ export async function runCareerJobs() {
 		if (!job) break;
 		try {
 			await execute(job);
-		} catch {
+		} catch (error) {
+			await recordFailure(job, error);
 			const [failed] = await db
 				.update(tables.careerJob)
 				.set({

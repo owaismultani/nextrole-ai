@@ -16,8 +16,9 @@ import { Switch } from "@reactive-resume/ui/components/switch";
 import { toast } from "@reactive-resume/ui/components/toast";
 import { getInitials } from "@reactive-resume/utils/string";
 import { cn } from "@reactive-resume/utils/style";
+import { cadenceLabel, repeats, runState, runSummary, stateLabel } from "./discovery-run";
 import { CareerLoadError } from "./load-state";
-import { rollForward, ScheduleSheet, scheduleKind } from "./schedule-sheet";
+import { rollForwardRepeat, ScheduleSheet, scheduleKind } from "./schedule-sheet";
 import { CollapseRow, Eyebrow, flash, InfoChip, Swap, useCareerTime, useNow, withUndo } from "./shared";
 import {
 	collectInterviews,
@@ -711,14 +712,15 @@ function Schedules({ deleted, onOpenSchedule, className }: SchedulesProps) {
 	};
 
 	const status = (row: Schedule) => {
-		if (!row.intervalDays && row.lastQueuedAt) return t`Done · ${day(row.nextRunAt)}`;
+		if (!repeats(row) && row.lastQueuedAt) return t`Done · ${day(row.nextRunAt)}`;
 		let line = when(row.nextRunAt);
 		if (row.kind === "discovery") {
 			const clock = time(row.nextRunAt);
 			const next = day(row.nextRunAt);
 			const days = row.intervalDays ?? 1;
-			line =
-				days === 1
+			line = row.intervalMinutes
+				? t`${cadenceLabel(row)} · next ${clock}`
+				: days === 1
 					? t`Daily at ${clock} · next ${next}`
 					: days === 7
 						? t`Weekly at ${clock} · next ${next}`
@@ -732,13 +734,11 @@ function Schedules({ deleted, onOpenSchedule, className }: SchedulesProps) {
 
 	const toggle = (row: Schedule, enabled: boolean) => {
 		// A finished one-off reminder has nothing left to run: switching it on means picking a new time.
-		if (enabled && !row.intervalDays && row.lastQueuedAt && new Date(row.nextRunAt).getTime() <= Date.now())
+		if (enabled && !repeats(row) && row.lastQueuedAt && new Date(row.nextRunAt).getTime() <= Date.now())
 			return onOpenSchedule(row.id);
-		// Turning a repeating schedule back on starts from its next future run, at the same time of day.
+		// Turning a repeating schedule back on starts from its next future run: the same time of day, or the same gap.
 		const nextRunAt =
-			enabled && row.intervalDays
-				? rollForward(new Date(row.nextRunAt), row.intervalDays, row.timezone)
-				: new Date(row.nextRunAt);
+			enabled && repeats(row) ? rollForwardRepeat(new Date(row.nextRunAt), row, row.timezone) : new Date(row.nextRunAt);
 		save.mutate({
 			id: row.id,
 			kind: row.kind as Kind,
@@ -751,6 +751,7 @@ function Schedules({ deleted, onOpenSchedule, className }: SchedulesProps) {
 			nextRunAt,
 			timezone: row.timezone,
 			intervalDays: row.intervalDays,
+			intervalMinutes: row.intervalMinutes,
 			aiProviderId: row.aiProviderId,
 		});
 	};
@@ -790,7 +791,9 @@ function Schedules({ deleted, onOpenSchedule, className }: SchedulesProps) {
 				<AnimatePresence initial={false}>
 					{rows.map((row) => {
 						const { icon, title } = scheduleKind(row.kind);
-						const done = !row.intervalDays && Boolean(row.lastQueuedAt);
+						const done = !repeats(row) && Boolean(row.lastQueuedAt);
+						const state = row.kind === "discovery" ? runState(row) : null;
+						const summary = row.kind === "discovery" ? runSummary(row) : null;
 						return (
 							<CollapseRow key={row.id} className="border-t border-line">
 								<div className="flex items-start gap-3 px-4 py-3">
@@ -805,6 +808,24 @@ function Schedules({ deleted, onOpenSchedule, className }: SchedulesProps) {
 										<span className={cn("text-xs", row.enabled && !done ? "text-accent-text" : "text-ink-3")}>
 											{status(row)}
 										</span>
+										{state && (state === "running" || state === "queued") ? (
+											<span className="text-xs text-info-text">{stateLabel(state)}</span>
+										) : (
+											summary && (
+												<span
+													className={cn(
+														"text-xs",
+														row.lastRun?.outcome === "failed"
+															? "text-danger-text"
+															: row.lastRun?.outcome === "partial"
+																? "text-warn-text"
+																: "text-ink-3",
+													)}
+												>
+													{summary}
+												</span>
+											)
+										)}
 									</button>
 									<Switch
 										aria-label={[title, describe(row)].filter(Boolean).join(" · ")}

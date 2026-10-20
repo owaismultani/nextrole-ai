@@ -7,9 +7,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Platform, View } from "react-native";
 import { careerScheduleInputSchema } from "@reactive-resume/schema/career";
+import { cadenceOf, EVERY_VALUES, everyOf } from "@reactive-resume/schema/career-run";
 import { fromZonedDateTime } from "@reactive-resume/utils/timezone";
+import { everyLabel } from "./discovery-run";
+import { DiscoveryStatus } from "./discovery-status";
 import { client, useCareerAction, useCareerQueries, useCareerTime, useNow } from "./hooks";
-import { collectInterviews, nextCareerRun, prepareRunAt, rollForward, toZoned } from "./scheduling";
+import { collectInterviews, nextCareerRun, prepareRunAt, rollForwardRepeat, toZoned } from "./scheduling";
 import { EditorSheet, LoadState, SwitchRow } from "./shared";
 import { orpc } from "@/api/client";
 import { useSession } from "@/auth/session";
@@ -97,16 +100,14 @@ function ScheduleForm({
 	const now = useNow();
 	const upcoming = collectInterviews(applications, now);
 	const open = applications.filter((application) => application.status !== "closed");
-	const [initial] = useState(() => {
+	const [initial, setInitial] = useState(() => {
 		const at = schedule
-			? schedule.intervalDays
-				? rollForward(new Date(schedule.nextRunAt), schedule.intervalDays, timezone)
-				: new Date(schedule.nextRunAt)
+			? rollForwardRepeat(new Date(schedule.nextRunAt), schedule, timezone)
 			: nextCareerRun(new Date(), 1, timezone);
 		return {
 			kind: (schedule?.kind as Input["kind"]) ?? initialKind,
 			query: schedule?.query || [...profile.targetRoles, ...profile.locations].join(" · "),
-			every: String(schedule?.intervalDays ?? 1),
+			every: schedule ? everyOf(schedule) : "d1",
 			...toZoned(at, timezone),
 			time: schedule ? toZoned(at, timezone).time : "08:00",
 			interviewId: schedule?.interviewId ?? upcoming[0]?.interview.id ?? "",
@@ -157,7 +158,7 @@ function ScheduleForm({
 			timezone,
 			locale,
 			nextRunAt: runAt,
-			intervalDays: draft.kind === "discovery" ? Number(draft.every) : null,
+			...(draft.kind === "discovery" ? cadenceOf(draft.every) : { intervalDays: null, intervalMinutes: null }),
 			aiProviderId: draft.kind === "prepare" ? (provider?.id ?? null) : null,
 		};
 		if (!careerScheduleInputSchema.safeParse(input).success) return setValidation(t`Check the fields and try again.`);
@@ -189,6 +190,15 @@ function ScheduleForm({
 						message={t`Scheduled work is not available on this server. Ask the server owner to configure it.`}
 					/>
 				) : null}
+				{schedule?.kind === "discovery" ? (
+					<DiscoveryStatus
+						schedule={schedule}
+						onEnabledChange={(enabled) => {
+							setInitial((current) => ({ ...current, enabled }));
+							set({ enabled });
+						}}
+					/>
+				) : null}
 				<Text color="ink3">{t`Times are shown in ${timezone}. Change timezone in Settings → Preferences.`}</Text>
 				{draft.kind === "discovery" ? (
 					<>
@@ -202,12 +212,14 @@ function ScheduleForm({
 							label={t`How often`}
 							value={draft.every}
 							onChange={(every) => set({ every })}
-							options={[
-								{ value: "1", label: t`Every day` },
-								{ value: "3", label: t`Every 3 days` },
-								{ value: "7", label: t`Every week` },
-							]}
+							options={(EVERY_VALUES.includes(draft.every) ? EVERY_VALUES : [...EVERY_VALUES, draft.every]).map(
+								(value) => ({
+									value,
+									label: everyLabel(value),
+								}),
+							)}
 						/>
+						<Text color="ink3">{t`Hourly runs keep a fixed gap. Daily and longer keep the same time of day in ${timezone}.`}</Text>
 						<Text color="ink3">{t`Uses web search set up in Settings. Results wait in Today. Applications and documents are never created for you.`}</Text>
 						{!search ? <Banner tone="warn" message={t`Set up web search in Settings to find roles.`} /> : null}
 					</>

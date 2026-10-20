@@ -53,6 +53,8 @@ export function useTodayQueries() {
 		...orpc.career.schedules.queryOptions({ input: {} }),
 		...options,
 		queryKey: [...orpc.career.schedules.key(), session.server],
+		// A queued or running discovery run finishes on the server; follow it without a pull to refresh.
+		refetchInterval: (query) => (query.state.data?.some((row) => row.activeRun) ? 5_000 : false),
 	});
 	const briefings = useQuery({
 		...orpc.career.savedItems.queryOptions({ input: { kind: "briefing" } }),

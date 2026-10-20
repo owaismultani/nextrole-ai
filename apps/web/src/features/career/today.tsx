@@ -18,6 +18,7 @@ import { getInitials } from "@reactive-resume/utils/string";
 import { cn } from "@reactive-resume/utils/style";
 import { cadenceLabel, repeats, runState, runSummary, stateLabel } from "./discovery-run";
 import { CareerLoadError } from "./load-state";
+import { PipelineSummary } from "./pipeline-summary";
 import { rollForwardRepeat, ScheduleSheet, scheduleKind } from "./schedule-sheet";
 import { CollapseRow, Eyebrow, flash, InfoChip, Swap, useCareerTime, useNow, withUndo } from "./shared";
 import {
@@ -80,10 +81,11 @@ export function TodayPage({ schedule, onScheduleChange }: TodayPageProps) {
 					onOpenSchedule={onScheduleChange}
 					className="order-3 scroll-mt-6 lg:order-none"
 				/>
+				<PipelineSummary className="order-4 lg:order-none" />
 			</div>
 			<div className="contents lg:flex lg:flex-col lg:gap-[18px]">
 				<ComingUp now={now} className="order-1 lg:order-none" />
-				<Schedules deleted={deleted} onOpenSchedule={onScheduleChange} className="order-4 lg:order-none" />
+				<Schedules deleted={deleted} onOpenSchedule={onScheduleChange} className="order-5 lg:order-none" />
 			</div>
 			<ScheduleSheet schedule={schedule} onScheduleChange={onScheduleChange} onDelete={deleteSchedule} />
 		</div>
@@ -483,6 +485,21 @@ const companyOf = (row: Opportunity) => row.company || new URL(row.url).hostname
 
 function RoleCard({ row, found, tracked, pending, onTrack, onUndo, onDismiss }: RoleCardProps) {
 	const { matches, unknowns } = row;
+	// An explicit request: the only way an existing role gets a tailored resume and letter.
+	const prepare = useMutation(orpc.career.prepareDocuments.mutationOptions());
+	const onPrepare = () =>
+		prepare.mutate(
+			{ opportunityIds: [row.id], resume: true, letter: true },
+			{
+				onSuccess: () =>
+					toast.add({ description: t`Preparing a resume and cover letter. Follow them in Settings → Automation.` }),
+				onError: (error) =>
+					toast.add({
+						type: "error",
+						description: getOrpcErrorMessage(error, { fallback: t`Couldn't start that.`, allowServerMessage: true }),
+					}),
+			},
+		);
 	const company = companyOf(row);
 	const unknownLabels = { salary: t`Salary not listed`, office: t`Office days not stated` };
 	return (
@@ -543,6 +560,14 @@ function RoleCard({ row, found, tracked, pending, onTrack, onUndo, onDismiss }: 
 						<Button variant="secondary" className="h-8 px-3 text-[13px]" loading={pending} onClick={() => onTrack(row)}>
 							{!pending && <Icon name="bookmark-simple" size={18} />}
 							<Trans>Track in Applications</Trans>
+						</Button>
+						<Button
+							variant="ghost"
+							className="h-8 px-2.5 text-[13px] text-ink-2"
+							loading={prepare.isPending}
+							onClick={onPrepare}
+						>
+							<Trans>Prepare documents</Trans>
 						</Button>
 						<Button
 							variant="ghost"
@@ -649,7 +674,11 @@ function ComingUp({ now, className }: ComingUpProps) {
 	);
 }
 
-type SchedulesProps = { deleted: string[]; onOpenSchedule: (schedule: string) => void; className?: string };
+type SchedulesProps = {
+	deleted: string[];
+	onOpenSchedule: (schedule: string) => void;
+	className?: string;
+};
 
 const KIND_ORDER = ["discovery", "prepare", "follow-up"];
 
@@ -732,7 +761,14 @@ function Schedules({ deleted, onOpenSchedule, className }: SchedulesProps) {
 		return row.enabled ? line : t`Paused · ${line}`;
 	};
 
+	const setEnabled = useMutation({
+		...orpc.career.setScheduleEnabled.mutationOptions(),
+		onSuccess: (saved) => toast.add({ description: saved.enabled ? t`Discovery resumed` : t`Discovery paused` }),
+		onError: (error) => failed(error, t`Couldn't change this schedule.`),
+	});
 	const toggle = (row: Schedule, enabled: boolean) => {
+		// Discovery pauses and resumes on the server, which resumes with one prompt run instead of replaying missed ones.
+		if (row.kind === "discovery") return setEnabled.mutate({ id: row.id, enabled });
 		// A finished one-off reminder has nothing left to run: switching it on means picking a new time.
 		if (enabled && !repeats(row) && row.lastQueuedAt && new Date(row.nextRunAt).getTime() <= Date.now())
 			return onOpenSchedule(row.id);

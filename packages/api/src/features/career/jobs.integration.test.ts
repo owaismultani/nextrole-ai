@@ -694,7 +694,7 @@ describe.skipIf(!databaseUrl)("durable career scheduling", () => {
 			await expect(jobs.runNow("alice", saved.id)).resolves.toEqual({ queued: true });
 		});
 
-		it("pauses by cancelling queued work and resumes on the original cadence", async () => {
+		it("pauses by cancelling queued work and resumes with one prompt run", async () => {
 			const saved = await hourly();
 			await jobs.runNow("alice", saved.id);
 			await expect(jobs.setEnabled("alice", saved.id, false)).resolves.toMatchObject({ enabled: false });
@@ -703,8 +703,13 @@ describe.skipIf(!databaseUrl)("durable career scheduling", () => {
 			expect((await row(saved.id)).lastAttemptedAt).toBeNull();
 			const resumed = await jobs.setEnabled("alice", saved.id, true);
 			expect(resumed.enabled).toBe(true);
-			expect(resumed.nextRunAt.getTime()).toBeGreaterThan(Date.now());
-			expect((resumed.nextRunAt.getTime() - saved.nextRunAt.getTime()) % 3_600_000).toBe(0);
+			// A fixed-gap schedule resumes with one prompt run, not the missed ones, then continues on its gap.
+			expect(Math.abs(resumed.nextRunAt.getTime() - Date.now())).toBeLessThan(5_000);
+			fixture.search.mockClear();
+			await run();
+			await run();
+			expect(fixture.search).toHaveBeenCalledOnce();
+			expect((await row(saved.id)).nextRunAt.getTime()).toBeGreaterThan(Date.now());
 		});
 
 		it("rejects mixing hours with days, and hours for anything but discovery", async () => {

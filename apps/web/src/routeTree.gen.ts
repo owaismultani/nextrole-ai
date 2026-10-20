@@ -43,11 +43,13 @@ import { Route as DashboardApplicationsIndexRouteImport } from "./routes/dashboa
 import { Route as DashboardCareerIndexRouteImport } from "./routes/dashboard/career/index";
 import { Route as DashboardCareerKnowledgeRouteRouteImport } from "./routes/dashboard/career/knowledge/route";
 import { Route as DashboardCareerOffersRouteImport } from "./routes/dashboard/career/offers";
+import { Route as DashboardCareerPipelineRouteImport } from "./routes/dashboard/career/pipeline";
 import { Route as DashboardResumesIndexRouteImport } from "./routes/dashboard/resumes/index";
 import { Route as DashboardSettingsIndexRouteImport } from "./routes/dashboard/settings/index";
 import { Route as DashboardSettingsAccountRouteImport } from "./routes/dashboard/settings/account";
 import { Route as DashboardSettingsAiRouteImport } from "./routes/dashboard/settings/ai";
 import { Route as DashboardSettingsApiKeysRouteImport } from "./routes/dashboard/settings/api-keys";
+import { Route as DashboardSettingsAutomationRouteImport } from "./routes/dashboard/settings/automation";
 import { Route as DashboardSettingsIntegrationsRouteRouteImport } from "./routes/dashboard/settings/integrations/route";
 import { Route as DashboardSettingsJobSearchRouteImport } from "./routes/dashboard/settings/job-search";
 import { Route as DashboardSettingsPreferencesRouteImport } from "./routes/dashboard/settings/preferences";
@@ -231,6 +233,11 @@ const DashboardCareerOffersRoute = DashboardCareerOffersRouteImport.update({
   path: "/offers",
   getParentRoute: () => DashboardCareerRouteRoute,
 } as any);
+const DashboardCareerPipelineRoute = DashboardCareerPipelineRouteImport.update({
+  id: "/pipeline",
+  path: "/pipeline",
+  getParentRoute: () => DashboardCareerRouteRoute,
+} as any);
 const DashboardResumesIndexRoute = DashboardResumesIndexRouteImport.update({
   id: "/resumes/",
   path: "/resumes/",
@@ -256,6 +263,12 @@ const DashboardSettingsApiKeysRoute =
   DashboardSettingsApiKeysRouteImport.update({
     id: "/api-keys",
     path: "/api-keys",
+    getParentRoute: () => DashboardSettingsRouteRoute,
+  } as any);
+const DashboardSettingsAutomationRoute =
+  DashboardSettingsAutomationRouteImport.update({
+    id: "/automation",
+    path: "/automation",
     getParentRoute: () => DashboardSettingsRouteRoute,
   } as any);
 const DashboardSettingsIntegrationsRouteRoute =
@@ -351,9 +364,11 @@ export interface FileRoutesByFullPath {
   "/dashboard/settings/integrations": typeof DashboardSettingsIntegrationsRouteRoute;
   "/builder/letter/$coverLetterId": typeof BuilderLetterCoverLetterIdRoute;
   "/dashboard/career/offers": typeof DashboardCareerOffersRoute;
+  "/dashboard/career/pipeline": typeof DashboardCareerPipelineRoute;
   "/dashboard/settings/account": typeof DashboardSettingsAccountRoute;
   "/dashboard/settings/ai": typeof DashboardSettingsAiRoute;
   "/dashboard/settings/api-keys": typeof DashboardSettingsApiKeysRoute;
+  "/dashboard/settings/automation": typeof DashboardSettingsAutomationRoute;
   "/dashboard/settings/job-search": typeof DashboardSettingsJobSearchRoute;
   "/dashboard/settings/preferences": typeof DashboardSettingsPreferencesRoute;
   "/dashboard/settings/profile": typeof DashboardSettingsProfileRoute;
@@ -395,9 +410,11 @@ export interface FileRoutesByTo {
   "/dashboard/settings/integrations": typeof DashboardSettingsIntegrationsRouteRoute;
   "/builder/letter/$coverLetterId": typeof BuilderLetterCoverLetterIdRoute;
   "/dashboard/career/offers": typeof DashboardCareerOffersRoute;
+  "/dashboard/career/pipeline": typeof DashboardCareerPipelineRoute;
   "/dashboard/settings/account": typeof DashboardSettingsAccountRoute;
   "/dashboard/settings/ai": typeof DashboardSettingsAiRoute;
   "/dashboard/settings/api-keys": typeof DashboardSettingsApiKeysRoute;
+  "/dashboard/settings/automation": typeof DashboardSettingsAutomationRoute;
   "/dashboard/settings/job-search": typeof DashboardSettingsJobSearchRoute;
   "/dashboard/settings/preferences": typeof DashboardSettingsPreferencesRoute;
   "/dashboard/settings/profile": typeof DashboardSettingsProfileRoute;
@@ -447,9 +464,11 @@ export interface FileRoutesById {
   "/dashboard/settings/integrations": typeof DashboardSettingsIntegrationsRouteRoute;
   "/builder/letter/$coverLetterId": typeof BuilderLetterCoverLetterIdRoute;
   "/dashboard/career/offers": typeof DashboardCareerOffersRoute;
+  "/dashboard/career/pipeline": typeof DashboardCareerPipelineRoute;
   "/dashboard/settings/account": typeof DashboardSettingsAccountRoute;
   "/dashboard/settings/ai": typeof DashboardSettingsAiRoute;
   "/dashboard/settings/api-keys": typeof DashboardSettingsApiKeysRoute;
+  "/dashboard/settings/automation": typeof DashboardSettingsAutomationRoute;
   "/dashboard/settings/job-search": typeof DashboardSettingsJobSearchRoute;
   "/dashboard/settings/preferences": typeof DashboardSettingsPreferencesRoute;
   "/dashboard/settings/profile": typeof DashboardSettingsProfileRoute;
@@ -499,9 +518,11 @@ export interface FileRouteTypes {
     | "/dashboard/settings/integrations"
     | "/builder/letter/$coverLetterId"
     | "/dashboard/career/offers"
+    | "/dashboard/career/pipeline"
     | "/dashboard/settings/account"
     | "/dashboard/settings/ai"
     | "/dashboard/settings/api-keys"
+    | "/dashboard/settings/automation"
     | "/dashboard/settings/job-search"
     | "/dashboard/settings/preferences"
     | "/dashboard/settings/profile"
@@ -543,9 +564,11 @@ export interface FileRouteTypes {
     | "/dashboard/settings/integrations"
     | "/builder/letter/$coverLetterId"
     | "/dashboard/career/offers"
+    | "/dashboard/career/pipeline"
     | "/dashboard/settings/account"
     | "/dashboard/settings/ai"
     | "/dashboard/settings/api-keys"
+    | "/dashboard/settings/automation"
     | "/dashboard/settings/job-search"
     | "/dashboard/settings/preferences"
     | "/dashboard/settings/profile"
@@ -594,9 +617,11 @@ export interface FileRouteTypes {
     | "/dashboard/settings/integrations"
     | "/builder/letter/$coverLetterId"
     | "/dashboard/career/offers"
+    | "/dashboard/career/pipeline"
     | "/dashboard/settings/account"
     | "/dashboard/settings/ai"
     | "/dashboard/settings/api-keys"
+    | "/dashboard/settings/automation"
     | "/dashboard/settings/job-search"
     | "/dashboard/settings/preferences"
     | "/dashboard/settings/profile"
@@ -864,6 +889,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof DashboardCareerOffersRouteImport;
       parentRoute: typeof DashboardCareerRouteRoute;
     };
+    "/dashboard/career/pipeline": {
+      id: "/dashboard/career/pipeline";
+      path: "/pipeline";
+      fullPath: "/dashboard/career/pipeline";
+      preLoaderRoute: typeof DashboardCareerPipelineRouteImport;
+      parentRoute: typeof DashboardCareerRouteRoute;
+    };
     "/dashboard/resumes/": {
       id: "/dashboard/resumes/";
       path: "/resumes";
@@ -897,6 +929,13 @@ declare module "@tanstack/react-router" {
       path: "/api-keys";
       fullPath: "/dashboard/settings/api-keys";
       preLoaderRoute: typeof DashboardSettingsApiKeysRouteImport;
+      parentRoute: typeof DashboardSettingsRouteRoute;
+    };
+    "/dashboard/settings/automation": {
+      id: "/dashboard/settings/automation";
+      path: "/automation";
+      fullPath: "/dashboard/settings/automation";
+      preLoaderRoute: typeof DashboardSettingsAutomationRouteImport;
       parentRoute: typeof DashboardSettingsRouteRoute;
     };
     "/dashboard/settings/integrations": {
@@ -1057,6 +1096,7 @@ const DashboardCareerKnowledgeRouteRouteWithChildren =
 interface DashboardCareerRouteRouteChildren {
   DashboardCareerKnowledgeRouteRoute: typeof DashboardCareerKnowledgeRouteRouteWithChildren;
   DashboardCareerOffersRoute: typeof DashboardCareerOffersRoute;
+  DashboardCareerPipelineRoute: typeof DashboardCareerPipelineRoute;
   DashboardCareerIndexRoute: typeof DashboardCareerIndexRoute;
   DashboardCareerCoachChar123ConversationIdChar125Route: typeof DashboardCareerCoachChar123ConversationIdChar125Route;
 }
@@ -1065,6 +1105,7 @@ const DashboardCareerRouteRouteChildren: DashboardCareerRouteRouteChildren = {
   DashboardCareerKnowledgeRouteRoute:
     DashboardCareerKnowledgeRouteRouteWithChildren,
   DashboardCareerOffersRoute: DashboardCareerOffersRoute,
+  DashboardCareerPipelineRoute: DashboardCareerPipelineRoute,
   DashboardCareerIndexRoute: DashboardCareerIndexRoute,
   DashboardCareerCoachChar123ConversationIdChar125Route:
     DashboardCareerCoachChar123ConversationIdChar125Route,
@@ -1078,6 +1119,7 @@ interface DashboardSettingsRouteRouteChildren {
   DashboardSettingsAccountRoute: typeof DashboardSettingsAccountRoute;
   DashboardSettingsAiRoute: typeof DashboardSettingsAiRoute;
   DashboardSettingsApiKeysRoute: typeof DashboardSettingsApiKeysRoute;
+  DashboardSettingsAutomationRoute: typeof DashboardSettingsAutomationRoute;
   DashboardSettingsJobSearchRoute: typeof DashboardSettingsJobSearchRoute;
   DashboardSettingsPreferencesRoute: typeof DashboardSettingsPreferencesRoute;
   DashboardSettingsProfileRoute: typeof DashboardSettingsProfileRoute;
@@ -1092,6 +1134,7 @@ const DashboardSettingsRouteRouteChildren: DashboardSettingsRouteRouteChildren =
     DashboardSettingsAccountRoute: DashboardSettingsAccountRoute,
     DashboardSettingsAiRoute: DashboardSettingsAiRoute,
     DashboardSettingsApiKeysRoute: DashboardSettingsApiKeysRoute,
+    DashboardSettingsAutomationRoute: DashboardSettingsAutomationRoute,
     DashboardSettingsJobSearchRoute: DashboardSettingsJobSearchRoute,
     DashboardSettingsPreferencesRoute: DashboardSettingsPreferencesRoute,
     DashboardSettingsProfileRoute: DashboardSettingsProfileRoute,

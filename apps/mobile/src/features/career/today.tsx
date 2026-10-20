@@ -9,6 +9,7 @@ import Animated from "react-native-reanimated";
 import { repeats } from "@reactive-resume/schema/career-run";
 import { cadenceLabel, runState, runSummary, stateLabel } from "./discovery-run";
 import { client, useCareerAction, useCareerTime, useNow, useTodayQueries, useUndoRows } from "./hooks";
+import { PipelineSummary } from "./pipeline-summary";
 import { ScheduleSheet, scheduleTitle } from "./schedule-sheet";
 import { collectInterviews, rollForwardRepeat } from "./scheduling";
 import { Actions, LoadState, Section, SwitchRow } from "./shared";
@@ -74,6 +75,9 @@ export function TodayScreen() {
 		setSheet({ schedule, kind: schedule.kind as "discovery" | "prepare" | "follow-up" });
 	const toggle = (row: Schedule, enabled: boolean) => {
 		if (enabled && !repeats(row) && row.lastQueuedAt && new Date(row.nextRunAt) <= now) return openSchedule(row);
+		// Discovery pauses and resumes on the server, which resumes with one prompt run instead of replaying missed ones.
+		if (row.kind === "discovery")
+			return void action.run(() => client.career.setScheduleEnabled({ id: row.id, enabled }));
 		void action.run(() =>
 			client.career.saveSchedule({
 				id: row.id,
@@ -299,6 +303,21 @@ export function TodayScreen() {
 											/>
 											<Button
 												variant="ghost"
+												label={t`Prepare documents`}
+												disabled={action.pending}
+												onPress={() =>
+													void action.run(
+														() =>
+															client.career.prepareDocuments({ opportunityIds: [row.id], resume: true, letter: true }),
+														() =>
+															showToast({
+																message: t`Preparing a resume and cover letter. Follow them in Settings → Automation.`,
+															}),
+													)
+												}
+											/>
+											<Button
+												variant="ghost"
 												label={t`Read posting`}
 												onPress={() => {
 													if (/^https?:\/\//i.test(row.url))
@@ -323,6 +342,7 @@ export function TodayScreen() {
 									<Button variant="ghost" label={t`Show more`} onPress={() => setExpanded(true)} />
 								) : null}
 							</Section>
+							<PipelineSummary />
 						</View>
 					</View>
 					<View style={{ flex: tablet ? 1 : 0, gap: space.s4 }}>

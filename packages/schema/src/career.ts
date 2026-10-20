@@ -333,7 +333,43 @@ export const careerScheduleInputSchema = careerScopeSchema.extend({
 	intervalDays: z.number().int().min(1).max(30).nullable().default(null),
 	/** Discovery only, instead of `intervalDays`: a fixed gap between runs. */
 	intervalMinutes: careerIntervalMinutesSchema.nullable().default(null),
+	/** Discovery only: results one run may retrieve (5 to 20); null uses the default. */
+	retrievalBudget: z.number().int().min(5).max(20).nullable().default(null),
 	aiProviderId: z.string().min(1).nullable().default(null),
 	/** The interface language; a scheduled briefing is written in it. Kept when left out. */
 	locale: z.string().min(2).max(20).optional(),
 });
+
+// ---- Automation: discovery plus optional document preparation ----
+
+/** Results one discovery run may retrieve. Providers cap a search at 20 results, so the budget stops there. */
+export const RETRIEVAL_BUDGET = { min: 5, max: 20, default: 15 } as const;
+export const DAILY_LIMIT = { min: 1, max: 50, default: 10 } as const;
+
+/** Document preparation for discovered jobs. Discovery itself is a schedule, set up in Career → Schedules. */
+export const careerAutomationInputSchema = z.object({
+	resumesEnabled: z.boolean().default(false),
+	lettersEnabled: z.boolean().default(false),
+	baselineResumeId: z.string().min(1).nullable().default(null),
+	aiProviderId: z.string().min(1).nullable().default(null),
+	dailyLimit: z.number().int().min(DAILY_LIMIT.min).max(DAILY_LIMIT.max).default(DAILY_LIMIT.default),
+});
+
+export const preparationKindSchema = z.enum(["resume", "letter"]);
+export type PreparationKind = z.infer<typeof preparationKindSchema>;
+export const preparationStatusSchema = z.enum(["queued", "running", "done", "failed", "canceled"]);
+export type PreparationStatus = z.infer<typeof preparationStatusSchema>;
+
+/** Why a step stopped or waits. Words are written by each app. */
+export const preparationErrorSchema = z.enum([
+	"setting-off",
+	"daily-limit",
+	"no-baseline",
+	"no-description",
+	"no-ai",
+	"provider",
+	"rate-limit",
+	"invalid-output",
+	"unknown",
+]);
+export type PreparationError = z.infer<typeof preparationErrorSchema>;

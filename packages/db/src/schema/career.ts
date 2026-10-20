@@ -12,6 +12,7 @@ import { generateId } from "@reactive-resume/utils/string";
 import { aiProvider } from "./agent";
 import { application } from "./applications";
 import { user } from "./auth";
+import { resume } from "./resume";
 
 const owned = () => ({
 	id: pg
@@ -105,9 +106,24 @@ export const careerSchedule = pg.pgTable(
 		lastSucceededAt: pg.timestamp("last_succeeded_at", { withTimezone: true }),
 		/** Discovery only: what the latest run did. */
 		lastRun: pg.jsonb("last_run").$type<CareerRunReport>(),
+		/** Discovery only: results one run may retrieve from the search provider; null uses the default. */
+		retrievalBudget: pg.integer("retrieval_budget"),
 		aiProviderId: pg.text("ai_provider_id").references(() => aiProvider.id, { onDelete: "set null" }),
 	},
 	(t) => [pg.index().on(t.enabled, t.nextRunAt)],
+);
+/** One discovery attempt and what it found, kept so runs can be reviewed and traced to the jobs and documents they led to. */
+export const careerRun = pg.pgTable(
+	"career_run",
+	{
+		...owned(),
+		scheduleId: pg
+			.text("schedule_id")
+			.notNull()
+			.references(() => careerSchedule.id, { onDelete: "cascade" }),
+		report: pg.jsonb("report").notNull().$type<CareerRunReport>(),
+	},
+	(t) => [pg.index().on(t.userId, t.createdAt.desc(), t.id.desc()), pg.index().on(t.scheduleId, t.createdAt.desc())],
 );
 export const careerJob = pg.pgTable(
 	"career_job",
@@ -159,6 +175,8 @@ export const careerOpportunity = pg.pgTable(
 		firstSeenAt: pg.timestamp("first_seen_at", { withTimezone: true }).notNull().defaultNow(),
 		lastSeenAt: pg.timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
 		dismissedAt: pg.timestamp("dismissed_at", { withTimezone: true }),
+		/** The discovery run that first found this role. */
+		runId: pg.text("run_id").references(() => careerRun.id, { onDelete: "set null" }),
 		/** Set when tracked in Applications; a tracked role never returns in later runs. */
 		trackedApplicationId: pg.text("tracked_application_id").references(() => application.id, { onDelete: "set null" }),
 	},
@@ -193,4 +211,70 @@ export const careerTranscript = pg.pgTable(
 		model: pg.text("model").notNull(),
 	},
 	(t) => [pg.index().on(t.userId, t.applicationId)],
+);
+
+/**
+ * A user's document-preparation settings. Discovery itself is an ordinary `career_schedule`, edited in Career →
+ * Schedules, so there is one source of truth for its query, cadence and on/off state; this row adds what to prepare
+ * for the jobs it finds, and the limits.
+ */
+export const careerAutomation = pg.pgTable(
+	"career_automation",
+	{
+		...owned(),
+		resumesEnabled: pg.boolean("resumes_enabled").notNull().default(false),
+		lettersEnabled: pg.boolean("letters_enabled").notNull().default(false),
+		baselineResumeId: pg.text("baseline_resume_id").references(() => resume.id, { onDelete: "set null" }),
+		aiProviderId: pg.text("ai_provider_id").references(() => aiProvider.id, { onDelete: "set null" }),
+		/** Documents generated per day, counted per document on its first attempt; retries are free. */
+		dailyLimit: pg.integer("daily_limit").notNull().default(10),
+		/** The local day (in the user's timezone) `usage_count` belongs to. */
+		usageDay: pg.text("usage_day"),
+		usageCount: pg.integer("usage_count").notNull().default(0),
+	},
+	(t) => [pg.uniqueIndex().on(t.userId)],
+);
+
+/**
+ * One document to prepare for one discovered job: a row per requested kind, so what was asked for, what finished and
+ * what was canceled is explicit. Outputs are ordinary resumes and cover letters linked to the application.
+ */
+export const careerPreparation = pg.pgTable(
+	"career_preparation",
+	{
+		...owned(),
+		opportunityId: pg
+			.text("opportunity_id")
+			.notNull()
+			.references(() => careerOpportunity.id, { onDelete: "cascade" }),
+		applicationId: applicationId(),
+		kind: pg.text("kind").notNull(),
+		/** True when a person asked for this document: it then runs even if the automatic toggle is off. */
+		manual: pg.boolean("manual").notNull().default(false),
+		status: pg.text("status").notNull().default("queued"),
+		/** Bumped by an explicit regenerate; each generation writes a new document and never overwrites an edited one. */
+		generation: pg.integer("generation").notNull().default(1),
+		attempts: pg.integer("attempts").notNull().default(0),
+		nextAttemptAt: pg.timestamp("next_attempt_at", { withTimezone: true }).notNull().defaultNow(),
+		lease: pg.text("lease"),
+		leaseUntil: pg.timestamp("lease_until", { withTimezone: true }),
+		/** True once this generation has taken a slot from the daily limit, so retries do not take another. */
+		counted: pg.boolean("counted").notNull().default(false),
+		error: pg.text("error"),
+		/** Things to check before using the document (information the posting or resume did not provide). */
+		issues: pg.jsonb("issues").notNull().$type<string[]>().default([]),
+		/** The resume or cover letter produced; chosen before it is created so a retry reuses it. */
+		outputId: pg.text("output_id"),
+		baselineResumeId: pg.text("baseline_resume_id"),
+		/** The baseline's `updated_at` when it was read, to tell later when the document may be out of date. */
+		baselineVersion: pg.text("baseline_version"),
+		jobHash: pg.text("job_hash"),
+		startedAt: pg.timestamp("started_at", { withTimezone: true }),
+		completedAt: pg.timestamp("completed_at", { withTimezone: true }),
+	},
+	(t) => [
+		pg.uniqueIndex().on(t.userId, t.opportunityId, t.kind),
+		pg.index().on(t.status, t.nextAttemptAt),
+		pg.index().on(t.userId, t.status),
+	],
 );

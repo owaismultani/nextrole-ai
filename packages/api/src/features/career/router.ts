@@ -1,5 +1,6 @@
 import z from "zod";
 import {
+	careerAutomationInputSchema,
 	careerFactInputSchema,
 	careerProfileDataSchema,
 	careerScheduleInputSchema,
@@ -10,7 +11,10 @@ import {
 } from "@reactive-resume/schema/career";
 import { protectedProcedure } from "../../context";
 import {
+	careerAutomationSchema,
 	careerFactSchema,
+	careerPreparationJobSchema,
+	careerRunListSchema,
 	careerNotificationSchema,
 	careerOpportunitySchema,
 	careerScheduleListItemSchema,
@@ -19,6 +23,8 @@ import {
 	savedItemSchema,
 } from "../../dto/career";
 import { aiRequestRateLimit } from "../../middleware/rate-limit";
+import { paginationShape } from "../../pagination";
+import { careerAutomation } from "./automation";
 import { generateCareer } from "./generate";
 import { careerJobs } from "./jobs";
 import { careerService } from "./service";
@@ -81,6 +87,94 @@ export const careerRouter = {
 		.input(id.extend({ enabled: z.boolean() }))
 		.output(careerScheduleSchema)
 		.handler(({ context, input }) => careerJobs.setEnabled(context.user.id, input.id, input.enabled)),
+	automation: protectedProcedure
+		.route({
+			method: "GET",
+			path: "/career/automation",
+			tags: ["Career"],
+			operationId: "getCareerAutomation",
+			summary: "Get automation settings",
+			description:
+				"Discovery (its query, interval and on/off state live on the discovery schedule), automatic document preparation, the baseline resume, the daily generation limit and today's use of it.",
+		})
+		.input(z.object({}))
+		.output(careerAutomationSchema)
+		.handler(({ context }) => careerAutomation.get(context.user.id)),
+	saveAutomation: protectedProcedure
+		.route({
+			method: "PUT",
+			path: "/career/automation",
+			tags: ["Career"],
+			operationId: "saveCareerAutomation",
+			summary: "Save automation settings",
+			description:
+				"Turning discovery on queues the first run at once. Turning a document type off cancels its waiting automatic work; finished documents stay. Turning one on affects future discoveries only.",
+		})
+		.input(careerAutomationInputSchema)
+		.output(careerAutomationSchema)
+		.handler(({ context, input }) => careerAutomation.save(context.user.id, input)),
+	runs: protectedProcedure
+		.route({
+			method: "GET",
+			path: "/career/runs",
+			tags: ["Career"],
+			operationId: "listCareerRuns",
+			summary: "List discovery runs",
+			description:
+				"Discovery runs, newest first, with what each found and the jobs it led to, including the resume and cover letter made for each. Paginated with limit (default 10) and offset.",
+		})
+		.input(z.object(paginationShape))
+		.output(careerRunListSchema)
+		.handler(({ context, input }) => careerAutomation.runs(context.user.id, input)),
+	preparations: protectedProcedure
+		.route({
+			method: "GET",
+			path: "/career/preparations",
+			tags: ["Career"],
+			operationId: "listCareerPreparations",
+			summary: "List document preparation",
+		})
+		.input(z.object({}))
+		.output(z.array(careerPreparationJobSchema))
+		.handler(({ context }) => careerAutomation.preparations(context.user.id)),
+	prepareDocuments: protectedProcedure
+		.route({
+			method: "POST",
+			path: "/career/preparations",
+			tags: ["Career"],
+			operationId: "prepareCareerDocuments",
+			summary: "Prepare documents for chosen jobs",
+			description:
+				"Queues a tailored resume and/or cover letter for existing discovered jobs, using the baseline resume. This is the only way existing jobs are processed.",
+		})
+		.input(
+			z.object({ opportunityIds: z.array(z.string().min(1)).min(1).max(25), resume: z.boolean(), letter: z.boolean() }),
+		)
+		.output(z.object({ queued: z.number() }))
+		.handler(({ context, input }) => careerAutomation.prepare(context.user.id, input)),
+	retryPreparation: protectedProcedure
+		.route({
+			method: "POST",
+			path: "/career/preparations/{id}/retry",
+			tags: ["Career"],
+			operationId: "retryCareerPreparation",
+			summary: "Retry a document step",
+		})
+		.input(id)
+		.output(z.void())
+		.handler(({ context, input }) => careerAutomation.retry(context.user.id, input.id)),
+	regeneratePreparation: protectedProcedure
+		.route({
+			method: "POST",
+			path: "/career/preparations/{id}/regenerate",
+			tags: ["Career"],
+			operationId: "regenerateCareerPreparation",
+			summary: "Regenerate a document",
+			description: "Makes a new document from the current baseline and posting. The earlier one is never overwritten.",
+		})
+		.input(id)
+		.output(z.void())
+		.handler(({ context, input }) => careerAutomation.regenerate(context.user.id, input.id)),
 	deleteSchedule: protectedProcedure
 		.route({
 			method: "DELETE",

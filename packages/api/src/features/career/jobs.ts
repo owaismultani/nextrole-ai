@@ -1,3 +1,4 @@
+import type { SearchOptions } from "../web-access/contracts";
 import type { CareerRunReport, careerScheduleInputSchema } from "@reactive-resume/schema/career";
 import type z from "zod";
 import { ORPCError } from "@orpc/client";
@@ -11,9 +12,11 @@ import { STALE_AGENT_RUN_TTL_MS } from "../agent/runs";
 import { aiProvidersService } from "../ai-providers/service";
 import { jobSearchQuery, readOpenPosting, searchJobPostings } from "../applications/posting";
 import { webAccessService } from "../web-access/credentials";
+import { enqueueAutomatedPreparation, retrievalFor } from "./automation";
 import { generateCareer } from "./generate";
 import { matchPosting } from "./matching";
 import { noticeText } from "./notices";
+import { runPreparations } from "./prepare";
 import { isCareerSchedulingEnabled } from "./runner";
 import { advanceRun, canonicalOpportunityUrl, parseListingTitle, plainSnippet, prepareRunAt } from "./scheduling";
 import { careerService, requireCareerApplication } from "./service";
@@ -59,6 +62,13 @@ export const careerJobs = {
 			input.nextRunAt = prepareRunAt(new Date(interview.at), input.lead ?? "24h", input.timezone);
 		if (input.kind === "discovery" && !input.query)
 			throw new ORPCError("BAD_REQUEST", { message: "Supply a public job-search query." });
+		if (input.kind === "discovery" && input.enabled && !(await webAccessService.resolve(userId)))
+			throw new ORPCError("PRECONDITION_FAILED", {
+				message: "Set up a web search connection in Settings → AI & developer first.",
+				data: { missing: "search" },
+			});
+		if (input.retrievalBudget && input.kind !== "discovery")
+			throw new ORPCError("BAD_REQUEST", { message: "Only discovery schedules have a results budget." });
 		if (input.intervalMinutes && (input.kind !== "discovery" || input.intervalDays))
 			throw new ORPCError("BAD_REQUEST", { message: "Choose either hours or days between discovery runs." });
 		if (input.kind !== "discovery" && !input.applicationId)
@@ -82,6 +92,7 @@ export const careerJobs = {
 		}
 		const { id, ...values } = input;
 		let keepQueuedAt: Date | null = null;
+		let previous: typeof tables.careerSchedule.$inferSelect | undefined;
 		return db.transaction(async (tx) => {
 			if (id) {
 				const [owned] = await tx
@@ -94,7 +105,7 @@ export const careerJobs = {
 				// A briefing's time comes from its interview: one that already ran for that time stays done when switched
 				// back on. Other schedules need a new time.
 				if (input.kind === "prepare") keepQueuedAt = ran;
-				else if (input.enabled && ran)
+				else if (input.enabled && ran && !input.intervalDays && !input.intervalMinutes)
 					throw new ORPCError("BAD_REQUEST", {
 						message: "Choose a new run time when rescheduling completed or canceled work.",
 					});
@@ -102,7 +113,17 @@ export const careerJobs = {
 					.update(tables.careerJob)
 					.set({ status: "canceled", lease: null, leaseUntil: null })
 					.where(and(eq(tables.careerJob.scheduleId, id), sql`${tables.careerJob.status} in ('queued', 'running')`));
+				previous = owned;
 			}
+			// Discovery on a fixed gap starts at once when it is switched on or its gap changes, not after a first
+			// interval; the form has no first-run time for it.
+			if (
+				input.kind === "discovery" &&
+				input.intervalMinutes &&
+				input.enabled &&
+				(!previous || !previous.enabled || previous.intervalMinutes !== input.intervalMinutes)
+			)
+				values.nextRunAt = new Date();
 			const [row] = id
 				? await tx
 						.update(tables.careerSchedule)
@@ -169,9 +190,13 @@ export const careerJobs = {
 					.update(tables.careerJob)
 					.set({ status: "canceled", lease: null, leaseUntil: null })
 					.where(and(eq(tables.careerJob.scheduleId, id), inArray(tables.careerJob.status, ["queued", "running"])));
+			// A schedule on a fixed gap resumes with one prompt run, never the missed ones. A daily or longer one keeps its
+			// local time, so it waits for its next slot.
 			const nextRunAt =
 				enabled && repeating && schedule.nextRunAt <= new Date()
-					? advanceRun(schedule.nextRunAt, schedule)
+					? schedule.intervalMinutes
+						? new Date()
+						: advanceRun(schedule.nextRunAt, schedule)
 					: schedule.nextRunAt;
 			const [row] = await tx
 				.update(tables.careerSchedule)
@@ -259,12 +284,12 @@ const hostOf = (url: string) => {
  *
  * Also tallies what happened to every hit (see `careerRunReportSchema`); `matches` is filled in once roles are saved.
  */
-async function discover(userId: string, query: string, trigger: Trigger, startedAt: Date) {
+async function discover(userId: string, query: string, trigger: Trigger, startedAt: Date, search?: SearchOptions) {
 	const connection = await webAccessService.resolve(userId);
 	const signal = AbortSignal.timeout(90_000);
 	const queries = [jobSearchQuery(query)];
 	const provider = connection?.provider ?? "builtin";
-	const hits = await searchJobPostings(query, { userId, connection, signal }).catch((error: unknown) => {
+	const hits = await searchJobPostings(query, { userId, connection, signal }, search).catch((error: unknown) => {
 		throw new DiscoveryFailure(
 			{ ...emptyReport(trigger, startedAt, queries, provider), outcome: "failed", failure: "search" },
 			error,
@@ -461,7 +486,13 @@ async function execute(job: typeof tables.careerJob.$inferSelect) {
 		.where(eq(tables.careerSchedule.id, schedule.id));
 	const discovery =
 		schedule.kind === "discovery"
-			? await discover(job.userId, schedule.query, job.trigger === "manual" ? "manual" : "schedule", startedAt)
+			? await discover(
+					job.userId,
+					schedule.query,
+					job.trigger === "manual" ? "manual" : "schedule",
+					startedAt,
+					retrievalFor(schedule),
+				)
 			: null;
 	const results = discovery?.results ?? [];
 	if (schedule.kind === "prepare") {
@@ -504,7 +535,14 @@ async function execute(job: typeof tables.careerJob.$inferSelect) {
 			)
 			.for("update");
 		if (!current || !current.leaseUntil || current.leaseUntil < new Date()) return;
+		// Each discovery attempt is kept as a run, so its jobs and their documents can be traced back to it.
+		const runId = generateId();
+		if (discovery)
+			await tx
+				.insert(tables.careerRun)
+				.values({ id: runId, userId: job.userId, scheduleId: schedule.id, report: discovery.report });
 		let changed = 0;
+		const added: string[] = [];
 		for (const { url, hit, posting, existing } of results) {
 			// Seen before, or unreadable this run.
 			if (posting === undefined) {
@@ -529,6 +567,7 @@ async function execute(job: typeof tables.careerJob.$inferSelect) {
 				location: (posting?.page?.location ?? "").slice(0, 200),
 				snippet: plainSnippet(hit.description || posting?.text || ""),
 				description: posting?.text ?? "",
+				...(discovery ? { runId } : {}),
 				// Not a posting: kept out of New roles, and never read again.
 				...(posting ? {} : { dismissedAt: new Date() }),
 			};
@@ -549,7 +588,10 @@ async function execute(job: typeof tables.careerJob.$inferSelect) {
 					setWhere: sql`${tables.careerOpportunity.dismissedAt} is null and ${tables.careerOpportunity.trackedApplicationId} is null`,
 				})
 				.returning();
-			if (inserted && posting && !existing) changed++;
+			if (inserted && posting && !existing) {
+				changed++;
+				added.push(inserted.id);
+			}
 		}
 		// New roles all wait in one list, so the newest "new roles" notice replaces older unread ones.
 		if (schedule.kind === "discovery" && changed)
@@ -581,8 +623,12 @@ async function execute(job: typeof tables.careerJob.$inferSelect) {
 					url: workspaceUrl(schedule.applicationId, schedule.kind === "prepare" ? "prepare" : undefined),
 				})
 				.onConflictDoNothing();
+		// New roles become applications with their requested documents queued, in this same transaction; the documents
+		// themselves are made later by the preparation worker, so discovery never waits for AI.
+		if (schedule.kind === "discovery") await enqueueAutomatedPreparation(tx, job.userId, added);
 		// A run that read nothing is not a success; partial ones still count, and say so in `lastRun`.
 		const report = discovery && { ...discovery.report, matches: changed };
+		if (report) await tx.update(tables.careerRun).set({ report }).where(eq(tables.careerRun.id, runId));
 		await tx
 			.update(tables.careerSchedule)
 			.set({
@@ -619,6 +665,7 @@ async function recordFailure(job: typeof tables.careerJob.$inferSelect, error?: 
 						failure: "unknown" as const,
 					};
 		await db.update(tables.careerSchedule).set({ lastRun }).where(eq(tables.careerSchedule.id, job.scheduleId));
+		await db.insert(tables.careerRun).values({ userId: job.userId, scheduleId: job.scheduleId, report: lastRun });
 	} catch {
 		// Reporting must never stop the scheduler.
 	}
@@ -758,6 +805,8 @@ export async function runCareerJobs() {
 		}
 		processed++;
 	}
+	// Documents are prepared after discovery has finished and saved, each step bounded on its own.
+	await runPreparations().catch(() => 0);
 	await sendPendingEmail();
 	return { processed };
 }

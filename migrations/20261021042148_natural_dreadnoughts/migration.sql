@@ -1,0 +1,2 @@
+ALTER TABLE "career_automation" ADD COLUMN "resume_prompt" text DEFAULT 'Prioritize the experience and skills that best match this role while keeping the resume truthful and concise.' NOT NULL;--> statement-breakpoint
+ALTER TABLE "career_automation" ADD COLUMN "cover_letter_prompt" text DEFAULT 'Write a clear, specific letter that connects my strongest relevant experience to this role without overstating my background.' NOT NULL;

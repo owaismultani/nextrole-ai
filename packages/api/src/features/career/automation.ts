@@ -5,7 +5,7 @@ import { ORPCError } from "@orpc/client";
 import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@reactive-resume/db/client";
 import * as tables from "@reactive-resume/db/schema";
-import { RETRIEVAL_BUDGET } from "@reactive-resume/schema/career";
+import { DEFAULT_COVER_LETTER_PROMPT, DEFAULT_RESUME_PROMPT, RETRIEVAL_BUDGET } from "@reactive-resume/schema/career";
 import { summarizePreparation } from "@reactive-resume/schema/career-run";
 import { aiProvidersService } from "../ai-providers/service";
 import { dayKey, jobHash, nextDayStart } from "./prepare-logic";
@@ -56,6 +56,8 @@ export const careerAutomation = {
 		return {
 			resumesEnabled: automation?.resumesEnabled ?? false,
 			lettersEnabled: automation?.lettersEnabled ?? false,
+			resumePrompt: automation?.resumePrompt ?? DEFAULT_RESUME_PROMPT,
+			coverLetterPrompt: automation?.coverLetterPrompt ?? DEFAULT_COVER_LETTER_PROMPT,
 			baselineResumeId: automation?.baselineResumeId ?? null,
 			aiProviderId: automation?.aiProviderId ?? null,
 			dailyLimit: automation?.dailyLimit ?? 10,
@@ -132,6 +134,8 @@ export const careerAutomation = {
 				.set({
 					resumesEnabled: input.resumesEnabled,
 					lettersEnabled: input.lettersEnabled,
+					resumePrompt: input.resumePrompt,
+					coverLetterPrompt: input.coverLetterPrompt,
 					baselineResumeId: input.baselineResumeId,
 					aiProviderId: input.aiProviderId,
 					dailyLimit: input.dailyLimit,

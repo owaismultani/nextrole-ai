@@ -224,6 +224,18 @@ export const careerAutomation = pg.pgTable(
 		...owned(),
 		resumesEnabled: pg.boolean("resumes_enabled").notNull().default(false),
 		lettersEnabled: pg.boolean("letters_enabled").notNull().default(false),
+		resumePrompt: pg
+			.text("resume_prompt")
+			.notNull()
+			.default(
+				"Prioritize the experience and skills that best match this role while keeping the resume truthful and concise.",
+			),
+		coverLetterPrompt: pg
+			.text("cover_letter_prompt")
+			.notNull()
+			.default(
+				"Write a clear, specific letter that connects my strongest relevant experience to this role without overstating my background.",
+			),
 		baselineResumeId: pg.text("baseline_resume_id").references(() => resume.id, { onDelete: "set null" }),
 		aiProviderId: pg.text("ai_provider_id").references(() => aiProvider.id, { onDelete: "set null" }),
 		/** Documents generated per day, counted per document on its first attempt; retries are free. */

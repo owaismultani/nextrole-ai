@@ -10,6 +10,7 @@ import { Icon } from "@reactive-resume/ui/components/icon";
 import { Input } from "@reactive-resume/ui/components/input";
 import { NativeSelect } from "@reactive-resume/ui/components/native-select";
 import { SwitchRow } from "@reactive-resume/ui/components/switch";
+import { Textarea } from "@reactive-resume/ui/components/textarea";
 import { toast } from "@reactive-resume/ui/components/toast";
 import { SettingsSection } from "../section";
 import { PageHeader } from "@/components/layout/page-header";
@@ -26,6 +27,8 @@ type Draft = {
 	baselineResumeId: string;
 	aiProviderId: string;
 	dailyLimit: number;
+	resumePrompt: string;
+	coverLetterPrompt: string;
 };
 
 const toDraft = (data: Automation): Draft => ({
@@ -34,6 +37,8 @@ const toDraft = (data: Automation): Draft => ({
 	baselineResumeId: data.baselineResumeId ?? "",
 	aiProviderId: data.aiProviderId ?? "",
 	dailyLimit: data.dailyLimit,
+	resumePrompt: data.resumePrompt,
+	coverLetterPrompt: data.coverLetterPrompt,
 });
 
 /** Settings → Automation: prepare a resume and cover letter for each job discovery finds. Discovery has its own schedule. */
@@ -86,6 +91,8 @@ function AutomationForm({ data }: { data: Automation }) {
 				baselineResumeId: draft.baselineResumeId || null,
 				aiProviderId: draft.aiProviderId || null,
 				dailyLimit: draft.dailyLimit,
+				resumePrompt: draft.resumePrompt,
+				coverLetterPrompt: draft.coverLetterPrompt,
 			},
 			{
 				onSuccess: () => toast.add({ description: t`Automation saved` }),
@@ -150,6 +157,22 @@ function AutomationForm({ data }: { data: Automation }) {
 					description={t`A separate copy with a reworded summary and experience and reordered skills. Your baseline is never changed, and nothing is added that your resume does not say.`}
 					className="rounded-lg border border-line px-3 py-3"
 				/>
+				<div className="grid gap-1.5">
+					<label htmlFor={`${id}-resume-prompt`} className="text-xs font-medium text-ink-2">
+						<Trans>Additional resume instruction</Trans>
+					</label>
+					<Textarea
+						id={`${id}-resume-prompt`}
+						rows={3}
+						maxLength={2000}
+						value={draft.resumePrompt}
+						onChange={(event) => set({ resumePrompt: event.target.value })}
+						placeholder={t`Example: Emphasize leadership experience relevant to this role.`}
+					/>
+					<p className="text-xs text-ink-3">
+						<Trans>This guides curation in addition to the fixed accuracy and privacy rules.</Trans>
+					</p>
+				</div>
 				<SwitchRow
 					checked={draft.lettersEnabled}
 					onCheckedChange={(lettersEnabled) => set({ lettersEnabled })}
@@ -157,6 +180,22 @@ function AutomationForm({ data }: { data: Automation }) {
 					description={t`A letter for the job, written from your baseline resume and the facts you have approved. Gaps are listed for you to fill, not invented.`}
 					className="rounded-lg border border-line px-3 py-3"
 				/>
+				<div className="grid gap-1.5">
+					<label htmlFor={`${id}-cover-letter-prompt`} className="text-xs font-medium text-ink-2">
+						<Trans>Additional cover letter instruction</Trans>
+					</label>
+					<Textarea
+						id={`${id}-cover-letter-prompt`}
+						rows={3}
+						maxLength={2000}
+						value={draft.coverLetterPrompt}
+						onChange={(event) => set({ coverLetterPrompt: event.target.value })}
+						placeholder={t`Example: Keep the tone warm and focus on customer impact.`}
+					/>
+					<p className="text-xs text-ink-3">
+						<Trans>This guides curation in addition to the fixed accuracy and privacy rules.</Trans>
+					</p>
+				</div>
 				<div className="grid gap-3 sm:grid-cols-2">
 					<div className="grid gap-1.5">
 						<label htmlFor={`${id}-baseline`} className="text-xs font-medium text-ink-2">

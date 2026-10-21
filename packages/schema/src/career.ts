@@ -345,6 +345,11 @@ export const careerScheduleInputSchema = careerScopeSchema.extend({
 /** Results one discovery run may retrieve. Providers cap a search at 20 results, so the budget stops there. */
 export const RETRIEVAL_BUDGET = { min: 5, max: 20, default: 15 } as const;
 export const DAILY_LIMIT = { min: 1, max: 50, default: 10 } as const;
+export const DEFAULT_RESUME_PROMPT =
+	"Prioritize the experience and skills that best match this role while keeping the resume truthful and concise.";
+export const DEFAULT_COVER_LETTER_PROMPT =
+	"Write a clear, specific letter that connects my strongest relevant experience to this role without overstating my background.";
+const automationPrompt = (fallback: string) => z.string().trim().max(2000).default(fallback);
 
 /** Document preparation for discovered jobs. Discovery itself is a schedule, set up in Career → Schedules. */
 export const careerAutomationInputSchema = z.object({
@@ -353,6 +358,8 @@ export const careerAutomationInputSchema = z.object({
 	baselineResumeId: z.string().min(1).nullable().default(null),
 	aiProviderId: z.string().min(1).nullable().default(null),
 	dailyLimit: z.number().int().min(DAILY_LIMIT.min).max(DAILY_LIMIT.max).default(DAILY_LIMIT.default),
+	resumePrompt: automationPrompt(DEFAULT_RESUME_PROMPT),
+	coverLetterPrompt: automationPrompt(DEFAULT_COVER_LETTER_PROMPT),
 });
 
 export const preparationKindSchema = z.enum(["resume", "letter"]);

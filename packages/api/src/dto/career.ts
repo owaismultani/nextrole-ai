@@ -54,6 +54,8 @@ export const careerOpportunitySchema = createSelectSchema(tables.careerOpportuni
 export const careerAutomationSchema = z.object({
 	resumesEnabled: z.boolean(),
 	lettersEnabled: z.boolean(),
+	resumePrompt: z.string(),
+	coverLetterPrompt: z.string(),
 	baselineResumeId: z.string().nullable(),
 	aiProviderId: z.string().nullable(),
 	dailyLimit: z.number(),

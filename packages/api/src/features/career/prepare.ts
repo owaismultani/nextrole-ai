@@ -235,8 +235,24 @@ async function work(row: Row) {
 
 	const outcome =
 		row.kind === "resume"
-			? await prepareResume({ row, model, signal, baseline, job, applicationId: application.id })
-			: await prepareLetter({ row, model, signal, baseline, job, applicationId: application.id });
+			? await prepareResume({
+					row,
+					model,
+					signal,
+					baseline,
+					job,
+					applicationId: application.id,
+					instruction: automation.resumePrompt,
+				})
+			: await prepareLetter({
+					row,
+					model,
+					signal,
+					baseline,
+					job,
+					applicationId: application.id,
+					instruction: automation.coverLetterPrompt,
+				});
 
 	await settle(row, {
 		status: "done",
@@ -257,10 +273,11 @@ type Step = {
 	baseline: typeof tables.resume.$inferSelect;
 	job: { role: string; company: string; description: string };
 	applicationId: string;
+	instruction: string;
 };
 
 /** A separate tailored copy, linked to the application. The baseline is only read. */
-async function prepareResume({ row, model, signal, baseline, job, applicationId }: Step) {
+async function prepareResume({ row, model, signal, baseline, job, applicationId, instruction }: Step) {
 	const outputId = row.outputId ?? generateId();
 	if (!row.outputId)
 		await db.update(tables.careerPreparation).set({ outputId }).where(eq(tables.careerPreparation.id, row.id));
@@ -269,7 +286,7 @@ async function prepareResume({ row, model, signal, baseline, job, applicationId 
 
 	const proposal = await generateJson(
 		model,
-		{ prompt: tailoringPrompt(baseline.data, job) },
+		{ prompt: tailoringPrompt(baseline.data, job, instruction) },
 		tailoringOutputSchema,
 		signal,
 	);
@@ -295,7 +312,7 @@ async function prepareResume({ row, model, signal, baseline, job, applicationId 
 }
 
 /** A letter written from the baseline, the posting and the person's own facts; it does not need the tailored resume. */
-async function prepareLetter({ row, model, signal, baseline, job, applicationId }: Step) {
+async function prepareLetter({ row, model, signal, baseline, job, applicationId, instruction }: Step) {
 	const name = `Cover letter — ${job.company} · ${job.role}`.slice(0, 60);
 	if (row.outputId) {
 		const [kept] = await db
@@ -343,6 +360,7 @@ async function prepareLetter({ row, model, signal, baseline, job, applicationId 
 		facts.length
 			? `<<<FACTS_START>>>\n${facts.map((fact) => `- ${fact.text.slice(0, 300)}`).join("\n")}\n<<<FACTS_END>>>`
 			: "",
+		`<<<ADDITIONAL_INSTRUCTION_START>>>\n${instruction}\n<<<ADDITIONAL_INSTRUCTION_END>>>`,
 	]
 		.filter(Boolean)
 		.join("\n\n");

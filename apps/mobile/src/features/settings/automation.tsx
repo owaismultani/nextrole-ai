@@ -11,7 +11,7 @@ import { orpc } from "@/api/client";
 import { useSession } from "@/auth/session";
 import { useHasAIProvider } from "@/features/ai/provider-state";
 import { routes } from "@/routes";
-import { Banner, Button, SelectSheet, Text, TextField, useTheme } from "@/ui";
+import { Banner, Button, SelectSheet, Text, TextArea, TextField, useTheme } from "@/ui";
 
 type Automation = Awaited<ReturnType<typeof client.career.automation>>;
 type Draft = {
@@ -20,6 +20,8 @@ type Draft = {
 	baselineResumeId: string;
 	aiProviderId: string;
 	dailyLimit: string;
+	resumePrompt: string;
+	coverLetterPrompt: string;
 };
 
 const toDraft = (data: Automation): Draft => ({
@@ -28,6 +30,8 @@ const toDraft = (data: Automation): Draft => ({
 	baselineResumeId: data.baselineResumeId ?? "",
 	aiProviderId: data.aiProviderId ?? "",
 	dailyLimit: String(data.dailyLimit),
+	resumePrompt: data.resumePrompt,
+	coverLetterPrompt: data.coverLetterPrompt,
 });
 
 /** Settings → Automation: prepare a resume and letter for each job discovery finds. Discovery has its own schedule. */
@@ -77,6 +81,8 @@ function AutomationForm({ data }: { data: Automation }) {
 				baselineResumeId: draft.baselineResumeId || null,
 				aiProviderId: draft.aiProviderId || null,
 				dailyLimit: limit,
+				resumePrompt: draft.resumePrompt,
+				coverLetterPrompt: draft.coverLetterPrompt,
 			}),
 		);
 
@@ -107,12 +113,28 @@ function AutomationForm({ data }: { data: Automation }) {
 						onValueChange={(resumesEnabled) => set({ resumesEnabled })}
 					/>
 					<Text color="ink3">{t`A separate copy with a reworded summary and experience and reordered skills. Your baseline is never changed, and nothing is added that your resume does not say.`}</Text>
+					<TextArea
+						label={t`Additional resume instruction`}
+						value={draft.resumePrompt}
+						maxLength={2000}
+						minLines={3}
+						onChangeText={(resumePrompt) => set({ resumePrompt })}
+						helper={t`This guides curation in addition to the fixed accuracy and privacy rules.`}
+					/>
 					<SwitchRow
 						label={t`Generate cover letters automatically`}
 						value={draft.lettersEnabled}
 						onValueChange={(lettersEnabled) => set({ lettersEnabled })}
 					/>
 					<Text color="ink3">{t`A letter for the job, written from your baseline resume and the facts you have approved. Gaps are listed for you to fill, not invented.`}</Text>
+					<TextArea
+						label={t`Additional cover letter instruction`}
+						value={draft.coverLetterPrompt}
+						maxLength={2000}
+						minLines={3}
+						onChangeText={(coverLetterPrompt) => set({ coverLetterPrompt })}
+						helper={t`This guides curation in addition to the fixed accuracy and privacy rules.`}
+					/>
 					<SelectSheet
 						label={t`Baseline resume`}
 						value={draft.baselineResumeId}

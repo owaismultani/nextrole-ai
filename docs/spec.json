@@ -39629,6 +39629,390 @@
 				]
 			}
 		},
+		"/career/overview": {
+			"get": {
+				"operationId": "getCareerOverview",
+				"summary": "Get the job-search overview",
+				"description": "One read for the dashboard: what needs attention, a funnel from discovered jobs to offers, discovery health over the window, automation use and upcoming interviews. `days` (7, 30 or 90) bounds the funnel and the discovery trend.",
+				"tags": [
+					"Career"
+				],
+				"parameters": [
+					{
+						"name": "days",
+						"in": "query",
+						"schema": {
+							"anyOf": [
+								{
+									"const": 7
+								},
+								{
+									"const": 30
+								},
+								{
+									"const": 90
+								}
+							],
+							"default": 30
+						},
+						"allowEmptyValue": true,
+						"allowReserved": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"windowDays": {
+											"type": "number"
+										},
+										"needsYou": {
+											"type": "object",
+											"properties": {
+												"readyDocuments": {
+													"type": "number"
+												},
+												"attentionDocuments": {
+													"type": "number"
+												},
+												"upcomingInterviews": {
+													"type": "number"
+												},
+												"unreadReminders": {
+													"type": "number"
+												},
+												"newRoles": {
+													"type": "number"
+												},
+												"discoveryFailing": {
+													"type": "boolean"
+												}
+											},
+											"required": [
+												"readyDocuments",
+												"attentionDocuments",
+												"upcomingInterviews",
+												"unreadReminders",
+												"newRoles",
+												"discoveryFailing"
+											]
+										},
+										"funnel": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"key": {
+														"enum": [
+															"discovered",
+															"saved",
+															"documents",
+															"applied",
+															"screening",
+															"interview",
+															"offer"
+														],
+														"type": "string"
+													},
+													"count": {
+														"type": "number"
+													}
+												},
+												"required": [
+													"key",
+													"count"
+												]
+											}
+										},
+										"discovery": {
+											"type": "object",
+											"properties": {
+												"scheduleId": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"enabled": {
+													"type": "boolean"
+												},
+												"lastAttemptedAt": {
+													"anyOf": [
+														{
+															"type": "string",
+															"format": "date-time",
+															"x-native-type": "date"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"lastSucceededAt": {
+													"anyOf": [
+														{
+															"type": "string",
+															"format": "date-time",
+															"x-native-type": "date"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"nextRunAt": {
+													"anyOf": [
+														{
+															"type": "string",
+															"format": "date-time",
+															"x-native-type": "date"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"failing": {
+													"type": "boolean"
+												},
+												"repeating": {
+													"type": "boolean"
+												},
+												"totals": {
+													"type": "object",
+													"properties": {
+														"runs": {
+															"type": "number"
+														},
+														"failed": {
+															"type": "number"
+														},
+														"found": {
+															"type": "number"
+														},
+														"matches": {
+															"type": "number"
+														},
+														"duplicates": {
+															"type": "number"
+														},
+														"rejected": {
+															"type": "number"
+														},
+														"readFailures": {
+															"type": "number"
+														}
+													},
+													"required": [
+														"runs",
+														"failed",
+														"found",
+														"matches",
+														"duplicates",
+														"rejected",
+														"readFailures"
+													]
+												},
+												"runs": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"at": {
+																"type": "string",
+																"format": "date-time",
+																"x-native-type": "date"
+															},
+															"outcome": {
+																"enum": [
+																	"success",
+																	"partial",
+																	"failed"
+																],
+																"type": "string"
+															},
+															"found": {
+																"type": "number"
+															},
+															"matches": {
+																"type": "number"
+															},
+															"duplicates": {
+																"type": "number"
+															},
+															"rejected": {
+																"type": "number"
+															},
+															"readFailures": {
+																"type": "number"
+															}
+														},
+														"required": [
+															"at",
+															"outcome",
+															"found",
+															"matches",
+															"duplicates",
+															"rejected",
+															"readFailures"
+														]
+													}
+												}
+											},
+											"required": [
+												"scheduleId",
+												"enabled",
+												"lastAttemptedAt",
+												"lastSucceededAt",
+												"nextRunAt",
+												"failing",
+												"repeating",
+												"totals",
+												"runs"
+											]
+										},
+										"automation": {
+											"type": "object",
+											"properties": {
+												"resumesEnabled": {
+													"type": "boolean"
+												},
+												"lettersEnabled": {
+													"type": "boolean"
+												},
+												"used": {
+													"type": "number"
+												},
+												"limit": {
+													"type": "number"
+												},
+												"resetsAt": {
+													"type": "string",
+													"format": "date-time",
+													"x-native-type": "date"
+												},
+												"deferred": {
+													"type": "number"
+												},
+												"stale": {
+													"type": "number"
+												}
+											},
+											"required": [
+												"resumesEnabled",
+												"lettersEnabled",
+												"used",
+												"limit",
+												"resetsAt",
+												"deferred",
+												"stale"
+											]
+										},
+										"interviews": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"applicationId": {
+														"type": "string"
+													},
+													"company": {
+														"type": "string"
+													},
+													"role": {
+														"type": "string"
+													},
+													"at": {
+														"type": "string",
+														"format": "date-time",
+														"x-native-type": "date"
+													},
+													"kind": {
+														"type": "string"
+													}
+												},
+												"required": [
+													"applicationId",
+													"company",
+													"role",
+													"at",
+													"kind"
+												]
+											}
+										}
+									},
+									"required": [
+										"windowDays",
+										"needsYou",
+										"funnel",
+										"discovery",
+										"automation",
+										"interviews"
+									]
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Structured API error. See status and code; do not branch on message text.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": [
+										"defined",
+										"code",
+										"status",
+										"message"
+									],
+									"properties": {
+										"defined": {
+											"type": "boolean"
+										},
+										"code": {
+											"type": "string"
+										},
+										"status": {
+											"type": "integer"
+										},
+										"message": {
+											"type": "string"
+										},
+										"data": {}
+									}
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"apiKey": []
+					},
+					{
+						"bearerAuth": []
+					},
+					{
+						"cookieAuth": []
+					}
+				],
+				"x-codeSamples": [
+					{
+						"lang": "bash",
+						"label": "cURL",
+						"source": "curl \"https://rxresu.me/api/openapi/career/overview\" --header \"x-api-key: <api-key>\""
+					}
+				]
+			}
+		},
 		"/career/runs": {
 			"get": {
 				"operationId": "listCareerRuns",

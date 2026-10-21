@@ -24,7 +24,13 @@ import { UserDropdownMenu } from "@/features/user/dropdown-menu";
 import { orpc } from "@/libs/orpc/client";
 
 type NavItem = {
-	to: "/dashboard" | "/dashboard/applications" | "/dashboard/career" | "/dashboard/trash" | "/dashboard/settings";
+	to:
+		| "/dashboard"
+		| "/dashboard/overview"
+		| "/dashboard/applications"
+		| "/dashboard/career"
+		| "/dashboard/trash"
+		| "/dashboard/settings";
 	icon: IconName;
 	label: string;
 	count?: number;
@@ -36,6 +42,7 @@ function useNavItems() {
 	const { data: notifications } = useQuery(orpc.career.notifications.queryOptions({ input: {} }));
 
 	const items: NavItem[] = [
+		{ to: "/dashboard/overview", icon: "squares-four", label: t`Overview` },
 		{
 			to: "/dashboard",
 			icon: "file-text",

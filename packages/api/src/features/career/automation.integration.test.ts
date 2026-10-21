@@ -685,4 +685,36 @@ describe.skipIf(!databaseUrl)("autonomous discovery and document preparation", (
 		expect((await automation.runs("alice", { limit: 1, offset: 1 })).items[0]?.jobs[0]?.resume?.outputId).toBeNull();
 		expect(await automation.runs("bob", {})).toEqual({ total: 0, items: [] });
 	});
+
+	it("summarises the whole pipeline for the dashboard, only for the person asking", async () => {
+		const { careerOverview } = await import("./overview");
+		const base = await baseline();
+		await save(
+			"alice",
+			settings({ resumesEnabled: true, lettersEnabled: true, baselineResumeId: base, dailyLimit: 4 }),
+		);
+		fixture.search.mockResolvedValue([hit(1), hit(2)]);
+		await run();
+		await settle(6);
+
+		const overview = await careerOverview("alice", 30);
+		expect(overview.funnel.find((step) => step.key === "discovered")?.count).toBe(2);
+		expect(overview.funnel.find((step) => step.key === "saved")?.count).toBe(2);
+		expect(overview.funnel.find((step) => step.key === "documents")?.count).toBe(2);
+		expect(overview.funnel.find((step) => step.key === "applied")?.count).toBe(0);
+		expect(overview.needsYou).toMatchObject({
+			readyDocuments: 2,
+			attentionDocuments: 0,
+			discoveryFailing: false,
+		});
+		expect(overview.discovery).toMatchObject({ enabled: true, failing: false, totals: { runs: 1, matches: 2 } });
+		expect(overview.discovery.runs).toHaveLength(1);
+		// Two jobs with a resume and a letter each use the whole limit of four, and nothing is waiting.
+		expect(overview.automation).toMatchObject({ limit: 4, used: 4, deferred: 0, stale: 0 });
+
+		const bobs = await careerOverview("bob", 30);
+		expect(bobs.funnel.every((step) => step.count === 0)).toBe(true);
+		expect(bobs.discovery.scheduleId).toBeNull();
+		expect(bobs.needsYou.readyDocuments).toBe(0);
+	});
 });

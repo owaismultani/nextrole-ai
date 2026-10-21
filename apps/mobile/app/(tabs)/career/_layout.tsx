@@ -15,6 +15,7 @@ export default function CareerLayout() {
 	const pathname = usePathname();
 	const router = useRouter();
 	const tabs = [
+		{ value: "overview", label: t`Overview` },
 		{ value: "today", label: t`Today` },
 		{ value: "pipeline", label: t`Pipeline` },
 		{ value: "coach", label: t`Coach` },

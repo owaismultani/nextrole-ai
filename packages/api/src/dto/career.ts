@@ -120,3 +120,68 @@ export const careerRunListSchema = z.object({
 		}),
 	),
 });
+
+export const careerOverviewSchema = z.object({
+	windowDays: z.number(),
+	needsYou: z.object({
+		readyDocuments: z.number(),
+		attentionDocuments: z.number(),
+		upcomingInterviews: z.number(),
+		unreadReminders: z.number(),
+		newRoles: z.number(),
+		discoveryFailing: z.boolean(),
+	}),
+	funnel: z.array(
+		z.object({
+			key: z.enum(["discovered", "saved", "documents", "applied", "screening", "interview", "offer"]),
+			count: z.number(),
+		}),
+	),
+	discovery: z.object({
+		scheduleId: z.string().nullable(),
+		enabled: z.boolean(),
+		lastAttemptedAt: z.date().nullable(),
+		lastSucceededAt: z.date().nullable(),
+		nextRunAt: z.date().nullable(),
+		failing: z.boolean(),
+		repeating: z.boolean(),
+		totals: z.object({
+			runs: z.number(),
+			failed: z.number(),
+			found: z.number(),
+			matches: z.number(),
+			duplicates: z.number(),
+			rejected: z.number(),
+			readFailures: z.number(),
+		}),
+		runs: z.array(
+			z.object({
+				at: z.date(),
+				outcome: z.enum(["success", "partial", "failed"]),
+				found: z.number(),
+				matches: z.number(),
+				duplicates: z.number(),
+				rejected: z.number(),
+				readFailures: z.number(),
+			}),
+		),
+	}),
+	automation: z.object({
+		resumesEnabled: z.boolean(),
+		lettersEnabled: z.boolean(),
+		used: z.number(),
+		limit: z.number(),
+		resetsAt: z.date(),
+		deferred: z.number(),
+		stale: z.number(),
+	}),
+	interviews: z.array(
+		z.object({
+			applicationId: z.string(),
+			company: z.string(),
+			role: z.string(),
+			at: z.date(),
+			kind: z.string(),
+		}),
+	),
+});

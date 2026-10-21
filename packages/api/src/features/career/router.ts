@@ -13,6 +13,7 @@ import { protectedProcedure } from "../../context";
 import {
 	careerAutomationSchema,
 	careerFactSchema,
+	careerOverviewSchema,
 	careerPreparationJobSchema,
 	careerRunListSchema,
 	careerNotificationSchema,
@@ -27,6 +28,7 @@ import { paginationShape } from "../../pagination";
 import { careerAutomation } from "./automation";
 import { generateCareer } from "./generate";
 import { careerJobs } from "./jobs";
+import { careerOverview } from "./overview";
 import { careerService } from "./service";
 import { careerVoiceRouter } from "./voice";
 
@@ -113,6 +115,19 @@ export const careerRouter = {
 		.input(careerAutomationInputSchema)
 		.output(careerAutomationSchema)
 		.handler(({ context, input }) => careerAutomation.save(context.user.id, input)),
+	overview: protectedProcedure
+		.route({
+			method: "GET",
+			path: "/career/overview",
+			tags: ["Career"],
+			operationId: "getCareerOverview",
+			summary: "Get the job-search overview",
+			description:
+				"One read for the dashboard: what needs attention, a funnel from discovered jobs to offers, discovery health over the window, automation use and upcoming interviews. `days` (7, 30 or 90) bounds the funnel and the discovery trend.",
+		})
+		.input(z.object({ days: z.union([z.literal(7), z.literal(30), z.literal(90)]).default(30) }))
+		.output(careerOverviewSchema)
+		.handler(({ context, input }) => careerOverview(context.user.id, input.days)),
 	runs: protectedProcedure
 		.route({
 			method: "GET",

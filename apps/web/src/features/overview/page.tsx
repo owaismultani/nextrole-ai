@@ -61,8 +61,11 @@ export function OverviewPage() {
 				<div className={cn("grid gap-5", isFetching && "opacity-90")}>
 					<FinishSetup />
 					<DiscoveryBanner data={data} />
-					<p className="text-sm text-ink-2">
-						{t`${data.needsYou.savedJobs} saved applications · ${data.needsYou.readyDocuments} with documents ready`}
+					<p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-2">
+						<span>
+							{t`${data.needsYou.savedJobs} saved applications · ${data.needsYou.readyDocuments} with documents ready`}
+						</span>
+						<RemindersLink />
 					</p>
 					<div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
 						<div className="grid gap-5">
@@ -104,6 +107,18 @@ function CardTitle({ icon, children }: { icon: IconName; children: React.ReactNo
 }
 
 // ---- Banners ----
+
+/** Reminders (notifications and the next interview) until Overview shows them in place. */
+function RemindersLink() {
+	const { data } = useQuery(orpc.career.notifications.queryOptions({ input: {} }));
+	const unread = data?.filter((notification) => !notification.readAt).length ?? 0;
+	return (
+		<Link to="/dashboard/career" className="ms-auto inline-flex items-center gap-1.5 text-accent-text underline">
+			<Trans>Reminders</Trans>
+			{unread > 0 && <span className="font-mono text-xs no-underline">{unread}</span>}
+		</Link>
+	);
+}
 
 /** A reminder for someone who skipped guided setup; gone once setup is finished. */
 function FinishSetup() {
@@ -158,10 +173,10 @@ function DiscoveryBanner({ data }: { data: Overview }) {
 						<Trans>The last discovery run failed</Trans>
 					</b>
 					<span className="text-[13px] text-ink-2">
-						<Trans>Open Pipeline to see why and what to do.</Trans>
+						<Trans>Open Search activity to see why and what to do.</Trans>
 					</span>
 				</div>
-				<Button variant="secondary" nativeButton={false} render={<Link to="/dashboard/career/pipeline" />}>
+				<Button variant="secondary" nativeButton={false} render={<Link to="/dashboard/discover/activity" />}>
 					<Trans>See why</Trans>
 				</Button>
 			</div>
@@ -352,7 +367,7 @@ function ActionRow({ action }: { action: Action }) {
 	const place = [action.company, action.location].filter(Boolean).join(" · ");
 	const target =
 		info.to === "pipeline" ? (
-			<Link to="/dashboard/career/pipeline" />
+			<Link to="/dashboard/automation" />
 		) : (
 			<Link to="/dashboard/applications/$applicationId/{-$tab}" params={{ applicationId: action.applicationId }} />
 		);
@@ -401,7 +416,7 @@ type Recent = {
 	title: string;
 	sub: string;
 	at: Date;
-	action: { label: string; to: "/dashboard/applications" | "/dashboard/career/pipeline" };
+	action: { label: string; to: "/dashboard/discover" | "/dashboard/discover/activity" | "/dashboard/automation" };
 };
 
 /** Turns the raw log into a few readable lines: searches, documents prepared per job, failures, and pauses. */
@@ -421,7 +436,7 @@ function summarizeActivity(events: RouterOutput["career"]["activity"]["items"]):
 					title: t`Discovery run failed`,
 					sub: t`Needs attention`,
 					at: event.at,
-					action: { label: t`Resolve`, to: "/dashboard/career/pipeline" },
+					action: { label: t`Resolve`, to: "/dashboard/discover/activity" },
 				});
 			else if (matches > 0)
 				out.push({
@@ -431,7 +446,7 @@ function summarizeActivity(events: RouterOutput["career"]["activity"]["items"]):
 					title: matches === 1 ? t`1 new job saved` : t`${matches} new jobs saved`,
 					sub: t`Latest search`,
 					at: event.at,
-					action: { label: t`View jobs`, to: "/dashboard/applications" },
+					action: { label: t`View jobs`, to: "/dashboard/discover" },
 				});
 		} else if (event.kind === "prep.done" && event.opportunityId) {
 			const existing = documents.get(event.opportunityId);
@@ -444,7 +459,7 @@ function summarizeActivity(events: RouterOutput["career"]["activity"]["items"]):
 					title: t`Documents prepared for ${company}`,
 					sub: "",
 					at: event.at,
-					action: { label: t`Review`, to: "/dashboard/career/pipeline" },
+					action: { label: t`Review`, to: "/dashboard/automation" },
 				};
 				documents.set(event.opportunityId, { item, kinds: [kind] });
 				out.push(item);
@@ -457,7 +472,7 @@ function summarizeActivity(events: RouterOutput["career"]["activity"]["items"]):
 				title: t`${kind} generation failed for ${company}`,
 				sub: t`Needs attention`,
 				at: event.at,
-				action: { label: t`Resolve`, to: "/dashboard/career/pipeline" },
+				action: { label: t`Resolve`, to: "/dashboard/automation" },
 			});
 		else if (event.kind === "setting.changed" && event.data.what === "discovery")
 			out.push({
@@ -467,7 +482,7 @@ function summarizeActivity(events: RouterOutput["career"]["activity"]["items"]):
 				title: event.data.on ? t`Discovery resumed` : t`Discovery paused`,
 				sub: event.data.on ? t`Searching again` : t`Resume anytime`,
 				at: event.at,
-				action: { label: t`Activity`, to: "/dashboard/career/pipeline" },
+				action: { label: t`Activity`, to: "/dashboard/discover/activity" },
 			});
 	}
 	for (const { item, kinds } of documents.values()) item.sub = [...new Set(kinds)].toReversed().join(` ${t`and`} `);
@@ -487,7 +502,7 @@ function RecentActivity() {
 				<CardTitle icon="clock-counter-clockwise">
 					<Trans>Recent activity</Trans>
 				</CardTitle>
-				<Link to="/dashboard/career/pipeline" className="ms-auto text-[13px] text-accent-text underline">
+				<Link to="/dashboard/discover/activity" className="ms-auto text-[13px] text-accent-text underline">
 					<Trans>See all</Trans>
 				</Link>
 			</div>
@@ -616,25 +631,25 @@ function AutomationCard({ data }: { data: Overview }) {
 		label: string;
 		icon: IconName;
 		state: "on" | "off" | "paused";
-		to: "/dashboard/career" | "/dashboard/settings/automation";
+		to: "/dashboard/automation";
 	}[] = [
 		{
 			label: t`Discovery`,
 			icon: "magnifying-glass",
 			state: !discovery.scheduleId ? "off" : discovery.enabled ? "on" : "paused",
-			to: "/dashboard/career",
+			to: "/dashboard/automation",
 		},
 		{
 			label: t`Tailored resumes`,
 			icon: "file-text",
 			state: a.resumesEnabled ? "on" : "off",
-			to: "/dashboard/settings/automation",
+			to: "/dashboard/automation",
 		},
 		{
 			label: t`Cover letters`,
 			icon: "file-text",
 			state: a.lettersEnabled ? "on" : "off",
-			to: "/dashboard/settings/automation",
+			to: "/dashboard/automation",
 		},
 	];
 	const dot = { on: "bg-accent", off: "bg-line-2", paused: "bg-warn-text" } as const;
@@ -669,7 +684,7 @@ function AutomationCard({ data }: { data: Overview }) {
 				))}
 			</ul>
 			<Link
-				to="/dashboard/career/pipeline"
+				to="/dashboard/automation"
 				className="flex items-center gap-3 rounded-lg border border-line px-3.5 py-3 text-sm transition-colors duration-quick hover:bg-hover"
 			>
 				<Icon name="arrow-clockwise" size={20} className="text-ink-2" />
@@ -703,7 +718,7 @@ function AutomationCard({ data }: { data: Overview }) {
 				</span>
 			</div>
 			<Link
-				to="/dashboard/settings/automation"
+				to="/dashboard/automation"
 				className="flex w-fit items-center gap-1.5 text-[13px] text-accent-text underline"
 			>
 				<Trans>Manage automation</Trans>
@@ -815,13 +830,17 @@ function LatestDiscovery({ data }: { data: Overview }) {
 					</span>
 				</div>
 				<Link
-					to="/dashboard/career/pipeline"
+					to="/dashboard/discover/activity"
 					className="flex items-center gap-1.5 text-[13px] text-accent-text underline"
 				>
 					<Trans>View discovery activity</Trans>
 					<Icon name="arrow-right" size={14} className="rtl:-scale-x-100" />
 				</Link>
-				<Button variant="secondary" nativeButton={false} render={<Link to="/dashboard/career" />}>
+				<Button
+					variant="secondary"
+					nativeButton={false}
+					render={<Link to="/dashboard/discover" search={{ schedule: data.discovery.scheduleId ?? "new:discovery" }} />}
+				>
 					<Trans>Edit search</Trans>
 				</Button>
 			</div>

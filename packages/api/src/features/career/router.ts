@@ -24,6 +24,7 @@ import {
 	careerPreparationJobSchema,
 	careerRunListSchema,
 	careerNotificationSchema,
+	careerOpportunityDetailSchema,
 	careerOpportunitySchema,
 	careerScheduleListItemSchema,
 	careerScheduleSchema,
@@ -355,9 +356,31 @@ export const careerRouter = {
 			operationId: "listCareerOpportunities",
 			summary: "List discovered opportunities",
 		})
-		.input(z.object({}))
+		.input(z.object({ dismissed: z.boolean().default(false) }))
 		.output(z.array(careerOpportunitySchema))
-		.handler(({ context }) => careerJobs.opportunities(context.user.id)),
+		.handler(({ context, input }) => careerJobs.opportunities(context.user.id, input.dismissed)),
+	opportunity: protectedProcedure
+		.route({
+			method: "GET",
+			path: "/career/opportunities/{id}",
+			tags: ["Career"],
+			operationId: "getCareerOpportunity",
+			summary: "Get a discovered opportunity's posting and the run that found it",
+		})
+		.input(id)
+		.output(careerOpportunityDetailSchema)
+		.handler(({ context, input }) => careerJobs.opportunity(context.user.id, input.id)),
+	restoreOpportunity: protectedProcedure
+		.route({
+			method: "POST",
+			path: "/career/opportunities/{id}/restore",
+			tags: ["Career"],
+			operationId: "restoreCareerOpportunity",
+			summary: "Bring a dismissed opportunity back",
+		})
+		.input(id)
+		.output(z.void())
+		.handler(({ context, input }) => careerJobs.restoreOpportunity(context.user.id, input.id)),
 	dismissOpportunity: protectedProcedure
 		.route({
 			method: "DELETE",

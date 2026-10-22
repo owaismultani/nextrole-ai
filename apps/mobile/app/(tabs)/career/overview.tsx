@@ -1,1 +1,6 @@
-export { OverviewScreen as default } from "@/features/career/overview";
+import { Redirect } from "expo-router";
+import { routes } from "@/routes";
+
+export default function CareerOverview() {
+	return <Redirect href={routes.overview()} />;
+}

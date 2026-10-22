@@ -22,8 +22,8 @@ export type ActionInfo = {
 	tone: "accentText" | "warnText" | "infoText";
 	line: string;
 	button: string;
-	/** Where the button goes: the pipeline, or the application. */
-	to: "pipeline" | "application";
+	/** Where the button goes: document preparation in Automation, or the application. */
+	to: "automation" | "application";
 };
 
 /** The chip, the line under it and the button for one action. */
@@ -37,7 +37,7 @@ export function describeAction(action: Action): ActionInfo {
 			tone: "warnText",
 			line: done ? `${t`${done} ready`} · ${failure}` : failure,
 			button: t`Resolve`,
-			to: "pipeline",
+			to: "automation",
 		};
 	}
 	if (action.kind === "followup") {
@@ -85,7 +85,7 @@ export type Recent = {
 	sub: string;
 	at: Date;
 	label: string;
-	open: "pipeline" | "applications";
+	open: "discover" | "activity" | "automation";
 };
 
 /** Turns the raw log into a few readable lines: searches, documents prepared per job, failures, and pauses. */
@@ -104,7 +104,7 @@ export function summarizeRecent(events: RouterOutput["career"]["activity"]["item
 					sub: t`Needs attention`,
 					at: event.at,
 					label: t`Resolve`,
-					open: "pipeline",
+					open: "activity",
 				});
 			else if (matches > 0)
 				out.push({
@@ -113,7 +113,7 @@ export function summarizeRecent(events: RouterOutput["career"]["activity"]["item
 					sub: t`Latest search`,
 					at: event.at,
 					label: t`View jobs`,
-					open: "applications",
+					open: "discover",
 				});
 		} else if (event.kind === "prep.done" && event.opportunityId) {
 			const existing = documents.get(event.opportunityId);
@@ -125,7 +125,7 @@ export function summarizeRecent(events: RouterOutput["career"]["activity"]["item
 					sub: "",
 					at: event.at,
 					label: t`Review`,
-					open: "pipeline",
+					open: "automation",
 				};
 				documents.set(event.opportunityId, { item, kinds: [kind] });
 				out.push(item);
@@ -137,7 +137,7 @@ export function summarizeRecent(events: RouterOutput["career"]["activity"]["item
 				sub: t`Needs attention`,
 				at: event.at,
 				label: t`Resolve`,
-				open: "pipeline",
+				open: "automation",
 			});
 		else if (event.kind === "setting.changed" && event.data.what === "discovery")
 			out.push({
@@ -146,7 +146,7 @@ export function summarizeRecent(events: RouterOutput["career"]["activity"]["item
 				sub: event.data.on ? t`Searching again` : t`Resume anytime`,
 				at: event.at,
 				label: t`Activity`,
-				open: "pipeline",
+				open: "activity",
 			});
 	}
 	for (const { item, kinds } of documents.values()) item.sub = [...new Set(kinds)].toReversed().join(` ${t`and`} `);

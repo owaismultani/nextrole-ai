@@ -191,7 +191,7 @@ function SavedRow({ item, applicationId, expanded, onToggle, onOpen, onDelete }:
 					</Button>
 				) : (
 					<Link
-						to="/dashboard/career/offers"
+						to="/dashboard/applications/offers"
 						search={{ a: item.id }}
 						className={buttonVariants({ size: "sm", variant: "secondary", className: "h-8" })}
 					>

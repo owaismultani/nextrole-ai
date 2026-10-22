@@ -3,6 +3,7 @@ import { ORPCError } from "@orpc/client";
 import { and, asc, count, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@reactive-resume/db/client";
 import * as tables from "@reactive-resume/db/schema";
+import { canonicalOpportunityUrl } from "./scheduling";
 
 const toEvent = (row: typeof tables.careerEvent.$inferSelect) => ({
 	id: row.id,
@@ -49,16 +50,35 @@ export const careerActivity = {
 			.from(tables.careerRunItem)
 			.where(and(eq(tables.careerRunItem.runId, runId), eq(tables.careerRunItem.userId, userId)))
 			.orderBy(asc(tables.careerRunItem.decision), asc(tables.careerRunItem.host));
+		// A result that became a role (or was already one) points at it, and at its application when tracked.
+		const canonical = items.map((item) => canonicalOpportunityUrl(item.url));
+		const urls = [...new Set(canonical.filter((url): url is string => Boolean(url)))];
+		const roles = urls.length
+			? await db
+					.select({
+						id: tables.careerOpportunity.id,
+						url: tables.careerOpportunity.url,
+						applicationId: tables.careerOpportunity.trackedApplicationId,
+					})
+					.from(tables.careerOpportunity)
+					.where(and(eq(tables.careerOpportunity.userId, userId), inArray(tables.careerOpportunity.url, urls)))
+			: [];
+		const byUrl = new Map(roles.map((role) => [role.url, role]));
 		return {
 			id: run.id,
 			createdAt: run.createdAt,
 			report: run.report,
-			items: items.map((item) => ({
-				url: item.url,
-				host: item.host,
-				title: item.title,
-				decision: item.decision as "new" | "known" | "rejected" | "unreadable" | "invalid",
-			})),
+			items: items.map((item, index) => {
+				const role = byUrl.get(canonical[index] ?? "");
+				return {
+					url: item.url,
+					host: item.host,
+					title: item.title,
+					decision: item.decision as "new" | "known" | "rejected" | "unreadable" | "invalid",
+					opportunityId: role?.id ?? null,
+					applicationId: role?.applicationId ?? null,
+				};
+			}),
 		};
 	},
 

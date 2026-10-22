@@ -63,7 +63,7 @@ export function PreparationList({ className }: PreparationListProps) {
 					Ready for review means the documents were made, not that you approved them or applied. Your application status
 					is separate.
 				</Trans>{" "}
-				<Link to="/dashboard/settings/automation" className="underline">
+				<Link to="/dashboard/automation" className="underline">
 					<Trans>Automation settings</Trans>
 				</Link>
 			</p>

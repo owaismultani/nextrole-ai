@@ -41907,13 +41907,35 @@
 															"invalid"
 														],
 														"type": "string"
+													},
+													"opportunityId": {
+														"anyOf": [
+															{
+																"type": "string"
+															},
+															{
+																"type": "null"
+															}
+														]
+													},
+													"applicationId": {
+														"anyOf": [
+															{
+																"type": "string"
+															},
+															{
+																"type": "null"
+															}
+														]
 													}
 												},
 												"required": [
 													"url",
 													"host",
 													"title",
-													"decision"
+													"decision",
+													"opportunityId",
+													"applicationId"
 												]
 											}
 										}
@@ -43488,7 +43510,18 @@
 				"tags": [
 					"Career"
 				],
-				"parameters": [],
+				"parameters": [
+					{
+						"name": "dismissed",
+						"in": "query",
+						"schema": {
+							"type": "boolean",
+							"default": false
+						},
+						"allowEmptyValue": true,
+						"allowReserved": true
+					}
+				],
 				"responses": {
 					"200": {
 						"description": "OK",
@@ -43665,6 +43698,135 @@
 			}
 		},
 		"/career/opportunities/{id}": {
+			"get": {
+				"operationId": "getCareerOpportunity",
+				"summary": "Get a discovered opportunity's posting and the run that found it",
+				"tags": [
+					"Career"
+				],
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"minLength": 1
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"description": {
+											"type": "string"
+										},
+										"run": {
+											"anyOf": [
+												{
+													"type": "object",
+													"properties": {
+														"id": {
+															"type": "string"
+														},
+														"at": {
+															"type": "string",
+															"format": "date-time",
+															"x-native-type": "date"
+														},
+														"trigger": {
+															"enum": [
+																"schedule",
+																"manual"
+															],
+															"type": "string"
+														},
+														"outcome": {
+															"enum": [
+																"success",
+																"partial",
+																"failed"
+															],
+															"type": "string"
+														}
+													},
+													"required": [
+														"id",
+														"at",
+														"trigger",
+														"outcome"
+													]
+												},
+												{
+													"type": "null"
+												}
+											]
+										}
+									},
+									"required": [
+										"description",
+										"run"
+									]
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Structured API error. See status and code; do not branch on message text.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": [
+										"defined",
+										"code",
+										"status",
+										"message"
+									],
+									"properties": {
+										"defined": {
+											"type": "boolean"
+										},
+										"code": {
+											"type": "string"
+										},
+										"status": {
+											"type": "integer"
+										},
+										"message": {
+											"type": "string"
+										},
+										"data": {}
+									}
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"apiKey": []
+					},
+					{
+						"bearerAuth": []
+					},
+					{
+						"cookieAuth": []
+					}
+				],
+				"x-codeSamples": [
+					{
+						"lang": "bash",
+						"label": "cURL",
+						"source": "curl \"https://rxresu.me/api/openapi/career/opportunities/<id>\" --header \"x-api-key: <api-key>\""
+					}
+				]
+			},
 			"delete": {
 				"operationId": "dismissCareerOpportunity",
 				"summary": "Dismiss a discovered opportunity",
@@ -43734,6 +43896,80 @@
 						"lang": "bash",
 						"label": "cURL",
 						"source": "curl --request DELETE \"https://rxresu.me/api/openapi/career/opportunities/<id>\" --header \"x-api-key: <api-key>\""
+					}
+				]
+			}
+		},
+		"/career/opportunities/{id}/restore": {
+			"post": {
+				"operationId": "restoreCareerOpportunity",
+				"summary": "Bring a dismissed opportunity back",
+				"tags": [
+					"Career"
+				],
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"minLength": 1
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK"
+					},
+					"default": {
+						"description": "Structured API error. See status and code; do not branch on message text.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": [
+										"defined",
+										"code",
+										"status",
+										"message"
+									],
+									"properties": {
+										"defined": {
+											"type": "boolean"
+										},
+										"code": {
+											"type": "string"
+										},
+										"status": {
+											"type": "integer"
+										},
+										"message": {
+											"type": "string"
+										},
+										"data": {}
+									}
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"apiKey": []
+					},
+					{
+						"bearerAuth": []
+					},
+					{
+						"cookieAuth": []
+					}
+				],
+				"x-codeSamples": [
+					{
+						"lang": "bash",
+						"label": "cURL",
+						"source": "curl --request POST \"https://rxresu.me/api/openapi/career/opportunities/<id>/restore\" --header \"x-api-key: <api-key>\""
 					}
 				]
 			}

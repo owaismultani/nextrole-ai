@@ -1,1 +1,6 @@
-export { PipelineScreen as default } from "@/features/career/pipeline";
+import { Redirect } from "expo-router";
+import { routes } from "@/routes";
+
+export default function CareerPipeline() {
+	return <Redirect href={routes.discover("activity")} />;
+}

@@ -584,7 +584,7 @@ function MessageView({ message, used, streaming, enter, knowledge, company, scop
 					<Icon name="check-circle" size={18} />
 					<Trans>Saved a story: {story.data.title}</Trans>
 					<Link
-						to="/dashboard/career/knowledge/stories/{-$storyId}"
+						to="/dashboard/profile/stories/{-$storyId}"
 						params={{ storyId: story.id }}
 						className="underline underline-offset-2"
 					>
@@ -627,7 +627,7 @@ function UsedChips({ used, applications, knowledge }: UsedChipsProps) {
 					return (
 						<li key={id}>
 							{fact ? (
-								<Link to="/dashboard/career/knowledge/facts" search={{ highlight: id }} className={linkClass}>
+								<Link to="/dashboard/profile/facts" search={{ highlight: id }} className={linkClass}>
 									{fact.text}
 								</Link>
 							) : (
@@ -652,11 +652,7 @@ function UsedChips({ used, applications, knowledge }: UsedChipsProps) {
 					return (
 						<li key={id}>
 							{story ? (
-								<Link
-									to="/dashboard/career/knowledge/stories/{-$storyId}"
-									params={{ storyId: id }}
-									className={linkClass}
-								>
+								<Link to="/dashboard/profile/stories/{-$storyId}" params={{ storyId: id }} className={linkClass}>
 									{story.data.title}
 								</Link>
 							) : (
@@ -772,10 +768,7 @@ function PreferencesList() {
 				</li>
 			))}
 			<li>
-				<Link
-					to="/dashboard/career/knowledge/preferences"
-					className="text-[13px] text-accent-text underline underline-offset-2"
-				>
+				<Link to="/dashboard/profile/preferences" className="text-[13px] text-accent-text underline underline-offset-2">
 					<Trans>Open Preferences</Trans>
 				</Link>
 			</li>
@@ -797,7 +790,7 @@ function OffersList({ ids, className }: { ids: string[]; className: string }) {
 				const offer = data.find((item) => item.id === id);
 				return (
 					<li key={id}>
-						<Link to="/dashboard/career/offers" className={className}>
+						<Link to="/dashboard/applications/offers" className={className}>
 							{offer?.application ? `${offer.application.company} · ${offer.application.role}` : t`A saved offer`}
 						</Link>
 					</li>
@@ -927,11 +920,7 @@ function Proposal({ items, knowledge, company }: ProposalProps) {
 								})
 							: addedAs(remembered?.category ?? "preference")}
 					{first && (
-						<Link
-							to="/dashboard/career/knowledge/facts"
-							search={{ highlight: first }}
-							className="underline underline-offset-2"
-						>
+						<Link to="/dashboard/profile/facts" search={{ highlight: first }} className="underline underline-offset-2">
 							<Trans>View</Trans>
 						</Link>
 					)}

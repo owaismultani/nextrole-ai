@@ -436,7 +436,7 @@ function WorkspaceHeader({ application, onAskCoach }: WorkspaceHeaderProps) {
 						</div>
 					)}
 					{application.status === "offer" && (
-						<Link to="/dashboard/career/offers" className={cn(buttonVariants({ variant: "secondary" }))}>
+						<Link to="/dashboard/applications/offers" className={cn(buttonVariants({ variant: "secondary" }))}>
 							<Icon name="scales" size={18} />
 							<Trans>Compare offers</Trans>
 						</Link>

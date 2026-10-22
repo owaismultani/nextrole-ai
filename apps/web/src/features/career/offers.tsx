@@ -59,7 +59,7 @@ export function OffersPage({ a, b }: OffersPageProps) {
 	const offers = query.data?.filter((item): item is Offer => item.data.kind === "offer");
 
 	const setPair = (next: { a: string | undefined; b: string | undefined }) =>
-		void navigate({ to: "/dashboard/career/offers", search: next });
+		void navigate({ to: "/dashboard/applications/offers", search: next });
 
 	// Fill the URL with a pair: the remembered one if it still exists, else the two newest from different jobs.
 	useEffect(() => {
@@ -77,7 +77,7 @@ export function OffersPage({ a, b }: OffersPageProps) {
 		const nextA = exists(a) ? a : first;
 		const next = { a: nextA, b: exists(b) && b !== nextA ? b : nextA === second ? first : second };
 		if (next.a !== a || next.b !== b)
-			void navigate({ to: "/dashboard/career/offers", search: { a: next.a, b: next.b }, replace: true });
+			void navigate({ to: "/dashboard/applications/offers", search: { a: next.a, b: next.b }, replace: true });
 	}, [query.data, a, b, navigate]);
 
 	if ((query.isError && !query.data) || (profileQuery.isError && !profileQuery.data))
@@ -129,7 +129,7 @@ export function OffersPage({ a, b }: OffersPageProps) {
 					<Button
 						onClick={() =>
 							void navigate({
-								to: "/dashboard/career/coach/{-$conversationId}",
+								to: "/dashboard/coach/{-$conversationId}",
 								params: { conversationId: undefined },
 								search: { offers: pair.map((offer) => offer.id) },
 							})

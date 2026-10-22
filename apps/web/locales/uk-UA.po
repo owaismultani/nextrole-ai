@@ -243,8 +243,19 @@ msgstr ""
 msgid "{0} · {providerLabel}. Sends this application and your Knowledge; your provider may charge."
 msgstr "{0} · {providerLabel}. Надсилає цю заявку та ваші Знання; постачальник може стягнути плату."
 
+#. placeholder {0}: when(data.foundAt)
+#: src/features/career/job-journey.tsx
+msgid "{0} · Found by discovery"
+msgstr ""
+
+#. placeholder {0}: when(data.foundAt)
+#. placeholder {1}: data.run.query
+#: src/features/career/job-journey.tsx
+msgid "{0} · Found by the search \"{1}\""
+msgstr ""
+
 #. placeholder {0}: cadenceLabel(row)
-#: src/features/career/today.tsx
+#: src/features/automation/schedules.tsx
 msgid "{0} · next {clock}"
 msgstr ""
 
@@ -267,6 +278,11 @@ msgstr "{0} закрито"
 #: src/features/documents/document-card.tsx
 msgid "{0} days left"
 msgstr "Залишилося {0} днів"
+
+#. placeholder {0}: a.deferred
+#: src/features/overview/page.tsx
+msgid "{0} deferred"
+msgstr ""
 
 #. placeholder {0}: proposals.length
 #: src/features/assistant/document.ts
@@ -299,6 +315,11 @@ msgstr "{0} знайдено, {unreadable} не читається"
 msgid "{0} gaps to fill"
 msgstr ""
 
+#. placeholder {0}: a.generating
+#: src/features/overview/page.tsx
+msgid "{0} generating"
+msgstr ""
+
 #. placeholder {0}: Math.round(minutes / 60)
 #: src/features/career/workspace/shell.tsx
 msgid "{0} h"
@@ -319,9 +340,11 @@ msgid "{0} interview"
 msgstr "Інтерв'ю {0}"
 
 #. placeholder {0}: i18n.number(row.minutes)
+#. placeholder {0}: next.durationMinutes
 #. placeholder {0}: row.minutes
 #: src/features/career/workspace/prepare.tsx
 #: src/features/homepage/prepare.tsx
+#: src/features/overview/page.tsx
 msgid "{0} min"
 msgstr "{0} хв"
 
@@ -333,7 +356,13 @@ msgstr "на {0} більше"
 #. placeholder {0}: report.matches
 #. placeholder {1}: report.found
 #: src/features/career/discovery-runs.tsx
+#: src/features/discover/activity.tsx
 msgid "{0} new · {1} found"
+msgstr ""
+
+#. placeholder {0}: latest.matches
+#: src/features/overview/page.tsx
+msgid "{0} new jobs"
 msgstr ""
 
 #. placeholder {0}: report.passedChecks
@@ -347,12 +376,6 @@ msgstr "{0} із {1} застосовних перевірок пройдено"
 #: src/features/ats-checker/report/report-view.tsx
 msgid "{0} of {1} applicable checks passed."
 msgstr "{0} із {1} застосовних перевірок пройдено."
-
-#. placeholder {0}: a.used
-#. placeholder {1}: a.limit
-#: src/features/overview/page.tsx
-msgid "{0} of {1} documents today"
-msgstr ""
 
 #. placeholder {0}: thread.editsAccepted
 #. placeholder {1}: thread.editsProposed
@@ -386,15 +409,15 @@ msgstr "{0} з {1} адаптованих заяв про роботу отри�
 msgid "{0} of {1} terms found"
 msgstr "Знайдено {0} із {1} термінів"
 
-#. placeholder {0}: a.stale
-#: src/features/overview/page.tsx
-msgid "{0} out of date after your resume or a posting changed"
-msgstr ""
-
 #. placeholder {0}: document.posting.company
 #: src/features/assistant/conversation.tsx
 msgid "{0} posting"
 msgstr "Оголошення про роботу {0}"
+
+#. placeholder {0}: latest.found
+#: src/features/overview/page.tsx
+msgid "{0} results checked"
+msgstr ""
 
 #. placeholder {0}: props.providerLabel
 #. placeholder {1}: getOrpcErrorMessage(error, { fallback: t`an error`, allowServerMessage: true, })
@@ -402,9 +425,17 @@ msgstr "Оголошення про роботу {0}"
 msgid "{0} returned “{1}”. Your message is kept."
 msgstr "{0} повернув «{1}». Ваше повідомлення зберігається."
 
+#. placeholder {0}: data.needsYou.savedJobs
+#. placeholder {1}: data.needsYou.readyDocuments
+#: src/features/overview/page.tsx
+msgid "{0} saved applications · {1} with documents ready"
+msgstr ""
+
 #. placeholder {0}: step.sections
+#. placeholder {0}: summarizeImport(data).sections
 #. placeholder {0}: summary.sections
 #: src/features/documents/new-document-dialog.tsx
+#: src/features/setup/page.tsx
 msgid "{0} sections"
 msgstr "Розділи {0}"
 
@@ -432,16 +463,16 @@ msgstr "Підтверджено: {0}, частково: {1}, без доказ�
 msgid "{0} to fix"
 msgstr "{0} потребує виправлення"
 
-#. placeholder {0}: a.deferred
-#: src/features/overview/page.tsx
-msgid "{0} waiting for the daily limit to reset"
-msgstr ""
-
 #. placeholder {0}: current * PAGE_SIZE + 1
 #. placeholder {1}: Math.min(matching.length, (current + 1) * PAGE_SIZE)
 #. placeholder {2}: matching.length
 #: src/features/career/preparation-list.tsx
 msgid "{0}–{1} of {2}"
+msgstr ""
+
+#. placeholder {0}: page * PAGE_SIZE + 1
+#: src/features/career/activity-feed.tsx
+msgid "{0}–{last} of {total}"
 msgstr ""
 
 #. placeholder {0}: title || t`Untitled`
@@ -468,10 +499,6 @@ msgstr "Застосовано {accepted} з {0}"
 #: src/features/settings/account/data.tsx
 msgid "{applicationCount, plural, one {# application} other {# applications}}"
 msgstr "{applicationCount, plural, one {# заява на роботу} other {# заявки на роботу}}"
-
-#: src/features/career/pipeline-summary.tsx
-msgid "{attention} need attention"
-msgstr ""
 
 #: src/features/documents/new-document-dialog.tsx
 msgid "{base} (copy)"
@@ -505,9 +532,54 @@ msgstr "{count, plural, one {Запис #} other {Записи #}}"
 msgid "{count, plural, one {Apply # change} other {Apply # changes}}"
 msgstr "{count, plural, one {Застосувати # зміну} few {Застосувати # зміни} many {Застосувати # змін} other {Застосувати # зміни}}"
 
+#: src/features/career/pipeline-words.ts
+msgid "{count} applied in this window"
+msgstr ""
+
+#: src/features/career/pipeline-words.ts
+msgid "{count} could not be read"
+msgstr ""
+
+#: src/features/career/pipeline-words.ts
+msgid "{count} filtered out"
+msgstr ""
+
+#: src/features/career/pipeline-words.ts
+msgid "{count} need attention"
+msgstr ""
+
+#: src/features/career/pipeline-words.ts
+msgid "{count} new jobs"
+msgstr ""
+
+#: src/features/career/pipeline-words.ts
+msgid "{count} queued"
+msgstr ""
+
+#: src/features/career/pipeline-words.ts
+msgid "{count} ready"
+msgstr ""
+
+#: src/features/career/pipeline-words.ts
+msgid "{count} ready for you"
+msgstr ""
+
+#: src/features/career/pipeline-words.ts
+msgid "{count} results"
+msgstr ""
+
 #: src/features/documents/documents-page.tsx
 msgid "{count} selected"
 msgstr "Вибрано: {count}"
+
+#: src/features/career/pipeline-words.ts
+msgid "{count} waiting for the daily limit"
+msgstr ""
+
+#. placeholder {0}: when(stage.at)
+#: src/features/career/pipeline-words.ts
+msgid "{count} waiting for the daily limit · from {0}"
+msgstr ""
 
 #: src/features/career/offers.tsx
 msgid "{days, plural, one {# office day a week} other {# office days a week}}"
@@ -529,6 +601,11 @@ msgstr "{days, plural, one {# день в офісі — ваш ліміт} few 
 msgid "{documents, plural, one {# document} other {# documents}}"
 msgstr "{documents, plural, one {Документ #} other {Документи #}}"
 
+#. placeholder {0}: plan.dailyLimit
+#: src/features/setup/page.tsx
+msgid "{documents} for each new job, up to {0} a day"
+msgstr ""
+
 #: src/features/documents/document-actions.tsx
 msgid "{done, plural, one {# document updated} other {# documents updated}}"
 msgstr "{done, plural, one {# документ оновлено} few {# документи оновлено} many {# документів оновлено} other {# документа оновлено}}"
@@ -541,6 +618,14 @@ msgstr "{done} з {0}"
 #: src/features/career/workspace/debrief.tsx
 msgid "{done} of {count} done"
 msgstr "Виконано {done} з {count}"
+
+#: src/features/overview/page.tsx
+msgid "{done} prepared"
+msgstr ""
+
+#: src/features/overview/page.tsx
+msgid "{done} ready"
+msgstr ""
 
 #: src/features/career/workspace/prepare.tsx
 msgid "{doneMinutes} of {total} min"
@@ -569,6 +654,14 @@ msgstr "{factCount, plural, one {# факт} few {# факти} many {# факт
 #: src/features/career/workspace/saved.tsx
 msgid "{facts, plural, one {# fact} other {# facts}}"
 msgstr "{facts, plural, one {# факт} few {# факти} many {# фактів} other {# факту}}"
+
+#: src/features/overview/page.tsx
+msgid "{failed} generation failed"
+msgstr ""
+
+#: src/features/overview/page.tsx
+msgid "{failed} needs attention"
+msgstr ""
 
 #: src/features/resume/editor/check/check-panel.tsx
 msgid "{failing, plural, one {# to review} other {# to review}}"
@@ -599,7 +692,12 @@ msgstr "{issues, plural, one {У чеку є #, що варто переглян
 msgid "{keyCount, plural, one {# API key} other {# API keys}}"
 msgstr "{keyCount, plural, one {Ключ # API} other {Ключі # API}}"
 
+#: src/features/overview/page.tsx
+msgid "{kind} generation failed for {company}"
+msgstr ""
+
 #: src/features/applications/next-step.ts
+#: src/features/automation/schedules.tsx
 #: src/features/career/today.tsx
 msgid "{kind} interview"
 msgstr "Інтерв'ю {kind}"
@@ -615,6 +713,10 @@ msgstr "{length} хв"
 #: src/routes/builder/$resumeId/-components/page-canvas.tsx
 msgid "{lines, plural, one {Runs onto page {next} by about # line} other {Runs onto page {next} by about # lines}}"
 msgstr "{lines, plural, one {Переходить на сторінку {next} приблизно в рядку #} other {Переходить на сторінку {next} приблизно рядками #}}"
+
+#: src/features/overview/page.tsx
+msgid "{matches} new jobs saved"
+msgstr ""
 
 #: src/features/career/offers.tsx
 msgid "{minimum} minimum"
@@ -701,6 +803,10 @@ msgstr "{passedRules} або {totalRules} перевірки пройшли."
 msgid "{pendingOnPage, plural, one {# proposed edit on this page · nothing changes until you accept} other {# proposed edits on this page · nothing changes until you accept}}"
 msgstr "{pendingOnPage, plural, one {# запропонована правка на цій сторінці · нічого не зміниться, доки ви не приймете} other {# запропоновані зміни на цій сторінці · нічого не зміниться, доки ви не приймете}}"
 
+#: src/features/career/pipeline-map.tsx
+msgid "{problems} to look at"
+msgstr ""
+
 #: src/features/resume/editor/write/section-row.tsx
 msgid "{proposed, plural, one {# proposed} other {# proposed}}"
 msgstr "{proposed, plural, one {Запропоновано #} other {Запропоновано #}}"
@@ -709,13 +815,8 @@ msgstr "{proposed, plural, one {Запропоновано #} other {Запро�
 msgid "{readFailures} of {found} results could not be read, so they were skipped and will be tried again. The rest were processed."
 msgstr ""
 
-#: src/features/career/pipeline-summary.tsx
 #: src/features/career/preparation-list.tsx
 msgid "{ready} ready for review"
-msgstr ""
-
-#: src/features/settings/automation/page.tsx
-msgid "{ready} ready for review, {attention} need attention."
 msgstr ""
 
 #: src/features/resume/editor/write/write-panel.tsx
@@ -759,11 +860,11 @@ msgid "{title} deleted"
 msgstr "{title} видалено"
 
 #. placeholder {0}: when(saved.nextRunAt)
-#: src/features/career/today.tsx
+#: src/features/automation/schedules.tsx
 msgid "{title} is on · next {0}"
 msgstr "«{title}» увімкнено · наступний запуск: {0}"
 
-#: src/features/career/today.tsx
+#: src/features/automation/schedules.tsx
 msgid "{title} paused"
 msgstr "«{title}» призупинено"
 
@@ -797,14 +898,14 @@ msgstr "{value} на рік"
 msgid "{value} an hour"
 msgstr "{value} на годину"
 
+#: src/features/career/pipeline-words.ts
+msgid "{value} documents left today"
+msgstr ""
+
 #: src/features/career/workspace/apply.tsx
 #: src/routes/builder/letter/-components/write-panel.tsx
 msgid "{words, plural, one {# word} other {# words}}"
 msgstr "{words, plural, one {# слово} other {# слова}}"
-
-#: src/features/career/pipeline-summary.tsx
-msgid "{working} in progress"
-msgstr ""
 
 #: src/features/career/knowledge/preferences.tsx
 msgid "/ hour"
@@ -853,6 +954,14 @@ msgstr "1 колонка, в рядку"
 msgid "1 interview"
 msgstr "1 інтерв'ю"
 
+#: src/features/overview/page.tsx
+msgid "1 new job"
+msgstr ""
+
+#: src/features/overview/page.tsx
+msgid "1 new job saved"
+msgstr ""
+
 #: src/features/career/workspace/prepare.tsx
 msgid "10-minute briefing"
 msgstr "10-хвилинний брифінг"
@@ -865,8 +974,8 @@ msgstr "10–11 рекомендовано"
 msgid "2 files"
 msgstr "2 файли"
 
+#: src/features/automation/schedules.tsx
 #: src/features/career/schedule-sheet.tsx
-#: src/features/career/today.tsx
 msgid "2 hours before"
 msgstr "За 2 години"
 
@@ -891,8 +1000,8 @@ msgstr "2017 – 2021"
 msgid "2021 – Present"
 msgstr "2021 – теперішній час"
 
+#: src/features/automation/schedules.tsx
 #: src/features/career/schedule-sheet.tsx
-#: src/features/career/today.tsx
 msgid "24 hours before"
 msgstr "За 24 години"
 
@@ -900,7 +1009,6 @@ msgstr "За 24 години"
 msgid "3 supported · 1 partly · 1 missing"
 msgstr "Підтверджено: 3 · частково: 1 · бракує: 1"
 
-#: src/features/overview/page.tsx
 #: src/features/settings/ai/api-keys.tsx
 msgid "30 days"
 msgstr "30 днів"
@@ -909,15 +1017,10 @@ msgstr "30 днів"
 msgid "40% faster reviews"
 msgstr "На 40% швидше огляди"
 
-#: src/features/overview/page.tsx
-msgid "7 days"
-msgstr ""
-
 #: src/features/homepage/faq.tsx
 msgid "9 short answers to what people ask before they start. Anything else, ask on <0>Discord</0>."
 msgstr "9 коротких відповідей на те, що питають перед початком. Інші запитання ставте в <0>Discord</0>."
 
-#: src/features/overview/page.tsx
 #: src/features/settings/ai/api-keys.tsx
 msgid "90 days"
 msgstr "90 днів"
@@ -962,6 +1065,10 @@ msgstr "Діапазон дат записано у формі, яку біль�
 msgid "A date won't be read"
 msgstr "Дата не буде прочитана"
 
+#: src/features/profile/baseline-checks.ts
+msgid "A description on every experience entry"
+msgstr ""
+
 #: src/features/career/knowledge/stories.tsx
 msgid "A fact changed. Review this story."
 msgstr "Факт змінився. Перегляньте цю розповідь."
@@ -995,11 +1102,20 @@ msgstr "Проміжок на всю висоту розділяє цю стор
 msgid "A gap is not a problem. Add a one-line explanation if you want to; many strong resumes simply do not."
 msgstr "Проміжок — це не проблема. За бажання додайте однорядкове пояснення; багато сильних резюме цього просто не роблять."
 
+#: src/features/profile/baseline-checks.ts
+msgid "A headline (your target role)"
+msgstr ""
+
 #: src/features/homepage/prepare.tsx
 msgid "A high bar for accessibility"
 msgstr "Високі вимоги до доступності"
 
-#: src/features/settings/automation/page.tsx
+#: src/features/career/pipeline-words.ts
+#: src/features/overview/page.tsx
+msgid "a job"
+msgstr ""
+
+#: src/features/automation/page.tsx
 msgid "A letter for the job, written from your baseline resume and the facts you have approved. Gaps are listed for you to fill, not invented."
 msgstr ""
 
@@ -1031,6 +1147,10 @@ msgstr "Сторінка повернута."
 msgid "A pasted posting can be saved as an application afterwards."
 msgstr "Вставлене оголошення про роботу можна згодом зберегти як заяву на роботу."
 
+#: src/features/setup/page.tsx
+msgid "A preview only: nothing is saved. Search services rank results, so this finds relevant postings but cannot promise to list every job."
+msgstr ""
+
 #: src/features/applications/components/detail/next-step-card.tsx
 msgid "A reminder to check in, shown as the next step until you do."
 msgstr "Нагадування про реєстрацію, яке відображається як наступний крок, доки ви це не зробите."
@@ -1040,12 +1160,17 @@ msgid "A role has no description"
 msgstr "Роль не має опису"
 
 #: src/features/career/discovery-status.tsx
+#: src/features/discover/search-header.tsx
 msgid "A run is already queued or running."
 msgstr ""
 
 #: src/features/career/coach-thread.tsx
 msgid "A saved offer"
 msgstr "Збережена пропозиція"
+
+#: src/features/career/pipeline-words.ts
+msgid "A search is scheduled"
+msgstr ""
 
 #: src/features/resume/editor/check/writing-tab.tsx
 msgid "A second opinion on your wording"
@@ -1055,7 +1180,11 @@ msgstr "Друга думка щодо вашого формулювання"
 msgid "A second pair of eyes."
 msgstr ""
 
-#: src/features/settings/automation/page.tsx
+#: src/features/setup/page.tsx
+msgid "A separate copy of your baseline, reworded for each job. Nothing is added that your resume does not say."
+msgstr ""
+
+#: src/features/automation/page.tsx
 msgid "A separate copy with a reworded summary and experience and reordered skills. Your baseline is never changed, and nothing is added that your resume does not say."
 msgstr ""
 
@@ -1071,9 +1200,17 @@ msgstr "Розповідь, яку ви згодом видалили"
 msgid "A strong match, with one question to resolve"
 msgstr "Сильний збіг, лишається одне питання"
 
+#: src/features/profile/baseline-checks.ts
+msgid "A summary"
+msgstr ""
+
 #: src/features/career/workspace/prepare.tsx
 msgid "A timed plan, your opening, the stories to bring and questions to ask. It becomes your checklist 10 minutes before the call."
 msgstr "План за часом, ваш вступ, розповіді, які варто взяти, і запитання для роботодавця. За 10 хвилин до дзвінка він стає вашим чеклістом."
+
+#: src/features/profile/baseline-checks.ts
+msgid "A valid email address"
+msgstr ""
 
 #: src/features/ats-checker/messages.ts
 msgid "A web address is written without https://."
@@ -1136,6 +1273,7 @@ msgid "Accomplishment"
 msgstr "Досягнення"
 
 #: src/features/command-palette/pages/navigation.tsx
+#: src/features/profile/details.tsx
 #: src/features/settings/account/page.tsx
 #: src/features/settings/root.tsx
 #: src/routes/dashboard/-components/app-shell.tsx
@@ -1169,14 +1307,20 @@ msgid "Active"
 msgstr "Активний"
 
 #: src/features/applications/components/detail/activity.tsx
+#: src/features/career/activity-feed.tsx
+#: src/features/overview/page.tsx
 msgid "Activity"
 msgstr "діяльність"
+
+#: src/features/career/activity-feed.tsx
+msgid "Activity pages"
+msgstr ""
 
 #: src/features/applications/components/detail/activity.tsx
 #: src/features/applications/components/detail/contacts.tsx
 #: src/features/applications/components/list-view.tsx
+#: src/features/automation/schedules.tsx
 #: src/features/career/knowledge/facts.tsx
-#: src/features/career/today.tsx
 #: src/features/resume/editor/write/basics-card.tsx
 msgid "Add"
 msgstr "Додати"
@@ -1306,6 +1450,7 @@ msgstr "Додайте співбесіду, щоб спланувати під�
 
 #: src/features/applications/components/application-form-sheet.tsx
 #: src/features/command-palette/pages/navigation.tsx
+#: src/features/overview/page.tsx
 msgid "Add application"
 msgstr "Додати заявку"
 
@@ -1507,11 +1652,13 @@ msgstr "Додано до Знань як досвід."
 msgid "Added to Prepare"
 msgstr "Додано до Підготовки"
 
-#: src/features/settings/automation/page.tsx
+#: src/features/automation/page.tsx
+#: src/features/setup/page.tsx
 msgid "Additional cover letter instruction"
 msgstr ""
 
-#: src/features/settings/automation/page.tsx
+#: src/features/automation/page.tsx
+#: src/features/setup/page.tsx
 msgid "Additional resume instruction"
 msgstr ""
 
@@ -1523,6 +1670,10 @@ msgstr "Адреса"
 msgid "Adds a reminder to Today if you haven't heard back by then."
 msgstr "Додає нагадування в «Сьогодні», якщо до того часу ви не отримаєте відповіді."
 
+#: src/features/career/pipeline-words.ts
+msgid "Adds the new jobs to your applications as Saved."
+msgstr ""
+
 #: src/features/homepage/sections.tsx
 msgid "Ads"
 msgstr "Оголошення"
@@ -1530,6 +1681,10 @@ msgstr "Оголошення"
 #: src/routes/builder/$resumeId/-components/design-panel.tsx
 msgid "Advanced"
 msgstr "Розширений"
+
+#: src/features/automation/page.tsx
+msgid "Advanced writing instructions"
+msgstr ""
 
 #: src/features/ats-checker/messages.ts
 msgid "Advice for the person reading it. None of this affects the score."
@@ -1567,6 +1722,10 @@ msgstr "Після технічної співбесіди"
 msgid "After your first review, a light plan for this week appears here."
 msgstr "Після першого розбору тут з’явиться легкий план на цей тиждень."
 
+#: src/features/discover/jobs.tsx
+msgid "Against your preferences"
+msgstr ""
+
 #: src/features/career/workspace/fit.tsx
 msgid "Against your requirements"
 msgstr "Порівняно з вашими вимогами"
@@ -1578,8 +1737,8 @@ msgstr "Порівняно з вашими вимогами"
 msgid "AI & developer"
 msgstr "ШІ та розробник"
 
+#: src/features/automation/page.tsx
 #: src/features/career/schedule-sheet.tsx
-#: src/features/settings/automation/page.tsx
 msgid "AI connection"
 msgstr "Підключення до AI"
 
@@ -1598,6 +1757,14 @@ msgstr "AI не зміг заповнити деталі. Оголошення �
 #: src/features/resume/share/format.ts
 msgid "AI edit"
 msgstr "AI редагувати"
+
+#: src/features/setup/page.tsx
+msgid "AI provider (optional)"
+msgstr ""
+
+#: src/features/career/pipeline-words.ts
+msgid "AI provider is connected"
+msgstr ""
 
 #: src/features/command-palette/pages/navigation.tsx
 #: src/features/settings/ai/providers.tsx
@@ -1637,9 +1804,11 @@ msgstr "Вирівняти ліворуч"
 msgid "Align right"
 msgstr "Вирівняти праворуч"
 
+#: src/features/automation/schedules.tsx
 #: src/features/career/knowledge/facts.tsx
 #: src/features/career/workspace/saved.tsx
 #: src/features/documents/documents-page.tsx
+#: src/features/overview/page.tsx
 #: src/features/resume/editor/design/template-group.tsx
 msgid "All"
 msgstr "все"
@@ -1660,6 +1829,14 @@ msgstr "Всі заявки на роботу (включаючи закриті
 #: src/features/settings/account/data.tsx
 msgid "All documents and applications as JSON, in one zip"
 msgstr "Усі документи та заявки на роботу як JSON в одному архіві"
+
+#: src/features/career/pipeline-words.ts
+msgid "All pages read"
+msgstr ""
+
+#: src/features/discover/jobs.tsx
+msgid "All sources"
+msgstr ""
 
 #: src/features/auth/pages/consent.tsx
 msgid "Allow access"
@@ -1688,6 +1865,10 @@ msgstr "Вже маєте обліковий запис? <0/>"
 #: src/features/applications/components/add-application-dialog.tsx
 msgid "Already interviewing"
 msgstr "Вже бере співбесіду"
+
+#: src/features/career/pipeline-words.ts
+msgid "Already known"
+msgstr ""
 
 #: src/features/resume/editor/check/check-panel.tsx
 msgid "Also check the exported PDF"
@@ -1730,6 +1911,11 @@ msgstr "Конструктор резюме з відкритим кодом"
 #: src/components/layout/error-screen.tsx
 msgid "An unexpected error stopped this page from loading. You can try again or head back."
 msgstr "Неочікувана помилка завадила завантаженню цієї сторінки. Ви можете спробувати ще раз або повернутися назад."
+
+#: src/features/overview/page.tsx
+#: src/features/setup/page.tsx
+msgid "and"
+msgstr ""
 
 #. placeholder {0}: others.length
 #: src/features/applications/components/detail/contacts.tsx
@@ -1912,6 +2098,10 @@ msgstr "Деталі заявки"
 msgid "Application options"
 msgstr "Параметри заявки"
 
+#: src/features/overview/page.tsx
+msgid "Application outcomes"
+msgstr ""
+
 #: src/features/career/coach.tsx
 msgid "application summaries"
 msgstr "підсумки заявок"
@@ -1935,12 +2125,17 @@ msgstr "Заявку оновлено."
 #: src/features/command-palette/pages/resumes.tsx
 #: src/routes/dashboard/-components/app-shell.tsx
 #: src/routes/dashboard/applications/index.tsx
+#: src/routes/dashboard/applications/offers.tsx
 msgid "Applications"
 msgstr "Заявки"
 
 #: src/features/applications/components/insights-view.tsx
 msgid "Applications over time"
 msgstr "Заявки з часом"
+
+#: src/features/overview/page.tsx
+msgid "Applications reached interview"
+msgstr ""
 
 #: src/features/applications/components/insights-view.tsx
 msgid "Applications sent per week (last 8 weeks)"
@@ -1955,7 +2150,6 @@ msgstr "Заявки для експорту"
 #: src/features/homepage/prepare.tsx
 #: src/features/homepage/sections.tsx
 #: src/features/homepage/tailor.tsx
-#: src/features/overview/page.tsx
 msgid "Applied"
 msgstr "Подано"
 
@@ -1970,6 +2164,10 @@ msgstr "Застосовано"
 #: src/features/career/workspace/shell.tsx
 msgid "Applied {0}"
 msgstr "Подано {0}"
+
+#: src/features/overview/page.tsx
+msgid "Applied {applied} days ago"
+msgstr ""
 
 #: src/features/applications/next-step.ts
 msgid "Applied today"
@@ -2091,6 +2289,10 @@ msgstr "Запитали та <0>відповіли.</0>"
 msgid "Asks for an example of your onboarding work."
 msgstr "Просить приклад вашої роботи з онбордингом."
 
+#: src/features/career/pipeline-words.ts
+msgid "Asks your search service for postings that match what you look for."
+msgstr ""
+
 #: src/features/resume/editor/write/picture-settings.tsx
 msgid "Aspect Ratio"
 msgstr "Пропорції"
@@ -2115,6 +2317,10 @@ msgstr "Розмови помічника"
 msgid "Assistant."
 msgstr "помічник."
 
+#: src/features/profile/baseline-checks.ts
+msgid "At least one experience entry"
+msgstr ""
+
 #: src/features/homepage/prepare.tsx
 msgid "At Northwind Labs I led research for our onboarding redesign. I interviewed 14 customers, found three drop-off points, and we shipped a shorter setup. Activation rose from 31% to 44%."
 msgstr "У Northwind Labs я керував дослідженням для редизайну онбордингу. Я провів інтерв’ю з 14 клієнтами, знайшов три точки відтоку, і ми випустили коротше налаштування. Активація зросла з 31% до 44%."
@@ -2135,6 +2341,14 @@ msgstr "Перевірка ATS"
 #: src/features/homepage/check.tsx
 msgid "ATS readability"
 msgstr "Читабельність ATS"
+
+#. placeholder {0}: report.data.ats.score
+#. placeholder {1}: report.data.ats.counts.error
+#. placeholder {2}: report.data.ats.counts.warning
+#: src/features/profile/baseline.tsx
+#: src/features/setup/page.tsx
+msgid "ATS readability: {0}/100 · {1} errors · {2} warnings."
+msgstr ""
 
 #: src/features/resume/editor/design/template-group.tsx
 msgid "ATS-safe"
@@ -2170,27 +2384,31 @@ msgstr "Вкладення"
 msgid "Auto-fill failed."
 msgstr "Не вдалося автоматично заповнити."
 
-#: src/features/overview/page.tsx
-msgid "Automatic documents are off."
-msgstr ""
-
 #: src/features/career/knowledge/facts.tsx
 msgid "Automatically"
 msgstr "Автоматично"
 
-#: src/features/settings/automation/page.tsx
-#: src/features/settings/root.tsx
-#: src/routes/dashboard/settings/route.tsx
+#: src/features/automation/page.tsx
+#: src/features/command-palette/pages/navigation.tsx
+#: src/features/overview/page.tsx
+#: src/routes/dashboard/-components/app-shell.tsx
 msgid "Automation"
 msgstr ""
 
-#: src/features/settings/automation/page.tsx
+#: src/features/profile/baseline.tsx
+msgid "Automation has no resume to tailor from yet."
+msgstr ""
+
+#: src/features/automation/page.tsx
 msgid "Automation saved"
 msgstr ""
 
 #: src/features/career/preparation-list.tsx
-#: src/features/overview/page.tsx
 msgid "Automation settings"
+msgstr ""
+
+#: src/features/profile/baseline.tsx
+msgid "Automation tailors documents from a different resume."
 msgstr ""
 
 #: src/features/resume/share/format.ts
@@ -2225,6 +2443,7 @@ msgid "BA, Communication Design"
 msgstr "Бакалавр, комунікаційний дизайн"
 
 #: src/features/documents/new-document-dialog.tsx
+#: src/features/setup/page.tsx
 msgid "Back"
 msgstr "Назад"
 
@@ -2296,8 +2515,26 @@ msgstr "Базова зарплата"
 msgid "Base URL"
 msgstr "Базова URL-адреса"
 
-#: src/features/settings/automation/page.tsx
+#: src/features/overview/page.tsx
+msgid "Based on recorded application activity."
+msgstr ""
+
+#: src/features/command-palette/pages/navigation.tsx
+msgid "Baseline"
+msgstr ""
+
+#: src/features/profile/baseline.tsx
+msgid "Baseline confirmed"
+msgstr ""
+
+#: src/features/automation/page.tsx
+#: src/features/setup/page.tsx
+#: src/routes/dashboard/profile/route.tsx
 msgid "Baseline resume"
+msgstr ""
+
+#: src/features/career/pipeline-words.ts
+msgid "Baseline resume is set"
 msgstr ""
 
 #: src/features/resume/editor/write/basics-card.tsx
@@ -2386,6 +2623,14 @@ msgstr "Розбиває довгі слова на склади, викорис
 #: src/features/career/workspace/saved.tsx
 msgid "Briefing"
 msgstr "Брифінг"
+
+#: src/features/overview/page.tsx
+msgid "Briefing available"
+msgstr ""
+
+#: src/features/overview/page.tsx
+msgid "Briefing not ready"
+msgstr ""
 
 #: src/features/career/today.tsx
 msgid "Briefing ready"
@@ -2482,6 +2727,7 @@ msgstr "Чи може програмне забезпечення прочита
 #: src/features/resume/editor/write/picture-settings.tsx
 #: src/features/settings/ai/api-keys.tsx
 #: src/features/settings/ai/web-access.tsx
+#: src/features/setup/page.tsx
 #: src/hooks/use-confirm.tsx
 msgid "Cancel"
 msgstr "Скасувати"
@@ -2494,10 +2740,9 @@ msgstr ""
 msgid "Canceled because this was turned off in Automation settings."
 msgstr ""
 
-#: src/routes/dashboard/-components/app-shell.tsx
-#: src/routes/dashboard/career/route.tsx
-msgid "Career"
-msgstr "Кар’єра"
+#: src/routes/dashboard/profile/route.tsx
+msgid "Candidate details"
+msgstr ""
 
 #: src/features/homepage/sections.tsx
 msgid "Career coach (your key)"
@@ -2584,6 +2829,11 @@ msgstr "Змінює лише заголовки розділів і слова 
 msgid "Changing it sends a confirmation to the new address. Your username is part of every public link."
 msgstr "Якщо змінити його, на нову адресу надсилається підтвердження. Ваше ім’я користувача є частиною кожного публічного посилання."
 
+#: src/features/command-palette/pages/navigation.tsx
+msgid "Chat"
+msgstr ""
+
+#: src/features/career/pipeline-map.tsx
 #: src/features/homepage/check.tsx
 #: src/features/homepage/header.tsx
 #: src/routes/builder/$resumeId/-components/editor-bar.tsx
@@ -2600,6 +2850,8 @@ msgid "Check a sample file"
 msgstr "Перевірте зразок файлу"
 
 #: src/features/career/workspace/fit.tsx
+#: src/features/profile/baseline.tsx
+#: src/features/setup/page.tsx
 msgid "Check again"
 msgstr "Перевірити знову"
 
@@ -2708,6 +2960,15 @@ msgstr "Китайська (спрощена)"
 msgid "Chinese (Traditional)"
 msgstr "Китайська (традиційна)"
 
+#: src/features/profile/baseline.tsx
+#: src/features/profile/details.tsx
+msgid "Choose a baseline"
+msgstr ""
+
+#: src/features/profile/details.tsx
+msgid "Choose a baseline resume and its contact details appear here."
+msgstr ""
+
 #: src/features/career/preparation.ts
 msgid "Choose a baseline resume in Settings → Automation."
 msgstr ""
@@ -2720,7 +2981,9 @@ msgstr "Виберіть файл"
 msgid "Choose a file to import"
 msgstr "Виберіть файл для імпорту"
 
-#: src/features/settings/automation/page.tsx
+#: src/features/automation/page.tsx
+#: src/features/profile/baseline.tsx
+#: src/features/setup/page.tsx
 msgid "Choose a resume"
 msgstr ""
 
@@ -2748,8 +3011,12 @@ msgstr "Виберіть інший файл"
 msgid "Choose color"
 msgstr "Виберіть колір"
 
-#: src/features/settings/automation/page.tsx
+#: src/features/automation/page.tsx
 msgid "Choose the resume to tailor from. It is only read, never changed."
+msgstr ""
+
+#: src/features/setup/page.tsx
+msgid "Choose your baseline resume"
 msgstr ""
 
 #: src/components/level/combobox.tsx
@@ -2773,6 +3040,10 @@ msgstr "Claude Desktop"
 #: src/features/resume/editor/check/job-match.tsx
 msgid "Clear"
 msgstr "Очистити"
+
+#: src/features/discover/jobs.tsx
+msgid "Clear filters"
+msgstr ""
 
 #: src/features/resume/editor/write/rich-text-editor.tsx
 msgid "Clear formatting"
@@ -2813,6 +3084,8 @@ msgstr "ID клієнта"
 #: src/features/career/schedule-sheet.tsx
 #: src/features/career/workspace/coach-sheet.tsx
 #: src/features/career/workspace/prepare.tsx
+#: src/features/discover/activity.tsx
+#: src/features/discover/jobs.tsx
 #: src/features/resume/editor/check/page-layer.tsx
 #: src/routes/builder/$resumeId/-components/share-sheet.tsx
 #: src/routes/builder/letter/-components/share-sheet.tsx
@@ -2852,7 +3125,9 @@ msgstr "ЗАЧИНЕНО"
 
 #: src/features/career/coach.tsx
 #: src/features/career/workspace/coach-sheet.tsx
-#: src/routes/dashboard/career/route.tsx
+#: src/features/command-palette/pages/navigation.tsx
+#: src/routes/dashboard/-components/app-shell.tsx
+#: src/routes/dashboard/coach.{-$conversationId}.tsx
 msgid "Coach"
 msgstr "Коуч"
 
@@ -2879,6 +3154,7 @@ msgid "Columns can scramble the order text is read in."
 msgstr "Стовпці можуть змішувати текст замовлення, який читається."
 
 #: src/features/career/today.tsx
+#: src/features/overview/page.tsx
 msgid "Coming up"
 msgstr "Найближче"
 
@@ -2917,8 +3193,13 @@ msgid "Compare attempts to see what improved. Practice questions are simulated, 
 msgstr "Порівнюйте спроби, щоб побачити прогрес. Тренувальні запитання змодельовано, вони не від компанії {0}."
 
 #: src/features/career/workspace/shell.tsx
+#: src/features/command-palette/pages/navigation.tsx
 msgid "Compare offers"
 msgstr "Порівняти пропозиції"
+
+#: src/routes/dashboard/applications/offers.tsx
+msgid "Compare saved offers side by side. Add an offer from its application."
+msgstr ""
 
 #: src/features/career/offers.tsx
 msgid "Compared in their original currency and pay period. Comparing doesn't share anything with the coach."
@@ -2936,6 +3217,10 @@ msgstr "Порівнює ваше резюме з оголошенням про 
 msgid "Complete data backup. Imports back into Reactive Resume or JSON Resume tools."
 msgstr "Повне резервне копіювання даних. Імпортує назад до інструментів Reactive Resume або JSON Resume."
 
+#: src/features/overview/page.tsx
+msgid "Completed"
+msgstr ""
+
 #: src/features/ats-checker/messages.ts
 msgid "Compress or remove large images to keep uploads quick."
 msgstr "Стисніть або видаліть великі зображення, щоб завантаження було швидким."
@@ -2947,6 +3232,11 @@ msgstr "Підтвердити"
 #: src/features/applications/components/application-detail-sheet.tsx
 msgid "Confirm applied"
 msgstr "Підтвердити подання"
+
+#: src/features/profile/baseline.tsx
+#: src/features/setup/page.tsx
+msgid "Confirm baseline"
+msgstr ""
 
 #: src/features/resume/builder/password-dialog.tsx
 msgid "Confirm Password"
@@ -2967,6 +3257,14 @@ msgstr "Підтвердьте час із контактною особою {co
 #: src/features/career/workspace/prepare.tsx
 msgid "Confirm the time, link and who you'll meet. Glance at the resume and letter you sent."
 msgstr "Підтвердьте час, посилання і з ким зустрічаєтеся. Перегляньте надіслані резюме й лист."
+
+#: src/features/overview/page.tsx
+msgid "Confirm your baseline resume, connect services and start discovery."
+msgstr ""
+
+#: src/features/profile/baseline.tsx
+msgid "Confirmed as your baseline"
+msgstr ""
 
 #: src/features/homepage/prepare.tsx
 msgid "Confirms {time} today, by video."
@@ -3003,6 +3301,10 @@ msgstr "Підключіть постачальника AI в Налаштува
 msgid "Connect an application"
 msgstr "Підключіть програму"
 
+#: src/features/setup/page.tsx
+msgid "Connect and test a web search service to continue."
+msgstr ""
+
 #: src/features/career/preparation.ts
 msgid "Connect and test an AI provider in Settings → AI & developer."
 msgstr ""
@@ -3012,8 +3314,12 @@ msgstr ""
 msgid "Connect another…"
 msgstr "Підключіть інший…"
 
-#: src/features/settings/automation/page.tsx
+#: src/features/automation/page.tsx
 msgid "Connect one in AI & developer"
+msgstr ""
+
+#: src/features/setup/page.tsx
+msgid "Connect services"
 msgstr ""
 
 #: src/features/settings/ai/page.tsx
@@ -3023,6 +3329,10 @@ msgstr "Підключіть інструменти, які ви викорис�
 #: src/features/resume/editor/check/writing-tab.tsx
 msgid "Connect your own AI provider to have a language model read your bullets and suggest rewrites. Issues and Job match need no provider."
 msgstr "Підключіть власного постачальника штучного інтелекту, щоб мовна модель читала ваші записи списку та пропонувала переписати. Проблеми та збіг роботи не потребують постачальника."
+
+#: src/features/setup/page.tsx
+msgid "Connect your services"
+msgstr ""
 
 #: src/features/settings/account/security.tsx
 #: src/features/settings/ai/providers.tsx
@@ -3106,6 +3416,7 @@ msgstr "Вміст розташований у вигляді сітки."
 #: src/dialogs/auth/enable-two-factor.tsx
 #: src/features/assistant/conversation.tsx
 #: src/features/auth/pages/register.tsx
+#: src/features/setup/page.tsx
 msgid "Continue"
 msgstr "Продовжити"
 
@@ -3254,6 +3565,10 @@ msgstr "Виправити цей факт"
 msgid "Corrected {correctedOn} · original kept"
 msgstr "Виправлено {correctedOn} · оригінал збережено"
 
+#: src/features/career/pipeline-words.ts
+msgid "Could not be read"
+msgstr ""
+
 #: src/features/auth/pages/consent.tsx
 msgid "Could not complete this connection. Restart the connection from your client and try again."
 msgstr "Не вдалося завершити це підключення. Перезапустіть підключення зі свого клієнта та повторіть спробу."
@@ -3278,6 +3593,11 @@ msgstr "Не вдалося створити PDF. Спробуйте ще раз
 #: src/features/settings/ai/connected-apps.tsx
 msgid "Could not load connected applications."
 msgstr "Не вдалося завантажити підключені програми."
+
+#. placeholder {0}: reason ?? ""
+#: src/features/career/pipeline-words.ts
+msgid "Could not make the {kind} for {job}. {0}"
+msgstr ""
 
 #: src/features/resume/export/use-resume-export.ts
 msgid "Could not prepare your resume for printing. Please try again."
@@ -3329,14 +3649,28 @@ msgstr "Не вдалося змінити дизайн. Спробуйте зн
 msgid "Couldn't change the email. Try again."
 msgstr "Не вдалося змінити електронну адресу. Спробуйте знову."
 
+#: src/features/profile/baseline.tsx
+msgid "Couldn't change the resume used for tailoring."
+msgstr ""
+
 #: src/features/career/workspace/prepare.tsx
 msgid "Couldn't change the schedule."
 msgstr "Не вдалося змінити розклад."
 
+#: src/features/automation/schedules.tsx
 #: src/features/career/discovery-status.tsx
-#: src/features/career/today.tsx
+#: src/features/discover/search-header.tsx
 msgid "Couldn't change this schedule."
 msgstr "Не вдалося змінити цей розклад."
+
+#: src/features/profile/baseline.tsx
+msgid "Couldn't check this resume."
+msgstr ""
+
+#: src/features/profile/baseline.tsx
+#: src/features/setup/page.tsx
+msgid "Couldn't confirm the baseline."
+msgstr ""
 
 #: src/features/assistant/provider-setup.tsx
 msgid "Couldn't connect. Check the key and try again."
@@ -3374,6 +3708,10 @@ msgstr "Не вдалося створити ключ. Спробуйте зно
 msgid "Couldn't create the letter."
 msgstr "Не вдалося створити листа."
 
+#: src/features/setup/page.tsx
+msgid "Couldn't create the resume."
+msgstr ""
+
 #: src/features/assistant/assistant-panel.tsx
 msgid "Couldn't delete it."
 msgstr "Не вдалося видалити."
@@ -3402,7 +3740,7 @@ msgstr "Не вдалося видалити постачальника."
 msgid "Couldn't delete this conversation."
 msgstr "Не вдалося видалити цю розмову."
 
-#: src/features/career/today.tsx
+#: src/features/career/schedule-state.ts
 msgid "Couldn't delete this schedule."
 msgstr "Не вдалося видалити цей розклад."
 
@@ -3418,7 +3756,7 @@ msgstr "Не вдалося забути цей факт."
 msgid "Couldn't get a suggestion. Nothing changed."
 msgstr "Не вдалося отримати пропозицію. Нічого не змінилося."
 
-#: src/features/career/today.tsx
+#: src/features/discover/jobs.tsx
 msgid "Couldn't hide this role."
 msgstr "Не вдалося приховати цю вакансію."
 
@@ -3454,6 +3792,10 @@ msgstr "Не вдалося завантажити документи"
 msgid "Couldn't load interviews. Retry"
 msgstr "Не вдалося завантажити співбесіди. Повторити"
 
+#: src/features/setup/page.tsx
+msgid "Couldn't load setup."
+msgstr ""
+
 #: src/features/overview/page.tsx
 msgid "Couldn't load the overview."
 msgstr ""
@@ -3462,9 +3804,22 @@ msgstr ""
 msgid "Couldn't load the sample file. Try again."
 msgstr "Не вдалося завантажити файл зразка. Спробуйте знову."
 
+#: src/features/career/job-journey.tsx
+msgid "Couldn't load this job's history. It is kept for 30 days."
+msgstr ""
+
+#: src/features/career/run-results.tsx
+msgid "Couldn't load this run's results. Runs are kept for 30 days."
+msgstr ""
+
 #: src/features/career/load-state.tsx
 msgid "Couldn't load this. Your saved data hasn't changed."
 msgstr "Не вдалося завантажити. Ваші збережені дані не змінилися."
+
+#: src/features/automation/page.tsx
+#: src/features/discover/search-header.tsx
+msgid "Couldn't load your search."
+msgstr ""
 
 #: src/features/settings/ai/providers.tsx
 msgid "Couldn't make it the default."
@@ -3495,10 +3850,18 @@ msgstr "Не вдалося зв’язатися з вашим постачал
 msgid "Couldn't read that file."
 msgstr "Не вдалося прочитати цей файл."
 
+#: src/features/setup/page.tsx
+msgid "Couldn't read that file. Try another file, or start blank."
+msgstr ""
+
 #. placeholder {0}: part.errorText
 #: src/features/assistant/conversation.tsx
 msgid "Couldn't read this page: {0}"
 msgstr "Не вдалося прочитати цю сторінку: {0}"
+
+#: src/features/profile/details.tsx
+msgid "Couldn't read your baseline resume."
+msgstr ""
 
 #: src/features/applications/components/application-detail-sheet.tsx
 msgid "Couldn't record submission. Try again."
@@ -3508,7 +3871,7 @@ msgstr "Не вдалося записати подання. Спробуйте 
 msgid "Couldn't remember that. Try again."
 msgstr "Не вдалося запам’ятати. Спробуйте ще раз."
 
-#: src/features/career/today.tsx
+#: src/features/discover/jobs.tsx
 msgid "Couldn't remove it from Applications."
 msgstr "Не вдалося вилучити із Заявок."
 
@@ -3524,11 +3887,19 @@ msgstr "Не вдалося перейменувати."
 msgid "Couldn't rename the passkey."
 msgstr "Не вдалося перейменувати ключ доступу."
 
+#: src/features/discover/jobs.tsx
+msgid "Couldn't restore this role."
+msgstr ""
+
+#: src/features/overview/page.tsx
+msgid "Couldn't resume discovery."
+msgstr ""
+
 #: src/features/settings/ai/api-keys.tsx
 msgid "Couldn't revoke the key."
 msgstr "Не вдалося відкликати ключ."
 
-#: src/features/settings/automation/page.tsx
+#: src/features/automation/page.tsx
 msgid "Couldn't save automation."
 msgstr ""
 
@@ -3584,7 +3955,7 @@ msgstr "Не вдалося зберегти теги."
 msgid "Couldn't save the timezone."
 msgstr "Не вдалося зберегти часовий пояс."
 
-#: src/features/career/today.tsx
+#: src/features/discover/jobs.tsx
 msgid "Couldn't save this role to Applications."
 msgstr "Не вдалося зберегти цю вакансію в Заявках."
 
@@ -3625,11 +3996,15 @@ msgstr "Не вдалося запланувати співбесіду."
 msgid "Couldn't send the email. Try again."
 msgstr "Не вдалося надіслати електронний лист. Спробуйте знову."
 
+#: src/features/setup/page.tsx
+msgid "Couldn't start discovery."
+msgstr ""
+
 #: src/features/career/workspace/practise.tsx
 msgid "Couldn't start recording. Choose an audio file, or type your answer."
 msgstr "Не вдалося почати запис. Виберіть аудіофайл або введіть відповідь."
 
-#: src/features/career/today.tsx
+#: src/features/discover/jobs.tsx
 msgid "Couldn't start that."
 msgstr ""
 
@@ -3639,6 +4014,7 @@ msgid "Couldn't start the conversation. Try again."
 msgstr "Не вдалося розпочати розмову. Спробуйте знову."
 
 #: src/features/career/discovery-status.tsx
+#: src/features/discover/search-header.tsx
 msgid "Couldn't start this run."
 msgstr ""
 
@@ -3702,11 +4078,16 @@ msgstr "Підраховує всі заявки на роботу, які до�
 msgid "Cover"
 msgstr "Заповнити"
 
+#: src/features/career/pipeline-words.ts
+msgid "cover letter"
+msgstr ""
+
 #: src/features/applications/components/application-form-sheet.tsx
 #: src/features/applications/components/detail/sent-documents.tsx
 #: src/features/applications/components/list-view.tsx
 #: src/features/career/discovery-runs.tsx
 #: src/features/career/preparation-list.tsx
+#: src/features/overview/page.tsx
 msgid "Cover letter"
 msgstr "Супровідний лист"
 
@@ -3737,14 +4118,17 @@ msgstr "Імпортований супровідний лист"
 msgid "Cover letter submitted (optional)"
 msgstr "Надіслано супровідний лист (необов’язково)"
 
+#: src/features/career/pipeline-words.ts
+#: src/features/setup/page.tsx
+msgid "cover letters"
+msgstr ""
+
 #: src/features/command-palette/pages/navigation.tsx
 #: src/features/homepage/sections.tsx
+#: src/features/overview/page.tsx
+#: src/features/setup/page.tsx
 msgid "Cover letters"
 msgstr "Супровідні листи"
-
-#: src/features/overview/page.tsx
-msgid "Cover letters on"
-msgstr ""
 
 #: src/features/command-palette/pages/navigation.tsx
 msgid "Create"
@@ -3819,6 +4203,10 @@ msgstr "Дані CSV"
 msgid "Currency"
 msgstr "Валюта"
 
+#: src/features/profile/baseline.tsx
+msgid "Current baseline"
+msgstr ""
+
 #: src/features/applications/components/export-applications-sheet.tsx
 msgid "Current filters"
 msgstr "Поточні фільтри"
@@ -3869,7 +4257,7 @@ msgstr "Чеська"
 msgid "Daily"
 msgstr ""
 
-#: src/features/career/today.tsx
+#: src/features/automation/schedules.tsx
 msgid "Daily at {clock} · next {next}"
 msgstr "Щодня о {clock} · наступний запуск: {next}"
 
@@ -3892,6 +4280,14 @@ msgstr "Темна"
 msgid "Dark theme"
 msgstr "Темна тема"
 
+#: src/features/command-palette/pages/navigation.tsx
+msgid "Dashboard"
+msgstr ""
+
+#: src/features/career/pipeline-map.tsx
+msgid "Dashed steps are yours. The system prepares drafts and stops there: you review and apply, and nothing is sent to an employer for you."
+msgstr ""
+
 #: src/features/applications/components/detail/activity.tsx
 #: src/features/applications/components/detail/next-step-card.tsx
 #: src/features/applications/components/interview-dialog.tsx
@@ -3910,6 +4306,10 @@ msgstr "Формат дати"
 #: src/features/resume/editor/write/dates-field.tsx
 msgid "Dates"
 msgstr "Дати"
+
+#: src/features/profile/baseline-checks.ts
+msgid "Dates on every experience entry"
+msgstr ""
 
 #: src/features/resume/editor/check/issues.ts
 msgid "Dates run backwards"
@@ -4219,20 +4619,78 @@ msgstr "Відкинути зміни?"
 msgid "Disconnect"
 msgstr "Від'єднати"
 
-#: src/features/career/discovery-runs.tsx
+#: src/features/command-palette/pages/navigation.tsx
+#: src/routes/dashboard/-components/app-shell.tsx
+#: src/routes/dashboard/discover/route.tsx
+msgid "Discover"
+msgstr ""
+
+#: src/features/career/pipeline-words.ts
+msgid "discovery"
+msgstr ""
+
+#: src/features/automation/page.tsx
+#: src/features/automation/schedules.tsx
+#: src/features/command-palette/pages/navigation.tsx
 #: src/features/overview/page.tsx
-#: src/features/settings/automation/page.tsx
 msgid "Discovery"
 msgstr ""
 
-#: src/features/career/today.tsx
+#: src/features/career/pipeline-words.ts
+msgid "Discovery is on"
+msgstr ""
+
+#: src/features/overview/page.tsx
+msgid "Discovery is paused"
+msgstr ""
+
+#: src/features/career/pipeline-words.ts
+msgid "Discovery is paused. Resume it to keep finding jobs."
+msgstr ""
+
+#: src/features/setup/page.tsx
+msgid "Discovery is running"
+msgstr ""
+
+#: src/features/automation/schedules.tsx
+#: src/features/discover/search-header.tsx
+#: src/features/overview/page.tsx
 msgid "Discovery paused"
 msgstr ""
 
-#: src/features/career/today.tsx
+#: src/features/automation/schedules.tsx
+#: src/features/discover/search-header.tsx
+#: src/features/overview/page.tsx
 msgid "Discovery resumed"
 msgstr ""
 
+#: src/features/career/pipeline-words.ts
+#: src/features/overview/page.tsx
+msgid "Discovery run failed"
+msgstr ""
+
+#: src/features/career/pipeline-words.ts
+msgid "Discovery run failed: none of the pages could be read"
+msgstr ""
+
+#: src/features/career/pipeline-words.ts
+msgid "Discovery run failed: the search did not run"
+msgstr ""
+
+#. placeholder {0}: Number(data.matches ?? 0)
+#. placeholder {1}: Number(data.found ?? 0)
+#. placeholder {2}: Number(data.duplicates ?? 0)
+#. placeholder {3}: Number(data.rejected ?? 0)
+#. placeholder {4}: Number(data.readFailures ?? 0) > 0 ? ` · ${Number(data.readFailures)} unreadable` : ""
+#: src/features/career/pipeline-words.ts
+msgid "Discovery run: {0} new of {1} found · {2} already known · {3} rejected{4}"
+msgstr ""
+
+#: src/features/automation/page.tsx
+msgid "Discovery, interview preparation and follow-up reminders. Each links to the application it belongs to."
+msgstr ""
+
+#: src/features/discover/jobs.tsx
 #: src/features/resume/editor/write/write-panel.tsx
 #: src/routes/builder/letter/-components/write-panel.tsx
 #: src/routes/dashboard/applications/index.tsx
@@ -4243,11 +4701,7 @@ msgstr "Відхилити"
 msgid "Docs"
 msgstr "Документація"
 
-#: src/features/overview/page.tsx
-msgid "Document automation"
-msgstr ""
-
-#: src/features/settings/automation/page.tsx
+#: src/features/automation/page.tsx
 msgid "Document generation needs an AI connection that has passed its test."
 msgstr ""
 
@@ -4255,7 +4709,9 @@ msgstr ""
 msgid "Document menu: {name}"
 msgstr "Меню документа: {name}"
 
+#: src/features/automation/page.tsx
 #: src/features/career/preparation-list.tsx
+#: src/features/command-palette/pages/navigation.tsx
 msgid "Document preparation"
 msgstr ""
 
@@ -4273,6 +4729,7 @@ msgstr "Документація"
 
 #: src/features/command-palette/pages/navigation.tsx
 #: src/features/documents/documents-page.tsx
+#: src/features/setup/page.tsx
 #: src/routes/dashboard/-components/app-shell.tsx
 msgid "Documents"
 msgstr "Документи"
@@ -4286,12 +4743,17 @@ msgstr "Документи на цю роботу"
 msgid "Documents generated today"
 msgstr ""
 
-#: src/features/overview/page.tsx
-msgid "Documents need attention"
+#: src/features/setup/page.tsx
+msgid "Documents need an AI provider that has passed its test. Go back to connect one."
 msgstr ""
 
-#: src/features/settings/automation/page.tsx
+#: src/features/automation/page.tsx
+#: src/features/setup/page.tsx
 msgid "Documents per day"
+msgstr ""
+
+#: src/features/overview/page.tsx
+msgid "Documents prepared for {company}"
 msgstr ""
 
 #: src/features/overview/page.tsx
@@ -4299,7 +4761,7 @@ msgid "Documents ready"
 msgstr ""
 
 #: src/features/overview/page.tsx
-msgid "Documents ready for review"
+msgid "Documents today"
 msgstr ""
 
 #: src/features/homepage/faq.tsx
@@ -4328,7 +4790,7 @@ msgid "Done"
 msgstr "Готово"
 
 #. placeholder {0}: day(row.nextRunAt)
-#: src/features/career/today.tsx
+#: src/features/automation/schedules.tsx
 msgid "Done · {0}"
 msgstr "Виконано · {0}"
 
@@ -4473,6 +4935,10 @@ msgstr "Складання проекту зупинено. На сторінц�
 msgid "Drafting…"
 msgstr "Розробка…"
 
+#: src/features/overview/page.tsx
+msgid "Drafts need updating"
+msgstr ""
+
 #: src/features/resume/editor/write/write-panel.tsx
 msgid "drag · ⌥↑↓"
 msgstr "перетягнути · ⌥↑↓"
@@ -4505,6 +4971,10 @@ msgstr "Прибрати займенники та починати з дієс�
 msgid "Drop to import"
 msgstr "Відпустіть, щоб імпортувати"
 
+#: src/features/career/pipeline-words.ts
+msgid "Drops jobs you already have, closed roles and pages that are not postings."
+msgstr ""
+
 #: src/dialogs/resume/index.tsx
 #: src/features/documents/document-actions.tsx
 #: src/features/resume/editor/write/entry-card.tsx
@@ -4528,7 +4998,6 @@ msgstr "Дублюється"
 
 #: src/features/career/discovery-runs.tsx
 #: src/features/career/discovery-status.tsx
-#: src/features/overview/page.tsx
 msgid "Duplicates"
 msgstr ""
 
@@ -4544,8 +5013,12 @@ msgstr "Голландська"
 msgid "Each answer you get feedback on is kept here, newest first."
 msgstr "Кожна відповідь, на яку ви отримали відгук, зберігається тут, від найновіших."
 
-#: src/features/settings/automation/page.tsx
+#: src/features/automation/page.tsx
 msgid "Each generated resume or letter counts once, on its first attempt; retries do not count again. The count resets at midnight in {timeZone}. Work over the limit waits and starts after the reset."
+msgstr ""
+
+#: src/features/setup/page.tsx
+msgid "Each generated resume or letter counts once; the count resets at midnight in your timezone. Work over the limit waits."
 msgstr ""
 
 #: src/features/career/workspace/fit.tsx
@@ -4556,8 +5029,8 @@ msgstr "Кожну вимогу з оголошення звіряємо з фа
 msgid "Each send starts fresh with this message and selected files. Previous conversation history stays here."
 msgstr "Кожне надсилання починається заново з цього повідомлення та вибраних файлів. Історія попередніх розмов залишається тут."
 
-#: src/features/overview/page.tsx
-msgid "Each step counts jobs that reached it in this window, so later steps can include jobs found earlier. The percentage is the share of the step before it."
+#: src/features/automation/page.tsx
+msgid "Each step of the pipeline, and a checklist of what has to be working."
 msgstr ""
 
 #: src/features/career/coach.tsx
@@ -4608,6 +5081,15 @@ msgstr "Редагувати деталі…"
 msgid "Edit entry"
 msgstr "Редагувати запис"
 
+#. placeholder {0}: baseline.name
+#: src/features/profile/details.tsx
+msgid "Edit in {0}"
+msgstr ""
+
+#: src/features/profile/details.tsx
+msgid "Edit in Settings → Account"
+msgstr ""
+
 #: src/features/applications/components/interview-dialog.tsx
 msgid "Edit interview"
 msgstr "Редагувати інтерв'ю"
@@ -4636,6 +5118,12 @@ msgstr "Редагувати запитання"
 msgid "Edit schedule"
 msgstr "Редагувати розклад"
 
+#: src/features/automation/page.tsx
+#: src/features/discover/search-header.tsx
+#: src/features/overview/page.tsx
+msgid "Edit search"
+msgstr ""
+
 #: src/features/resume/editor/check/issues.ts
 msgid "Edit the email"
 msgstr "Відредагуйте електронний лист"
@@ -4655,6 +5143,10 @@ msgstr "Редагувати…"
 #: src/features/documents/documents-page.tsx
 msgid "Edited"
 msgstr "Відредаговано"
+
+#: src/features/profile/baseline.tsx
+msgid "Edited since you confirmed it"
+msgstr ""
 
 #: src/features/resume/editor/page-overlay.tsx
 msgid "Editing"
@@ -4684,6 +5176,7 @@ msgstr "Редакція"
 
 #: src/features/homepage/check.tsx
 #: src/features/homepage/sheet.tsx
+#: src/features/profile/baseline-checks.ts
 #: src/libs/resume/section-title.ts
 #: src/libs/resume/section.tsx
 msgid "Education"
@@ -4694,6 +5187,7 @@ msgstr "Освіта"
 msgid "Eligible again {0}."
 msgstr ""
 
+#: src/features/profile/details.tsx
 #: src/features/resume/editor/check/parser-view.tsx
 #: src/features/resume/editor/write/basics-card.tsx
 #: src/features/settings/account/profile.tsx
@@ -4716,6 +5210,10 @@ msgstr "Електронна адреса"
 #: src/features/resume/editor/check/issues.ts
 msgid "Email address won't be recognised"
 msgstr "Адреса електронної пошти не буде розпізнана"
+
+#: src/features/automation/schedules.tsx
+msgid "Email copies are optional and need a verified address."
+msgstr ""
 
 #: src/features/settings/account/profile.tsx
 msgid "Email delivery isn't set up on this server, so the address isn't verified."
@@ -4840,7 +5338,7 @@ msgstr ""
 msgid "Every {days} days"
 msgstr ""
 
-#: src/features/career/today.tsx
+#: src/features/automation/schedules.tsx
 msgid "Every {days} days at {clock} · next {next}"
 msgstr "Кожні {days} дн. о {clock} · наступний запуск: {next}"
 
@@ -4848,7 +5346,28 @@ msgstr "Кожні {days} дн. о {clock} · наступний запуск: {
 msgid "Every {hours} hours"
 msgstr ""
 
+#: src/features/setup/page.tsx
+msgid "every 3 hours"
+msgstr ""
+
+#: src/features/setup/page.tsx
+msgid "Every 3 hours"
+msgstr ""
+
+#: src/features/setup/page.tsx
+msgid "every 6 hours"
+msgstr ""
+
+#: src/features/setup/page.tsx
+msgid "Every 6 hours"
+msgstr ""
+
+#: src/features/setup/page.tsx
+msgid "every day"
+msgstr ""
+
 #: src/features/career/discovery-run.ts
+#: src/features/setup/page.tsx
 msgid "Every day"
 msgstr "Щодня"
 
@@ -4856,8 +5375,17 @@ msgstr "Щодня"
 msgid "Every entry has dates in a form systems read, in order, and none in the future."
 msgstr "Кожний запис має дати у системі форми, які читаються по порядку, і жодної дати в майбутньому."
 
+#: src/features/setup/page.tsx
+msgid "every hour"
+msgstr ""
+
 #: src/features/career/discovery-run.ts
+#: src/features/setup/page.tsx
 msgid "Every hour"
+msgstr ""
+
+#: src/features/career/run-results.tsx
+msgid "Every result of this search"
 msgstr ""
 
 #: src/features/career/discovery-run.ts
@@ -4894,11 +5422,11 @@ msgstr "Усе, що коуч написав для компанії {0}, від
 msgid "Everything you’ve done, on one page."
 msgstr "Усе, що ви зробили, на одній сторінці."
 
-#: src/features/settings/automation/page.tsx
+#: src/features/automation/page.tsx
 msgid "Example: Emphasize leadership experience relevant to this role."
 msgstr ""
 
-#: src/features/settings/automation/page.tsx
+#: src/features/automation/page.tsx
 msgid "Example: Keep the tone warm and focus on customer impact."
 msgstr ""
 
@@ -5002,7 +5530,8 @@ msgid "Fact type"
 msgstr "Тип факту"
 
 #: src/features/career/coach-thread.tsx
-#: src/routes/dashboard/career/knowledge/route.tsx
+#: src/features/command-palette/pages/navigation.tsx
+#: src/routes/dashboard/profile/route.tsx
 msgid "Facts"
 msgstr "Факти"
 
@@ -5014,10 +5543,6 @@ msgstr "Факти, розповіді й побажання, увімкнені
 #: src/features/settings/ai/providers.tsx
 msgid "Failed"
 msgstr "Не вдалося"
-
-#: src/features/overview/page.tsx
-msgid "Failed runs"
-msgstr ""
 
 #. Fallback toast when account registration fails without a server error message
 #: src/features/auth/pages/register.tsx
@@ -5093,6 +5618,10 @@ msgstr "Не вдалося підтвердити код резервної к�
 msgid "Failed to verify your code. Please try again."
 msgstr "Не вдалося підтвердити ваш код. Спробуйте ще раз."
 
+#: src/features/overview/page.tsx
+msgid "Failed. Open discovery activity to see why."
+msgstr ""
+
 #: src/features/homepage/footer.tsx
 msgid "Features"
 msgstr "Можливості"
@@ -5166,9 +5695,17 @@ msgstr "Заповнили з оголошення все, що змогли."
 msgid "Filling in entries"
 msgstr "Заповнення записів"
 
+#: src/features/career/pipeline-words.ts
+msgid "Filter"
+msgstr ""
+
 #: src/features/documents/documents-page.tsx
 msgid "Filter by tag"
 msgstr "Фільтрувати за тегом"
+
+#: src/features/automation/page.tsx
+msgid "Find jobs on a schedule and prepare documents for them. You apply yourself; nothing is ever sent to an employer."
+msgstr ""
 
 #: src/features/homepage/remember.tsx
 msgid "Find out why, and shorten setup without adding support work."
@@ -5182,10 +5719,6 @@ msgstr "Пошук вакансій"
 msgid "Find weak bullets"
 msgstr "Знайдіть слабкі записи списку"
 
-#: src/features/settings/automation/page.tsx
-msgid "Finding jobs is a schedule in Career. Its search, frequency, results per search, status, Run now and Pause live there."
-msgstr ""
-
 #: src/features/documents/new-document-dialog.tsx
 msgid "Finding sections"
 msgstr "Пошук розділів"
@@ -5194,9 +5727,17 @@ msgstr "Пошук розділів"
 msgid "Finding what works"
 msgstr "Шукаю, що працює"
 
+#: src/features/overview/page.tsx
+msgid "Finish setting up your job search"
+msgstr ""
+
 #: src/libs/locale.ts
 msgid "Finnish"
 msgstr "Фінська"
+
+#: src/features/overview/page.tsx
+msgid "First responses"
+msgstr ""
 
 #: src/features/career/schedule-sheet.tsx
 msgid "First run"
@@ -5238,6 +5779,15 @@ msgstr "Підходить до сторінок {authored}: {details}"
 msgid "Fits on one page: {details}"
 msgstr "Розміщується на одній сторінці: {details}"
 
+#: src/features/career/pipeline-map.tsx
+msgid "Fix"
+msgstr ""
+
+#: src/features/profile/baseline.tsx
+#: src/features/setup/page.tsx
+msgid "Fix in editor"
+msgstr ""
+
 #: src/features/resume/editor/check/issues.ts
 msgid "Fix the date"
 msgstr "Зафіксуйте дату"
@@ -5275,6 +5825,7 @@ msgid "Focus, experience, why this role"
 msgstr "Фокус, досвід, чому ця посада"
 
 #: src/features/applications/next-step.ts
+#: src/features/overview/page.tsx
 msgid "Follow up"
 msgstr "Зв’язатися повторно"
 
@@ -5284,6 +5835,7 @@ msgid "Follow up on {0}"
 msgstr "Нагадування: {0}"
 
 #: src/features/applications/components/detail/next-step-card.tsx
+#: src/features/automation/schedules.tsx
 msgid "Follow-up"
 msgstr "Нагадування"
 
@@ -5291,13 +5843,45 @@ msgstr "Нагадування"
 msgid "Follow-up date"
 msgstr "Дата нагадування"
 
+#: src/features/overview/page.tsx
+msgid "Follow-up due"
+msgstr ""
+
+#: src/features/overview/page.tsx
+msgid "Follow-up due {absolute} days ago"
+msgstr ""
+
+#: src/features/overview/page.tsx
+msgid "Follow-up due in {days} days"
+msgstr ""
+
+#: src/features/overview/page.tsx
+msgid "Follow-up due today"
+msgstr ""
+
+#: src/features/overview/page.tsx
+msgid "Follow-up due tomorrow"
+msgstr ""
+
+#: src/features/overview/page.tsx
+msgid "Follow-up due yesterday"
+msgstr ""
+
 #: src/features/applications/components/application-form-sheet.tsx
 msgid "Follow-up note"
 msgstr "Нотатка нагадування"
 
+#: src/features/overview/page.tsx
+msgid "Follow-up overdue"
+msgstr ""
+
 #: src/features/career/schedule-sheet.tsx
 msgid "Follow-up reminder"
 msgstr "Нагадування про повторний контакт"
+
+#: src/features/overview/page.tsx
+msgid "Follow-ups"
+msgstr ""
 
 #: src/routes/builder/$resumeId/-sidebar/right/sections/typography.tsx
 msgid "Font Family"
@@ -5327,7 +5911,7 @@ msgstr "Не вдалося завантажити шрифти. Спробуй�
 msgid "For"
 msgstr "для"
 
-#: src/features/settings/automation/page.tsx
+#: src/features/automation/page.tsx
 msgid "For each new job, make a tailored copy of your baseline resume and/or a cover letter. They are drafts for you to review, edit and send yourself."
 msgstr ""
 
@@ -5351,10 +5935,6 @@ msgstr "Для LibreOffice та інших редакторів з відкри�
 #: src/features/resume/share/download-tab.tsx
 msgid "For portals or recruiters who ask for Word. Layout is simplified."
 msgstr "Для порталів або рекрутерів, які просять Word. Компонування спрощене."
-
-#: src/features/overview/page.tsx
-msgid "For response rates, time to first reply and tailored vs base resume results, see <0>Applications → Insights</0>."
-msgstr ""
 
 #: src/features/settings/ai/api-keys.tsx
 msgid "For scripts, extensions and MCP clients. Keys act as you and can read and edit your documents."
@@ -5399,26 +5979,37 @@ msgstr "Форматування"
 
 #: src/features/career/discovery-runs.tsx
 #: src/features/career/discovery-status.tsx
-#: src/features/overview/page.tsx
 msgid "Found"
 msgstr ""
 
 #. placeholder {0}: day(row.firstSeenAt)
-#: src/features/career/today.tsx
+#: src/features/discover/jobs.tsx
 msgid "Found {0}"
 msgstr "Знайдено {0}"
+
+#: src/features/discover/jobs.tsx
+msgid "Found by a scheduled search"
+msgstr ""
+
+#: src/features/discover/jobs.tsx
+msgid "Found by a search you started"
+msgstr ""
 
 #: src/features/applications/components/add-application-dialog.tsx
 msgid "Found the role and company on the page. Review the details before saving."
 msgstr "На сторінці знайдено посаду й компанію. Перевірте деталі перед збереженням."
 
-#: src/features/career/today.tsx
+#: src/features/discover/jobs.tsx
 msgid "Found today"
 msgstr "Знайдено сьогодні"
 
-#: src/features/career/today.tsx
+#: src/features/discover/jobs.tsx
 msgid "Found yesterday"
 msgstr "Знайдено вчора"
+
+#: src/features/setup/page.tsx
+msgid "Four short steps. Everything stays in your control: you review every document and apply yourself."
+msgstr ""
 
 #: src/libs/seo.ts
 msgid "Free ATS resume checker"
@@ -5464,6 +6055,10 @@ msgstr "З перевірки відповідності"
 msgid "from the assistant or API"
 msgstr "від помічника або API"
 
+#: src/features/profile/details.tsx
+msgid "From your baseline resume"
+msgstr ""
+
 #: src/features/career/knowledge/facts.tsx
 msgid "From your cover letter"
 msgstr "З вашого супровідного листа"
@@ -5489,15 +6084,19 @@ msgstr "ПІБ"
 msgid "Full Width"
 msgstr "На всю ширину"
 
+#: src/features/setup/page.tsx
+msgid "Gaps here mean weaker tailored documents. You can continue anyway and fix them later."
+msgstr ""
+
 #: src/dialogs/resume/index.tsx
 msgid "Generate a random name"
 msgstr "Згенерувати випадкове ім'я"
 
-#: src/features/settings/automation/page.tsx
+#: src/features/automation/page.tsx
 msgid "Generate cover letters automatically"
 msgstr ""
 
-#: src/features/settings/automation/page.tsx
+#: src/features/automation/page.tsx
 msgid "Generate tailored resumes automatically"
 msgstr ""
 
@@ -5532,7 +6131,7 @@ msgstr "Отримати відгук"
 msgid "Get feedback sends the question, your answer, this posting and your stories to {providerName}."
 msgstr "«Отримати відгук» надсилає запитання, вашу відповідь, це оголошення та ваші розповіді через {providerName}."
 
-#: src/features/career/today.tsx
+#: src/features/discover/jobs.tsx
 msgid "Get new roles here every morning"
 msgstr "Отримуйте нові вакансії тут щоранку"
 
@@ -5659,6 +6258,7 @@ msgstr "Заголовок 3"
 msgid "Heading changed"
 msgstr "Заголовок змінено"
 
+#: src/features/profile/details.tsx
 #: src/features/resume/editor/write/basics-card.tsx
 msgid "Headline"
 msgstr "Заголовна інформація"
@@ -5698,9 +6298,9 @@ msgstr "Привіт, Alex! Підтверджуємо: сьогодні о {tim
 msgid "Hidden"
 msgstr "Приховано"
 
-#: src/features/career/today.tsx
-msgid "Hidden from New roles"
-msgstr "Приховано з нових вакансій"
+#: src/features/discover/jobs.tsx
+msgid "Hidden from Discover"
+msgstr ""
 
 #: src/features/resume/editor/write/outline.tsx
 msgid "Hidden sections"
@@ -5813,8 +6413,8 @@ msgstr "Як усе пройшло?"
 msgid "How did it land?"
 msgstr "Як це сприйняли?"
 
-#: src/features/career/pipeline.tsx
-msgid "How discovery is doing, which jobs each run found, and the resumes and cover letters prepared for them. You review and apply yourself; nothing is sent to an employer."
+#: src/features/discover/activity.tsx
+msgid "How each search went, which results became roles and which did not, and why. You review and apply yourself; nothing is sent to an employer."
 msgstr ""
 
 #: src/features/applications/components/insights-view.tsx
@@ -5825,6 +6425,10 @@ msgstr "Як далеко йдуть заявки на роботу"
 msgid "How is the bonus decided, and how much of it was paid out last year?"
 msgstr "Як визначається бонус і скільки з нього виплатили минулого року?"
 
+#: src/features/automation/page.tsx
+msgid "How it's working"
+msgstr ""
+
 #: src/features/career/offers.tsx
 msgid "How many days a week are expected in the office?"
 msgstr "Скільки днів на тиждень потрібно бути в офісі?"
@@ -5834,6 +6438,7 @@ msgid "How many days of leave come with it?"
 msgstr "Скільки днів відпустки передбачено?"
 
 #: src/features/career/schedule-sheet.tsx
+#: src/features/setup/page.tsx
 msgid "How often"
 msgstr "Як часто"
 
@@ -5844,6 +6449,10 @@ msgstr "Як показати файл"
 #: src/features/assistant/assistant-panel.tsx
 msgid "How well do I fit this role?"
 msgstr "Наскільки я відповідаю цій ролі?"
+
+#: src/features/career/pipeline-map.tsx
+msgid "How your search is going"
+msgstr ""
 
 #: src/libs/locale.ts
 msgid "Hungarian"
@@ -5886,6 +6495,10 @@ msgstr "Значок…"
 #: src/features/resume/editor/design/style-groups.tsx
 msgid "Icons in contact line"
 msgstr "Значки в контактній лінії"
+
+#: src/features/overview/page.tsx
+msgid "Idle"
+msgstr ""
 
 #: src/features/homepage/remember.tsx
 msgid "If I did it again, I’d agree on the measure before the first prototype."
@@ -5995,6 +6608,11 @@ msgstr "Імпортовано з {imported}."
 msgid "Importing"
 msgstr "Імпорт"
 
+#. placeholder {0}: upload.name
+#: src/features/setup/page.tsx
+msgid "Importing {0}"
+msgstr ""
+
 #: src/features/ats-checker/checker.tsx
 msgid "Importing it into your new resume…"
 msgstr "Імпорт у ваше нове резюме…"
@@ -6010,6 +6628,10 @@ msgstr "Покращити вибрану лінію"
 #: src/features/resume/editor/write/improve.tsx
 msgid "Improving…"
 msgstr "Поліпшення…"
+
+#: src/features/discover/jobs.tsx
+msgid "In Applications"
+msgstr ""
 
 #: src/features/homepage/sections.tsx
 msgid "In good company"
@@ -6058,6 +6680,7 @@ msgstr "Тільки інтерфейс. Кожне резюме встанов�
 
 #: src/features/applications/stages.ts
 #: src/features/career/schedule-sheet.tsx
+#: src/features/command-palette/pages/navigation.tsx
 #: src/features/homepage/prepare.tsx
 #: src/features/homepage/sections.tsx
 #: src/features/homepage/tailor.tsx
@@ -6102,6 +6725,7 @@ msgstr "Вступ на співбесіді"
 msgid "Interview prep"
 msgstr "Підготовка до співбесід"
 
+#: src/features/automation/schedules.tsx
 #: src/features/career/schedule-sheet.tsx
 #: src/features/career/today.tsx
 msgid "Interview preparation"
@@ -6132,13 +6756,13 @@ msgstr "Провів інтерв’ю з 14 клієнтами, визначи�
 msgid "Interviewer"
 msgstr "Інтерв'юер"
 
-#: src/features/overview/page.tsx
-msgid "Interviews in the next 7 days"
-msgstr ""
-
 #: src/features/career/offers.tsx
 msgid "Is equity part of the offer?"
 msgstr "Чи входить частка в капіталі в пропозицію?"
+
+#: src/features/career/pipeline-map.tsx
+msgid "Is everything working?"
+msgstr ""
 
 #: src/features/homepage/faq.tsx
 msgid "Is Reactive Resume really free?"
@@ -6187,6 +6811,7 @@ msgstr "Проблема проігнорована"
 msgid "Issuer"
 msgstr "Ким видано"
 
+#: src/features/overview/page.tsx
 #: src/features/resume/editor/check/check-panel.tsx
 msgid "Issues"
 msgstr "Питання"
@@ -6290,9 +6915,18 @@ msgstr "Оголошення про роботу <0>· необов’язков
 msgid "Job posting link"
 msgstr "Посилання на вакансію"
 
+#: src/routes/dashboard/profile/route.tsx
+msgctxt "Career preferences: the roles, places, pay and ways of working you want"
+msgid "Job preferences"
+msgstr ""
+
 #: src/features/applications/components/add-application-dialog.tsx
 msgid "Job search failed. Try again or paste a posting link."
 msgstr "Пошук роботи не вдався. Спробуйте ще раз або вставте посилання на оголошення про роботу."
+
+#: src/features/setup/page.tsx
+msgid "Job search needs a web search service. Tailored resumes and cover letters also need an AI provider; skip that for now to only discover jobs."
+msgstr ""
 
 #: src/features/applications/components/insights-view.tsx
 msgid "Job search pipeline"
@@ -6303,6 +6937,7 @@ msgid "Job tracker"
 msgstr "Трекер вакансій"
 
 #: src/features/command-palette/pages/navigation.tsx
+#: src/routes/dashboard/discover/route.tsx
 msgid "Jobs"
 msgstr "Робота"
 
@@ -6460,8 +7095,7 @@ msgstr "Кхмерська"
 msgid "Kind regards,"
 msgstr "З повагою,"
 
-#: src/routes/dashboard/career/knowledge/route.tsx
-#: src/routes/dashboard/career/route.tsx
+#: src/features/command-palette/pages/navigation.tsx
 msgid "Knowledge"
 msgstr "Знання"
 
@@ -6506,6 +7140,18 @@ msgstr "Мова"
 msgid "Languages"
 msgstr "Мови"
 
+#: src/features/overview/page.tsx
+msgid "Last 14 days"
+msgstr ""
+
+#: src/features/overview/page.tsx
+msgid "Last 30 days"
+msgstr ""
+
+#: src/features/overview/page.tsx
+msgid "Last 7 days"
+msgstr ""
+
 #: src/features/career/discovery-status.tsx
 msgid "Last attempt"
 msgstr ""
@@ -6515,21 +7161,10 @@ msgstr ""
 msgid "Last changed in {0}"
 msgstr "Востаннє змінено в {0}"
 
-#. placeholder {0}: when(last.createdAt)
-#: src/features/career/pipeline-summary.tsx
-msgid "Last discovery run failed · {0}"
-msgstr ""
-
 #: src/features/documents/documents-page.tsx
 #: src/routes/builder/$resumeId/-components/document-details.tsx
 msgid "Last edited"
 msgstr "Останнє редагування"
-
-#. placeholder {0}: last.report.matches
-#. placeholder {1}: when(last.createdAt)
-#: src/features/career/pipeline-summary.tsx
-msgid "Last run {0} new · {1}"
-msgstr ""
 
 #: src/features/career/discovery-run.ts
 msgid "Last run failed"
@@ -6539,24 +7174,25 @@ msgstr ""
 msgid "Last run partly succeeded"
 msgstr ""
 
-#. placeholder {0}: last.report.matches
-#. placeholder {1}: when(last.createdAt)
-#: src/features/career/pipeline-summary.tsx
-msgid "Last run partly succeeded · {0} new · {1}"
-msgstr ""
-
 #: src/features/career/discovery-run.ts
 msgid "Last run succeeded"
 msgstr ""
 
 #: src/features/career/discovery-status.tsx
-#: src/features/overview/page.tsx
 msgid "Last success"
 msgstr ""
 
 #: src/features/settings/ai/api-keys.tsx
 msgid "Last used"
 msgstr "Останнє використання"
+
+#: src/features/overview/page.tsx
+msgid "Latest discovery"
+msgstr ""
+
+#: src/features/overview/page.tsx
+msgid "Latest search"
+msgstr ""
 
 #: src/libs/locale.ts
 msgid "Latvian"
@@ -6660,6 +7296,10 @@ msgstr "Довжина — не недолік, і не існує універ�
 #: src/features/settings/ai/mcp.tsx
 msgid "Let AI clients like Claude or Cursor read and edit your resumes, using an API key above."
 msgstr "Дозвольте клієнтам AI, таким як Claude або Cursor, читати та редагувати ваші резюме, використовуючи ключ API вище."
+
+#: src/features/setup/page.tsx
+msgid "Let's set up your job search"
+msgstr ""
 
 #: src/features/documents/documents-page.tsx
 msgid "Let's start with what you have"
@@ -6940,6 +7580,10 @@ msgstr "Завантаження пропозицій моделей… Ви т�
 msgid "Loading providers…"
 msgstr "Завантаження постачальників…"
 
+#: src/features/career/run-results.tsx
+msgid "Loading results…"
+msgstr ""
+
 #: src/features/command-palette/pages/resumes.tsx
 msgid "Loading resumes…"
 msgstr "Завантаження резюме…"
@@ -6956,10 +7600,15 @@ msgstr "Завантаження підсумку"
 msgid "Loading workspace…"
 msgstr "Завантаження робочого простору…"
 
+#: src/features/career/job-journey.tsx
+msgid "Loading…"
+msgstr ""
+
 #: src/features/applications/components/add-application-dialog.tsx
 #: src/features/applications/components/application-form-sheet.tsx
 #: src/features/applications/components/import-applications-sheet.tsx
 #: src/features/applications/components/interview-dialog.tsx
+#: src/features/profile/details.tsx
 #: src/features/resume/editor/check/parser-view.tsx
 #: src/features/resume/editor/write/basics-card.tsx
 #: src/features/resume/editor/write/entries.tsx
@@ -6990,6 +7639,7 @@ msgid "Long stretches are set in capitals."
 msgstr "Довгі фрагменти набрані великими літерами."
 
 #: src/features/career/schedule-sheet.tsx
+#: src/features/setup/page.tsx
 msgid "Look for"
 msgstr "Що шукати"
 
@@ -7067,6 +7717,10 @@ msgstr "Малайська"
 #: src/libs/locale.ts
 msgid "Malayalam"
 msgstr "Малаялам"
+
+#: src/features/overview/page.tsx
+msgid "Manage automation"
+msgstr ""
 
 #: src/features/settings/ai/web-access.tsx
 msgid "Managed by server"
@@ -7157,6 +7811,10 @@ msgstr "Тема відповідності системи"
 #: src/features/resume/editor/check/job-match.tsx
 msgid "Match this posting"
 msgstr "Відповідає цій оголошенню про роботу"
+
+#: src/features/discover/jobs.tsx
+msgid "Matches my preferences"
+msgstr ""
 
 #: src/routes/builder/letter/-components/write-panel.tsx
 msgid "Matches the resume ({summary})."
@@ -7261,6 +7919,10 @@ msgstr "Модель: {label}"
 msgid "Mono"
 msgstr "Мононуклеоз"
 
+#: src/routes/dashboard/-components/app-shell.tsx
+msgid "More"
+msgstr ""
+
 #: src/routes/builder/$resumeId/-components/editor-bar.tsx
 #: src/routes/builder/letter/-components/letter-bar.tsx
 msgid "More download formats"
@@ -7290,8 +7952,8 @@ msgstr "Інші постачальники та параметри знаход
 msgid "More than one email address appears."
 msgstr "З'являється більше однієї електронної адреси."
 
+#: src/features/automation/schedules.tsx
 #: src/features/career/schedule-sheet.tsx
-#: src/features/career/today.tsx
 msgid "Morning of"
 msgstr "Зранку того дня"
 
@@ -7408,6 +8070,10 @@ msgstr "Перенесено на {0}"
 msgid "Moves the application from {0}."
 msgstr "Переміщує заявку з етапу «{0}»."
 
+#: src/features/setup/page.tsx
+msgid "My baseline resume"
+msgstr ""
+
 #: src/features/homepage/remember.tsx
 msgid "My job was to find out why, without adding support work."
 msgstr "Моїм завданням було з’ясувати причину, не додаючи роботи підтримці."
@@ -7421,6 +8087,7 @@ msgstr "Моїм завданням було з’ясувати причину,
 #: src/features/documents/documents-page.tsx
 #: src/features/documents/new-document-dialog.tsx
 #: src/features/documents/trash-page.tsx
+#: src/features/profile/details.tsx
 #: src/features/resume/editor/check/parser-view.tsx
 #: src/features/resume/editor/write/entries.tsx
 #: src/features/settings/account/profile.tsx
@@ -7488,6 +8155,7 @@ msgstr "вузькі поля"
 
 #: src/features/career/preparation-list.tsx
 #: src/features/career/preparation.ts
+#: src/features/overview/page.tsx
 #: src/features/settings/ai/providers.tsx
 msgid "Needs attention"
 msgstr "Потребує уваги"
@@ -7500,10 +8168,6 @@ msgstr ""
 msgid "Needs you"
 msgstr "Потребує вашої уваги"
 
-#: src/features/overview/page.tsx
-msgid "Needs you now"
-msgstr ""
-
 #: src/libs/locale.ts
 msgid "Nepali"
 msgstr "Непальська"
@@ -7514,14 +8178,13 @@ msgstr "Мережа"
 
 #: src/features/career/discovery-status.tsx
 #: src/features/career/knowledge/facts.tsx
-#: src/features/overview/page.tsx
 #: src/features/settings/ai/api-keys.tsx
 msgid "Never"
 msgstr "Ніколи"
 
 #: src/features/career/discovery-runs.tsx
+#: src/features/discover/jobs.tsx
 #: src/features/documents/document-card.tsx
-#: src/features/overview/page.tsx
 #: src/routes/dashboard/-components/app-shell.tsx
 msgid "New"
 msgstr "новий"
@@ -7559,8 +8222,8 @@ msgstr "Новий документ"
 msgid "New fact"
 msgstr "Новий факт"
 
-#: src/features/overview/page.tsx
-msgid "New jobs found per run, oldest to newest"
+#: src/features/career/pipeline-words.ts
+msgid "New job"
 msgstr ""
 
 #: src/features/settings/ai/api-keys.tsx
@@ -7586,14 +8249,6 @@ msgid "New Password"
 msgstr "Новий пароль"
 
 #: src/features/career/today.tsx
-msgid "New roles from your search"
-msgstr "Нові вакансії з вашого пошуку"
-
-#: src/features/overview/page.tsx
-msgid "New roles to review"
-msgstr ""
-
-#: src/features/career/today.tsx
 msgid "New roles, reminders and finished briefings appear here."
 msgstr "Тут з’являються нові вакансії, нагадування й готові брифінги."
 
@@ -7609,9 +8264,14 @@ msgstr "Новий розділ"
 msgid "New teams at Northwind were stalling in setup; most never got through."
 msgstr "Нові команди в Northwind застрягали на налаштуванні; більшість так і не завершували його."
 
+#: src/features/career/activity-feed.tsx
 #: src/features/career/discovery-runs.tsx
 #: src/features/career/preparation-list.tsx
 msgid "Newer"
+msgstr ""
+
+#: src/features/command-palette/pages/navigation.tsx
+msgid "Next actions"
 msgstr ""
 
 #: src/features/resume/editor/check/page-layer.tsx
@@ -7626,13 +8286,21 @@ msgstr "Наступного місяця"
 msgid "Next question"
 msgstr "Наступне запитання"
 
-#: src/features/overview/page.tsx
-msgid "Next run"
-msgstr ""
-
 #. placeholder {0}: cadenceLabel(schedule)
 #: src/features/career/discovery-status.tsx
 msgid "Next run · {0}"
+msgstr ""
+
+#. placeholder {0}: when(schedule.nextRunAt)
+#. placeholder {0}: when(stage.at)
+#: src/features/career/pipeline-words.ts
+#: src/features/discover/search-header.tsx
+msgid "Next run {0}"
+msgstr ""
+
+#. placeholder {0}: when(check.at)
+#: src/features/career/pipeline-words.ts
+msgid "Next search {0}"
 msgstr ""
 
 #: src/features/applications/components/detail/next-step-card.tsx
@@ -7659,6 +8327,14 @@ msgstr "Наступного разу я б узгодив, як вимірюв�
 msgid "No active applications."
 msgstr "Немає активних заявок на роботу."
 
+#: src/features/setup/page.tsx
+msgid "No AI provider connected, so only discovery will run. You can add one later."
+msgstr ""
+
+#: src/features/career/pipeline-words.ts
+msgid "No AI provider has passed its test. Documents cannot be written without one."
+msgstr ""
+
 #: src/routes/builder/letter/-components/write-panel.tsx
 msgid "No application"
 msgstr "Немає заявки на роботу"
@@ -7676,6 +8352,14 @@ msgstr "Заяв на роботу ще немає"
 #: src/routes/builder/letter/-components/write-panel.tsx
 msgid "No applications yet. Add one in Applications first."
 msgstr "Заяв на роботу ще немає. Спочатку додайте його в заявки на роботу."
+
+#: src/features/profile/baseline.tsx
+msgid "No baseline resume is confirmed yet. Choose one below."
+msgstr ""
+
+#: src/features/career/pipeline-words.ts
+msgid "No baseline resume. Documents need one to start from."
+msgstr ""
 
 #: src/features/ats-checker/messages.ts
 msgid "No bullet lists were found."
@@ -7714,8 +8398,7 @@ msgstr "Виправлень немає"
 msgid "No dates were found."
 msgstr "Дат не знайдено."
 
-#: src/features/overview/page.tsx
-#: src/features/settings/automation/page.tsx
+#: src/features/automation/page.tsx
 msgid "No discovery schedule yet."
 msgstr ""
 
@@ -7758,7 +8441,7 @@ msgid "No interviews"
 msgstr "Без інтерв'ю"
 
 #: src/features/overview/page.tsx
-msgid "No interviews coming up."
+msgid "No interviews scheduled"
 msgstr ""
 
 #: src/features/documents/new-document-dialog.tsx
@@ -7777,22 +8460,17 @@ msgstr "Жоден рядок не схожий на посаду в парі з
 msgid "No location"
 msgstr "Немає місцезнаходження"
 
-#: src/features/career/today.tsx
+#: src/features/overview/page.tsx
+msgid "No new jobs"
+msgstr ""
+
+#: src/features/discover/jobs.tsx
+msgid "No new roles yet. Discovery looks again on its schedule."
+msgstr ""
+
+#: src/features/discover/jobs.tsx
 msgid "No new roles. Discovery is paused."
 msgstr "Нових вакансій немає. Пошук призупинено."
-
-#. placeholder {0}: day(active.nextRunAt)
-#: src/features/career/today.tsx
-msgid "No new roles. Discovery runs again on {0} at {clock}."
-msgstr "Нових вакансій немає. Наступний пошук — {0} о {clock}."
-
-#: src/features/career/today.tsx
-msgid "No new roles. Discovery runs again today at {clock}."
-msgstr "Нових вакансій немає. Наступний пошук — сьогодні о {clock}."
-
-#: src/features/career/today.tsx
-msgid "No new roles. Discovery runs again tomorrow at {clock}."
-msgstr "Нових вакансій немає. Наступний пошук — завтра о {clock}."
 
 #: src/features/career/offers.tsx
 msgid "No offers to compare yet"
@@ -7801,6 +8479,10 @@ msgstr "Поки немає пропозицій для порівняння"
 #: src/routes/builder/$resumeId/-components/editor-bar.tsx
 msgid "No open issues"
 msgstr "Немає відкритих питань"
+
+#: src/features/career/pipeline-words.ts
+msgid "No pages could be read"
+msgstr ""
 
 #: src/features/resume/editor/check/issues.ts
 msgid "No phone number"
@@ -7818,6 +8500,10 @@ msgstr "Немає фото. Більшість ATS ігнорують фото�
 msgid "No postings found. Try different keywords."
 msgstr "Оголошень про роботу не знайдено. Спробуйте різні ключові слова."
 
+#: src/features/career/activity-feed.tsx
+msgid "No problems. Everything has been running smoothly."
+msgstr ""
+
 #: src/features/applications/stages.ts
 msgid "No response"
 msgstr "Відповіді немає"
@@ -7825,6 +8511,14 @@ msgstr "Відповіді немає"
 #: src/components/ui/combobox.tsx
 msgid "No results found."
 msgstr "Результатів не знайдено."
+
+#: src/features/career/run-results.tsx
+msgid "No results were kept for this run."
+msgstr ""
+
+#: src/features/setup/page.tsx
+msgid "No results. Try broader roles or places."
+msgstr ""
 
 #: src/routes/builder/letter/-components/write-panel.tsx
 msgid "No resume"
@@ -7834,12 +8528,24 @@ msgstr "Без резюме"
 msgid "No resumes yet."
 msgstr "Резюме ще немає."
 
-#: src/features/overview/page.tsx
-msgid "No runs in this window."
+#: src/features/discover/jobs.tsx
+msgid "No roles match these filters."
 msgstr ""
 
 #: src/features/career/discovery-runs.tsx
 msgid "No runs yet. The first one starts as soon as discovery is on."
+msgstr ""
+
+#: src/features/discover/search-header.tsx
+msgid "No saved search yet. Set one up and new roles will appear here."
+msgstr ""
+
+#: src/features/career/pipeline-words.ts
+msgid "No schedule yet"
+msgstr ""
+
+#: src/features/automation/schedules.tsx
+msgid "No schedules of this kind."
 msgstr ""
 
 #: src/features/ats-checker/messages.ts
@@ -7895,6 +8601,10 @@ msgstr "Досвід роботи відсутній"
 msgid "No work-experience section was found."
 msgstr "Розділ досвіду роботи не знайдено."
 
+#: src/features/career/pipeline-words.ts
+msgid "No working web search connection. Discovery cannot search without one."
+msgstr ""
+
 #: src/features/homepage/design.tsx
 msgid "No. {number} · {name}"
 msgstr "№ {number} · {name}"
@@ -7909,6 +8619,10 @@ msgstr "немає"
 #: src/features/applications/components/list-view.tsx
 msgid "None"
 msgstr "Жодного"
+
+#: src/features/setup/page.tsx
+msgid "None. Jobs are found and saved only."
+msgstr ""
 
 #: src/features/resume/editor/design/fit.ts
 #: src/features/resume/editor/design/style-groups.tsx
@@ -7932,6 +8646,10 @@ msgstr "Northwind Labs · Lisbon"
 msgid "Norwegian"
 msgstr "Норвезька"
 
+#: src/features/career/pipeline-words.ts
+msgid "Not an open posting"
+msgstr ""
+
 #: src/features/career/workspace/messages.tsx
 msgid "Not applied"
 msgstr "Не застосовано"
@@ -7940,11 +8658,15 @@ msgstr "Не застосовано"
 msgid "Not applied yet"
 msgstr "Ще не подано"
 
+#: src/features/profile/baseline.tsx
+msgid "Not confirmed yet"
+msgstr ""
+
 #: src/features/settings/account/security.tsx
 msgid "Not connected"
 msgstr "Не підключено"
 
-#: src/features/career/today.tsx
+#: src/features/discover/jobs.tsx
 msgid "Not for me"
 msgstr "Не для мене"
 
@@ -8007,6 +8729,10 @@ msgstr "Не оцінено"
 msgid "Not selected"
 msgstr "Не вибрано"
 
+#: src/features/profile/details.tsx
+msgid "Not set"
+msgstr ""
+
 #: src/features/settings/root.tsx
 msgid "Not set up"
 msgstr "Не налаштовано"
@@ -8014,6 +8740,10 @@ msgstr "Не налаштовано"
 #: src/features/resume/stylesheet/editor.tsx
 msgid "Not sure what to write?"
 msgstr "Не знаєте, що написати?"
+
+#: src/features/profile/baseline.tsx
+msgid "Not the resume used for tailoring"
+msgstr ""
 
 #: src/features/resume/editor/check/job-match.tsx
 msgid "Not true for me, hide it"
@@ -8035,6 +8765,10 @@ msgstr "Не використовується в коучингу, тож не �
 msgid "Not verified yet. Resend the link"
 msgstr "Ще не перевірено. Повторно надішліть посилання"
 
+#: src/features/career/pipeline-map.tsx
+msgid "Not yet"
+msgstr ""
+
 #: src/features/applications/components/detail/activity.tsx
 msgid "Note"
 msgstr "Інформація"
@@ -8055,10 +8789,6 @@ msgstr "Ніщо тут не повинно коштувати вам матчу
 #: src/features/career/preparation-list.tsx
 msgid "Nothing here."
 msgstr ""
-
-#: src/features/career/today.tsx
-msgid "Nothing is applied for or created until you choose."
-msgstr "Нічого не подається й не створюється, доки ви не вирішите."
 
 #: src/features/ats-checker/messages.ts
 msgid "Nothing marks a role as ongoing."
@@ -8085,7 +8815,7 @@ msgstr "Поки нічого не збережено"
 msgid "Nothing scheduled yet"
 msgstr "Ще нічого не заплановано"
 
-#: src/features/career/today.tsx
+#: src/features/automation/schedules.tsx
 msgid "Nothing scheduled yet."
 msgstr "Поки нічого не заплановано."
 
@@ -8101,6 +8831,10 @@ msgstr "Тут нічого виправляти."
 msgid "Nothing to fix. The remaining pages were simply not covered by this report."
 msgstr "Нічого виправляти. Решта сторінок просто не увійшла до цього звіту."
 
+#: src/features/career/pipeline-words.ts
+msgid "Nothing to review"
+msgstr ""
+
 #: src/features/resume/editor/check/check-panel.tsx
 msgid "Nothing to review."
 msgstr "Немає для перегляду."
@@ -8112,6 +8846,11 @@ msgstr "Нема чого запропонувати."
 #: src/features/career/workspace/practise.tsx
 msgid "Nothing was heard. Try again, or type your answer."
 msgstr "Нічого не почуто. Спробуйте ще раз або введіть відповідь."
+
+#: src/features/career/activity-feed.tsx
+#: src/features/overview/page.tsx
+msgid "Nothing yet. Activity appears here after the first run."
+msgstr ""
 
 #: src/features/career/knowledge/preferences.tsx
 msgid "Notice period"
@@ -8137,6 +8876,9 @@ msgstr "Спостереження"
 msgid "Odia"
 msgstr "Одія"
 
+#: src/features/career/pipeline-map.tsx
+#: src/features/career/pipeline-words.ts
+#: src/features/overview/page.tsx
 #: src/features/settings/ai/providers.tsx
 msgid "Off"
 msgstr "Вимкнено"
@@ -8157,11 +8899,13 @@ msgstr "Вимкнено. У листі зберігається власна к
 #: src/features/career/workspace/saved.tsx
 #: src/features/homepage/sections.tsx
 #: src/features/homepage/tailor.tsx
-#: src/features/overview/page.tsx
 msgid "Offer"
 msgstr "Пропозиція"
 
-#: src/routes/dashboard/career/route.tsx
+#: src/features/command-palette/pages/navigation.tsx
+#: src/features/overview/page.tsx
+#: src/routes/dashboard/applications/index.tsx
+#: src/routes/dashboard/applications/offers.tsx
 msgid "Offers"
 msgstr "Пропозиції"
 
@@ -8169,7 +8913,7 @@ msgstr "Пропозиції"
 msgid "Office days a week, at most"
 msgstr "Максимум днів в офісі на тиждень"
 
-#: src/features/career/today.tsx
+#: src/features/discover/jobs.tsx
 msgid "Office days not stated"
 msgstr "Дні в офісі не вказано"
 
@@ -8177,13 +8921,13 @@ msgstr "Дні в офісі не вказано"
 msgid "Offline · saved on this device"
 msgstr "Офлайн · збережено на цьому пристрої"
 
+#: src/features/career/activity-feed.tsx
 #: src/features/career/discovery-runs.tsx
 #: src/features/career/preparation-list.tsx
 msgid "Older"
 msgstr ""
 
 #: src/features/overview/page.tsx
-#: src/features/settings/automation/page.tsx
 msgid "On"
 msgstr ""
 
@@ -8216,6 +8960,10 @@ msgstr "Одна колонка"
 msgid "one format"
 msgstr "один формат"
 
+#: src/features/setup/page.tsx
+msgid "One search, run on a schedule. We started from your resume's headline; change it to roles, places or companies."
+msgstr ""
+
 #: src/features/auth/pages/consent.tsx
 msgid "Only allow applications you trust. This application will be able to:"
 msgstr "Дозволяйте лише програми, яким ви довіряєте. Ця програма зможе:"
@@ -8236,6 +8984,10 @@ msgstr "Знайдено лише один розпізнаваний загол
 #: src/features/resume/share/history-tab.tsx
 msgid "Only one version so far. Every editing session adds one automatically."
 msgstr "Поки лише одна версія. Кожен сеанс редагування додає один автоматично."
+
+#: src/features/career/activity-feed.tsx
+msgid "Only problems"
+msgstr ""
 
 #: src/features/settings/ai/providers.tsx
 msgid "Only providers that pass their test can be turned on."
@@ -8288,17 +9040,15 @@ msgstr "Відкрийте {title}"
 msgid "Open AI settings"
 msgstr "Відкрийте налаштування AI"
 
+#: src/features/automation/schedules.tsx
+#: src/features/career/run-results.tsx
+#: src/features/discover/jobs.tsx
+msgid "Open application"
+msgstr ""
+
 #: src/features/career/today.tsx
 msgid "Open briefing"
 msgstr "Відкрити брифінг"
-
-#: src/features/settings/automation/page.tsx
-msgid "Open Career → Schedules"
-msgstr ""
-
-#: src/features/settings/automation/page.tsx
-msgid "Open document preparation in Pipeline"
-msgstr ""
 
 #. Button label to open the user's default email app
 #: src/features/auth/pages/forgot-password.tsx
@@ -8322,14 +9072,13 @@ msgstr "Відкрийте вхідний редактор"
 msgid "Open in Offers"
 msgstr "Відкрити в Пропозиціях"
 
+#: src/features/automation/schedules.tsx
+msgid "Open interview"
+msgstr ""
+
 #: src/routes/builder/$resumeId/-components/editor-bar.tsx
 msgid "open issues"
 msgstr "відкриті питання"
-
-#: src/features/career/pipeline-summary.tsx
-#: src/features/overview/page.tsx
-msgid "Open Pipeline"
-msgstr ""
 
 #: src/features/career/coach-thread.tsx
 msgid "Open Preferences"
@@ -8339,9 +9088,21 @@ msgstr "Відкрити побажання"
 msgid "Open public page"
 msgstr "Відкрийте публічну сторінку"
 
+#: src/features/profile/baseline.tsx
+msgid "Open resume"
+msgstr ""
+
+#: src/features/overview/page.tsx
+msgid "Open Search activity to see why and what to do."
+msgstr ""
+
 #: src/features/career/workspace/prepare.tsx
 msgid "Open story"
 msgstr "Відкрити розповідь"
+
+#: src/features/setup/page.tsx
+msgid "Open the editor"
+msgstr ""
 
 #: src/features/ats-checker/messages.ts
 msgid "Open the exported file and confirm you can select and copy every part of it."
@@ -8351,9 +9112,9 @@ msgstr "Відкрийте експортований файл і перекон
 msgid "Open the Reactive Resume app"
 msgstr "Відкрийте програму Reactive Resume"
 
-#: src/features/career/today.tsx
-msgid "Open the schedule"
-msgstr "Відкрити розклад"
+#: src/features/discover/jobs.tsx
+msgid "Open the search"
+msgstr ""
 
 #: src/features/applications/components/application-detail-sheet.tsx
 #: src/features/career/today.tsx
@@ -8367,6 +9128,10 @@ msgstr "Вступ"
 #: src/features/ats-checker/checker.tsx
 msgid "Opening the file"
 msgstr "Відкриття файлу"
+
+#: src/features/career/pipeline-words.ts
+msgid "Opens each result to check it is a real, open job posting."
+msgstr ""
 
 #: src/features/career/workspace/messages.tsx
 msgid "Opens in Career → Offers."
@@ -8392,6 +9157,10 @@ msgstr "Додатково"
 #: src/features/settings/ai/providers.tsx
 msgid "Optional for local Ollama"
 msgstr "Додатково для локального Ollama"
+
+#: src/features/setup/page.tsx
+msgid "Optional. Each is a draft for you to review and edit; you apply yourself."
+msgstr ""
 
 #: src/components/ui/combobox.tsx
 #: src/features/documents/documents-page.tsx
@@ -8448,6 +9217,10 @@ msgstr "Організація"
 msgid "Original page"
 msgstr "Оригінальна сторінка"
 
+#: src/features/discover/jobs.tsx
+msgid "Original posting"
+msgstr ""
+
 #: src/features/resume/editor/write/rich-text-editor.tsx
 msgid "Original table formatting is preserved. This content is read-only because it cannot be edited safely."
 msgstr "Оригінальне форматування таблиці збережено. Цей вміст доступний лише для читання, оскільки його неможливо безпечно редагувати."
@@ -8481,6 +9254,16 @@ msgstr "Застарілий: текст змінився з тих пір."
 msgid "Outdent"
 msgstr "Зменшити відступ"
 
+#: src/features/career/pipeline-words.ts
+msgid "Overdue"
+msgstr ""
+
+#. placeholder {0}: when(stage.at)
+#: src/features/career/pipeline-words.ts
+msgid "Overdue since {0}"
+msgstr ""
+
+#: src/features/command-palette/pages/navigation.tsx
 #: src/features/overview/page.tsx
 #: src/routes/dashboard/-components/app-shell.tsx
 msgid "Overview"
@@ -8557,6 +9340,15 @@ msgstr "Parcel & Co."
 #: src/features/homepage/write.tsx
 msgid "Parcel & Co. · Porto"
 msgstr "Parcel & Co. · Porto"
+
+#. placeholder {0}: latest.readFailures
+#: src/features/overview/page.tsx
+msgid "Partial — {0} pages could not be read"
+msgstr ""
+
+#: src/features/overview/page.tsx
+msgid "Partial — 1 page could not be read"
+msgstr ""
 
 #: src/features/career/discovery-runs.tsx
 msgid "Partly succeeded"
@@ -8683,6 +9475,7 @@ msgid "Pasting fills the fields automatically."
 msgstr "Вставлення автоматично заповнює поля."
 
 #: src/features/career/discovery-status.tsx
+#: src/features/discover/search-header.tsx
 msgid "Pause"
 msgstr ""
 
@@ -8692,12 +9485,13 @@ msgstr "Призупинити список мов"
 
 #: src/features/career/discovery-run.ts
 #: src/features/career/discovery-status.tsx
+#: src/features/career/pipeline-words.ts
+#: src/features/discover/search-header.tsx
 #: src/features/overview/page.tsx
-#: src/features/settings/automation/page.tsx
 msgid "Paused"
 msgstr ""
 
-#: src/features/career/today.tsx
+#: src/features/automation/schedules.tsx
 msgid "Paused · {line}"
 msgstr "Призупинено · {line}"
 
@@ -8733,6 +9527,7 @@ msgstr "Назавжди видаляє все. Спершу експортуй�
 msgid "Persian"
 msgstr "Перська"
 
+#: src/features/profile/details.tsx
 #: src/features/resume/editor/check/parser-view.tsx
 #: src/features/resume/editor/write/basics-card.tsx
 #: src/features/resume/editor/write/entries.tsx
@@ -8783,19 +9578,9 @@ msgstr "Добираю ваші розповіді"
 msgid "Picture"
 msgstr "Фото"
 
-#: src/features/career/pipeline-summary.tsx
-#: src/routes/dashboard/career/route.tsx
-msgid "Pipeline"
-msgstr ""
-
 #: src/features/applications/components/insights-view.tsx
 msgid "Pipeline flow"
 msgstr "Рух по воронці"
-
-#. placeholder {0}: data.windowDays
-#: src/features/overview/page.tsx
-msgid "Pipeline, last {0} days"
-msgstr ""
 
 #: src/features/career/workspace/apply.tsx
 msgid "Plain text (.txt)"
@@ -8816,10 +9601,6 @@ msgstr "Спланувати мою підготовку"
 #: src/features/career/offers.tsx
 msgid "Plan what to ask"
 msgstr "Спланувати запитання"
-
-#: src/routes/dashboard/career/route.tsx
-msgid "Plan your search, keep your evidence in one place, and decide between offers."
-msgstr "Плануйте пошук, тримайте докази в одному місці та обирайте між пропозиціями."
 
 #: src/features/career/shared.tsx
 msgid "Planning your week"
@@ -8870,6 +9651,7 @@ msgstr "оголошення"
 #: src/features/applications/components/application-detail-sheet.tsx
 #: src/features/career/discovery-runs.tsx
 #: src/features/career/workspace/fit.tsx
+#: src/features/discover/jobs.tsx
 #: src/features/homepage/tailor.tsx
 msgid "Posting"
 msgstr "Оголошення про вакансію"
@@ -8895,6 +9677,10 @@ msgstr "Тренування"
 msgid "Practice for your {company} interviews."
 msgstr "Тренування до співбесід у компанії {company}."
 
+#: src/features/overview/page.tsx
+msgid "Practice not started"
+msgstr ""
+
 #: src/features/career/workspace/debrief.tsx
 #: src/features/homepage/prepare.tsx
 msgid "Practice priorities, not conclusions about why an employer decided anything."
@@ -8908,6 +9694,10 @@ msgstr "Пріоритет для тренування:"
 #: src/features/homepage/prepare.tsx
 msgid "Practice questions are simulated, not from Fieldnote."
 msgstr "Тренувальні запитання змодельовано, вони не від Fieldnote."
+
+#: src/features/overview/page.tsx
+msgid "Practice started"
+msgstr ""
 
 #: src/features/career/knowledge/stories.tsx
 #: src/features/career/shared.tsx
@@ -8949,10 +9739,13 @@ msgid "Preferences"
 msgstr "Параметри"
 
 #: src/features/career/coach-thread.tsx
-#: src/routes/dashboard/career/knowledge/route.tsx
 msgctxt "Career preferences: the roles, places, pay and ways of working you want"
 msgid "Preferences"
 msgstr "Побажання"
+
+#: src/features/overview/page.tsx
+msgid "Preparation"
+msgstr ""
 
 #: src/features/career/schedule-sheet.tsx
 #: src/features/career/shared.tsx
@@ -8969,13 +9762,17 @@ msgstr "Підготувати брифінг"
 msgid "Prepare a resume"
 msgstr "Підготуйте резюме"
 
-#: src/features/career/today.tsx
-#: src/features/settings/automation/page.tsx
+#: src/features/career/pipeline-words.ts
+#: src/features/discover/jobs.tsx
 msgid "Prepare documents"
 msgstr ""
 
-#: src/features/settings/automation/page.tsx
-msgid "Prepare documents for the jobs your discovery schedule finds. You apply yourself; nothing is ever sent to an employer."
+#: src/features/setup/page.tsx
+msgid "Prepare documents for new jobs?"
+msgstr ""
+
+#: src/features/overview/page.tsx
+msgid "Prepare interview"
 msgstr ""
 
 #: src/features/assistant/assistant-panel.tsx
@@ -8986,8 +9783,8 @@ msgstr "Підготуйте мене до співбесіди"
 msgid "Preparing {label} file…"
 msgstr "Підготовка файлу {label}…"
 
-#: src/features/career/today.tsx
-msgid "Preparing a resume and cover letter. Follow them in Settings → Automation."
+#: src/features/discover/jobs.tsx
+msgid "Preparing a resume and cover letter. Follow them in Automation."
 msgstr ""
 
 #: src/features/assistant/conversation.tsx
@@ -9023,6 +9820,10 @@ msgstr "Натисніть <0>{RETURN_KEY}</0>, щоб додати або зб�
 #: src/features/command-palette/pages/resumes.tsx
 msgid "Press <0>Enter</0> to open"
 msgstr "Натисніть <0>Enter</0>, щоб відкрити"
+
+#: src/features/setup/page.tsx
+msgid "Preview results"
+msgstr ""
 
 #. placeholder {0}: templates[previewTemplate].name
 #: src/routes/builder/$resumeId/-components/page-canvas.tsx
@@ -9070,6 +9871,10 @@ msgstr "Приватне"
 msgid "Private. Only you can see it."
 msgstr "Приватний. Тільки ви можете це побачити."
 
+#: src/features/career/pipeline-map.tsx
+msgid "Problem"
+msgstr ""
+
 #: src/features/homepage/footer.tsx
 msgid "Product"
 msgstr "Продукт"
@@ -9092,6 +9897,8 @@ msgstr "Рівень володіння"
 #: src/features/homepage/check.tsx
 #: src/features/homepage/sheet.tsx
 #: src/features/settings/account/profile.tsx
+#: src/routes/dashboard/-components/app-shell.tsx
+#: src/routes/dashboard/profile/route.tsx
 msgid "Profile"
 msgstr "Профіль"
 
@@ -9248,6 +10055,10 @@ msgstr "Запитання для роботодавця"
 msgid "Queued"
 msgstr ""
 
+#: src/features/career/pipeline-words.ts
+msgid "Queued the {kind} for {job}"
+msgstr ""
+
 #: src/features/homepage/remember.tsx
 msgid "R"
 msgstr "Р"
@@ -9315,7 +10126,6 @@ msgstr "Прочитати брифінг"
 
 #: src/features/career/discovery-runs.tsx
 #: src/features/career/discovery-status.tsx
-#: src/features/overview/page.tsx
 msgid "Read failures"
 msgstr ""
 
@@ -9328,8 +10138,11 @@ msgstr "Прочитати за мене"
 msgid "Read only"
 msgstr "Доступ лише для читання"
 
+#: src/features/career/pipeline-words.ts
+msgid "Read pages"
+msgstr ""
+
 #: src/features/applications/components/add-application-dialog.tsx
-#: src/features/career/today.tsx
 msgid "Read posting"
 msgstr "Прочитайте оголошення про роботу"
 
@@ -9478,6 +10291,10 @@ msgstr ""
 msgid "Ready for review means the documents were made, not that you approved them or applied. Your application status is separate."
 msgstr ""
 
+#: src/features/setup/page.tsx
+msgid "Ready to start"
+msgstr ""
+
 #: src/features/applications/components/detail/close-dialog.tsx
 msgid "Reason"
 msgstr "Причина"
@@ -9489,6 +10306,14 @@ msgstr "Пригадане"
 #: src/features/career/coach.tsx
 msgid "Recent"
 msgstr "Нещодавні"
+
+#: src/features/overview/page.tsx
+msgid "Recent activity"
+msgstr ""
+
+#: src/features/career/pipeline-words.ts
+msgid "Recent searches only found jobs you already have. Try changing what you look for."
+msgstr ""
 
 #: src/routes/builder/letter/-components/write-panel.tsx
 msgid "Recipient"
@@ -9572,6 +10397,10 @@ msgstr "Хто рекомендував…, що підкреслити тощо
 msgid "Reflection"
 msgstr "Рефлексія"
 
+#: src/features/career/activity-feed.tsx
+msgid "Refresh"
+msgstr ""
+
 #: src/features/career/workspace/prepare.tsx
 msgid "Refresh the briefing 2 hours before"
 msgstr "Оновити брифінг за 2 години"
@@ -9606,7 +10435,6 @@ msgstr "Відхиляти"
 
 #: src/features/career/discovery-runs.tsx
 #: src/features/career/discovery-status.tsx
-#: src/features/overview/page.tsx
 #: src/features/resume/editor/proposals/proposal-list.tsx
 msgid "Rejected"
 msgstr "Відхилено"
@@ -9651,12 +10479,9 @@ msgid "Remind me on"
 msgstr "Дата нагадування"
 
 #: src/features/overview/page.tsx
-msgid "Reminders and briefings"
+#: src/routes/dashboard/career/route.tsx
+msgid "Reminders"
 msgstr ""
-
-#: src/features/career/today.tsx
-msgid "Reminders appear here. Email copies are optional and need a verified address."
-msgstr "Нагадування з’являються тут. Копії на пошту необов’язкові й потребують підтвердженої адреси."
 
 #: src/features/career/knowledge/preferences.tsx
 #: src/features/career/offers.tsx
@@ -9841,14 +10666,13 @@ msgstr "Скинути пароль"
 msgid "Reset your password"
 msgstr "Скинути пароль"
 
-#. placeholder {0}: when(a.resetsAt)
-#: src/features/overview/page.tsx
-msgid "Resets {0}"
-msgstr ""
-
 #: src/features/auth/pages/reset-password.tsx
 msgid "Resetting your password..."
 msgstr "Скидання пароля..."
+
+#: src/features/overview/page.tsx
+msgid "Resolve"
+msgstr ""
 
 #: src/features/homepage/footer.tsx
 msgid "Resources"
@@ -9862,9 +10686,14 @@ msgstr "Відповісти до"
 msgid "Responsible for the design system and helping other teams with their designs."
 msgstr "Відповідає за систему дизайну та допомагає іншим командам у їх дизайні."
 
+#: src/features/discover/jobs.tsx
 #: src/features/documents/document-actions.tsx
 msgid "Restore"
 msgstr "Відновити"
+
+#: src/features/setup/page.tsx
+msgid "Restore default"
+msgstr ""
 
 #: src/features/resume/share/history-tab.tsx
 msgid "Restore this version"
@@ -9908,7 +10737,10 @@ msgstr "резюме"
 #: src/features/applications/components/application-form-sheet.tsx
 #: src/features/applications/components/list-view.tsx
 #: src/features/career/discovery-status.tsx
+#: src/features/discover/search-header.tsx
 #: src/features/documents/document-card.tsx
+#: src/features/overview/page.tsx
+#: src/features/profile/baseline.tsx
 #: src/routes/builder/letter/-components/write-panel.tsx
 msgid "Resume"
 msgstr "Резюме"
@@ -9929,6 +10761,14 @@ msgstr "резюме (необов'язково)"
 msgid "Resume + letter"
 msgstr "резюме + лист"
 
+#: src/features/overview/page.tsx
+msgid "Resume and cover letter prepared"
+msgstr ""
+
+#: src/features/overview/page.tsx
+msgid "Resume anytime"
+msgstr ""
+
 #: src/features/homepage/tailor.tsx
 msgid "Resume attached"
 msgstr "Резюме додано"
@@ -9936,6 +10776,11 @@ msgstr "Резюме додано"
 #: src/features/homepage/sections.tsx
 msgid "Resume builder"
 msgstr "конструктор резюме"
+
+#: src/features/profile/baseline.tsx
+#: src/features/setup/page.tsx
+msgid "Resume checks"
+msgstr ""
 
 #: src/features/resume/preview/resume-accessible-text.tsx
 msgid "Resume content"
@@ -9945,9 +10790,17 @@ msgstr "Зміст резюме"
 msgid "Resume details"
 msgstr "деталі резюме"
 
+#: src/features/overview/page.tsx
+msgid "Resume discovery"
+msgstr ""
+
 #: src/features/applications/components/detail/sent-documents.tsx
 msgid "Resume file"
 msgstr "Файл резюме"
+
+#: src/features/setup/page.tsx
+msgid "Resume imported. Check it below, then confirm."
+msgstr ""
 
 #: src/routes/builder/$resumeId/-components/page-canvas.tsx
 msgid "Resume page"
@@ -10008,9 +10861,19 @@ msgstr "Повторна спроба…"
 
 #: src/features/career/today.tsx
 #: src/features/career/workspace/debrief.tsx
+#: src/features/overview/page.tsx
 #: src/features/resume/share/download-tab.tsx
+#: src/features/setup/page.tsx
 msgid "Review"
 msgstr "огляд"
+
+#: src/features/overview/page.tsx
+msgid "Review applications and resolve what needs you."
+msgstr ""
+
+#: src/features/overview/page.tsx
+msgid "Review changes"
+msgstr ""
 
 #: src/features/career/today.tsx
 msgid "Review draft"
@@ -10035,6 +10898,10 @@ msgstr "Перевірте обов’язкові відповіді у фор�
 #: src/features/career/workspace/apply.tsx
 msgid "Review the selected resume and cover letter in their editors."
 msgstr "Перегляньте вибране резюме та супровідний лист у їхніх редакторах."
+
+#: src/features/setup/page.tsx
+msgid "Review what will run. You can change any of this later."
+msgstr ""
 
 #: src/features/resume/editor/check/writing-tab.tsx
 msgid "Review writing"
@@ -10077,6 +10944,7 @@ msgstr "Просто зараз"
 #: src/features/applications/components/import-applications-sheet.tsx
 #: src/features/applications/components/interview-dialog.tsx
 #: src/features/applications/components/list-view.tsx
+#: src/features/discover/jobs.tsx
 #: src/features/resume/editor/check/job-match.tsx
 msgid "Role"
 msgstr "Посада"
@@ -10099,13 +10967,31 @@ msgstr "Роль / назва"
 msgid "Role of person {0}"
 msgstr "Посада особи {0}"
 
+#: src/features/discover/jobs.tsx
+msgid "Role restored"
+msgstr ""
+
 #: src/features/applications/components/add-application-dialog.tsx
 msgid "Role, company or location"
 msgstr "Роль, компанія або місцезнаходження"
 
 #: src/features/career/coach-thread.tsx
+#: src/features/command-palette/pages/navigation.tsx
+#: src/features/discover/jobs.tsx
 msgid "Roles"
 msgstr "Посади"
+
+#: src/routes/dashboard/discover/route.tsx
+msgid "Roles found by your saved search. Nothing is applied for until you choose."
+msgstr ""
+
+#: src/features/discover/jobs.tsx
+msgid "Roles you mark \"Not for me\" are kept here, and you can restore them."
+msgstr ""
+
+#: src/features/discover/jobs.tsx
+msgid "Roles you track appear here with a link to their application."
+msgstr ""
 
 #: src/features/career/schedule-sheet.tsx
 msgid "Roles, places and companies. Starts from your preferences."
@@ -10138,6 +11024,7 @@ msgid "Run again"
 msgstr "Запустити знову"
 
 #: src/features/career/discovery-status.tsx
+#: src/features/discover/search-header.tsx
 msgid "Run now"
 msgstr ""
 
@@ -10146,6 +11033,7 @@ msgid "Run queued"
 msgstr ""
 
 #: src/features/career/discovery-status.tsx
+#: src/features/discover/search-header.tsx
 msgid "Run queued. It starts within a minute."
 msgstr ""
 
@@ -10157,12 +11045,16 @@ msgstr "Проводити дослідження з клієнтами"
 msgid "Run status"
 msgstr ""
 
+#: src/features/career/pipeline-map.tsx
+msgid "Running"
+msgstr ""
+
 #: src/features/career/discovery-run.ts
+#: src/features/career/pipeline-words.ts
 msgid "Running now"
 msgstr ""
 
 #: src/features/career/discovery-runs.tsx
-#: src/features/overview/page.tsx
 msgid "Runs"
 msgstr ""
 
@@ -10172,6 +11064,10 @@ msgstr "Переходить на сторінку {next}"
 
 #: src/features/career/discovery-runs.tsx
 msgid "Runs pages"
+msgstr ""
+
+#: src/features/career/pipeline-words.ts
+msgid "Runs your search on its own, even with the browser closed."
 msgstr ""
 
 #: src/libs/locale.ts
@@ -10188,7 +11084,7 @@ msgstr "С"
 msgid "Salary"
 msgstr "Зарплата"
 
-#: src/features/career/today.tsx
+#: src/features/discover/jobs.tsx
 msgid "Salary not listed"
 msgstr "Зарплату не вказано"
 
@@ -10248,7 +11144,7 @@ msgstr "Збережіть ще одну пропозицію для порів�
 msgid "Save as application…"
 msgstr "Зберегти як заявку на роботу…"
 
-#: src/features/settings/automation/page.tsx
+#: src/features/automation/page.tsx
 msgid "Save automation"
 msgstr ""
 
@@ -10281,6 +11177,10 @@ msgstr "Зберегти співбесіду"
 msgid "Save job"
 msgstr "Зберегти роботу"
 
+#: src/features/career/pipeline-words.ts
+msgid "Save jobs"
+msgstr ""
+
 #: src/features/career/schedule-sheet.tsx
 msgid "Save schedule"
 msgstr "Зберегти розклад"
@@ -10306,6 +11206,7 @@ msgid "Save to the application"
 msgstr "Зберегти в заявці на роботу"
 
 #: src/features/resume/share/format.ts
+#: src/features/setup/page.tsx
 msgid "saved"
 msgstr "збережено"
 
@@ -10314,7 +11215,6 @@ msgstr "збережено"
 #: src/features/career/knowledge/preferences.tsx
 #: src/features/homepage/sections.tsx
 #: src/features/homepage/tailor.tsx
-#: src/features/overview/page.tsx
 #: src/features/resume/editor/save-status.tsx
 #: src/routes/builder/letter/-components/letter-bar.tsx
 msgid "Saved"
@@ -10340,9 +11240,13 @@ msgid "saved {0}"
 msgstr "збережено {0}"
 
 #. placeholder {0}: companyOf(row)
-#: src/features/career/today.tsx
+#: src/features/discover/jobs.tsx
 msgid "Saved {0} to Applications"
 msgstr "{0} збережено в Заявках"
+
+#: src/features/career/pipeline-words.ts
+msgid "Saved {job}"
+msgstr ""
 
 #. placeholder {0}: story.data.title
 #: src/features/career/coach-thread.tsx
@@ -10365,11 +11269,15 @@ msgstr "Щойно збережено"
 msgid "Saved offers"
 msgstr "Збережені пропозиції"
 
-#: src/features/career/today.tsx
+#: src/features/discover/search-header.tsx
+msgid "Saved search"
+msgstr ""
+
+#: src/features/discover/jobs.tsx
 msgid "Saved to Applications"
 msgstr "Збережено в Заявках"
 
-#: src/features/career/today.tsx
+#: src/features/discover/jobs.tsx
 msgid "Saved to Applications with the posting"
 msgstr "Збережено в Заявках разом з оголошенням"
 
@@ -10409,6 +11317,10 @@ msgstr "Скажіть уголос"
 msgid "Scan the QR code below with your preferred authenticator app. You can also copy the secret below and paste it into your app."
 msgstr "Відскануйте QR-код нижче за допомогою вибраного додатку автентифікації. Ви також можете скопіювати секрет нижче й вставити його у свій додаток."
 
+#: src/features/career/pipeline-words.ts
+msgid "Schedule"
+msgstr ""
+
 #: src/features/applications/components/interview-dialog.tsx
 msgid "Schedule an interview"
 msgstr "Заплануйте співбесіду"
@@ -10421,13 +11333,17 @@ msgstr "Заплануйте співбесіду на {date}"
 msgid "Schedule an interview…"
 msgstr "Заплануйте співбесіду…"
 
-#: src/features/career/today.tsx
+#: src/features/career/schedule-state.ts
 msgid "Schedule deleted"
 msgstr "Розклад видалено"
 
 #: src/features/applications/components/calendar-view.tsx
 msgid "Schedule interview"
 msgstr "Заплануйте співбесіду"
+
+#: src/features/automation/schedules.tsx
+msgid "Schedule kind"
+msgstr ""
 
 #: src/features/career/discovery-status.tsx
 msgid "Schedule paused"
@@ -10442,6 +11358,8 @@ msgid "Schedule saved"
 msgstr "Розклад збережено"
 
 #: src/features/career/discovery-runs.tsx
+#: src/features/career/pipeline-words.ts
+#: src/features/discover/activity.tsx
 msgid "Scheduled"
 msgstr ""
 
@@ -10450,7 +11368,7 @@ msgstr ""
 msgid "Scheduled run · {0}"
 msgstr ""
 
-#: src/features/settings/automation/page.tsx
+#: src/features/automation/page.tsx
 msgid "Scheduled work is not available on this server. Ask the server owner to configure it."
 msgstr ""
 
@@ -10458,7 +11376,9 @@ msgstr ""
 msgid "Scheduled work isn't available on this server."
 msgstr "Заплановані завдання недоступні на цьому сервері."
 
-#: src/features/career/today.tsx
+#: src/features/automation/page.tsx
+#: src/features/automation/schedules.tsx
+#: src/features/command-palette/pages/navigation.tsx
 msgid "Schedules"
 msgstr "Розклади"
 
@@ -10468,15 +11388,21 @@ msgstr "Школа"
 
 #: src/features/applications/components/interview-dialog.tsx
 #: src/features/applications/stages.ts
-#: src/features/overview/page.tsx
 msgid "Screening"
 msgstr "Скринінг"
 
 #: src/features/applications/components/add-application-dialog.tsx
+#: src/features/career/pipeline-words.ts
 #: src/features/documents/documents-page.tsx
+#: src/features/setup/page.tsx
 #: src/routes/dashboard/-components/app-shell.tsx
 msgid "Search"
 msgstr "Пошук"
+
+#: src/features/command-palette/pages/navigation.tsx
+#: src/routes/dashboard/discover/route.tsx
+msgid "Search activity"
+msgstr ""
 
 #: src/features/settings/ai/web-access.tsx
 msgid "Search and enhanced reading"
@@ -10537,6 +11463,10 @@ msgstr "Пошук або запуск…"
 msgid "Search role, company or contact"
 msgstr "Пошук ролі, компанії чи контакту"
 
+#: src/features/discover/jobs.tsx
+msgid "Search roles"
+msgstr ""
+
 #: src/features/career/coach.tsx
 msgid "Search terms go to your web search service."
 msgstr "Пошукові запити надсилаються до вашого сервісу вебпошуку."
@@ -10568,6 +11498,10 @@ msgstr "Шукає та читає сторінки за допомогою {con
 
 #: src/features/career/discovery-status.tsx
 msgid "Searches and sources"
+msgstr ""
+
+#: src/features/overview/page.tsx
+msgid "Searching again"
 msgstr ""
 
 #: src/features/applications/components/add-application-dialog.tsx
@@ -10603,9 +11537,25 @@ msgstr "Розділи · порядок друку"
 msgid "Sections use headings systems recognise, and work experience shows."
 msgstr "Розділи використовують заголовки, які системи розпізнають, і досвід роботи показує."
 
+#: src/features/overview/page.tsx
+msgid "See all"
+msgstr ""
+
 #: src/features/career/workspace/prepare.tsx
 msgid "See below"
 msgstr "Див. нижче"
+
+#: src/features/automation/page.tsx
+msgid "See every run in Search activity"
+msgstr ""
+
+#: src/features/discover/jobs.tsx
+msgid "See the run"
+msgstr ""
+
+#: src/features/overview/page.tsx
+msgid "See why"
+msgstr ""
 
 #: src/features/applications/components/list-view.tsx
 #: src/features/documents/document-actions.tsx
@@ -10638,6 +11588,10 @@ msgstr "Вибрати..."
 #: src/features/documents/documents-page.tsx
 msgid "Selected documents"
 msgstr "Вибрані документи"
+
+#: src/features/discover/activity.tsx
+msgid "Selected run"
+msgstr ""
 
 #: src/features/homepage/footer.tsx
 msgid "Self-hosting"
@@ -10748,10 +11702,6 @@ msgstr "Встановити наступні дії…"
 msgid "Set a password"
 msgstr "Встановіть пароль"
 
-#: src/features/overview/page.tsx
-msgid "Set one up in Career"
-msgstr ""
-
 #: src/features/resume/builder/password-dialog.tsx
 msgid "Set Password"
 msgstr "Встановити пароль"
@@ -10760,7 +11710,10 @@ msgstr "Встановити пароль"
 msgid "Set the document language when exporting."
 msgstr "Вкажіть мову документа під час експорту."
 
-#: src/features/career/today.tsx
+#: src/features/automation/page.tsx
+#: src/features/discover/jobs.tsx
+#: src/features/discover/search-header.tsx
+#: src/features/setup/page.tsx
 msgid "Set up discovery"
 msgstr "Налаштувати пошук"
 
@@ -10783,6 +11736,10 @@ msgstr "Налаштування додатку автентифікації"
 #: src/features/settings/ai/mcp.tsx
 msgid "Setup guide"
 msgstr "Інструкція з налаштування"
+
+#: src/features/setup/page.tsx
+msgid "Setup steps"
+msgstr ""
 
 #: src/features/resume/editor/write/picture-settings.tsx
 msgid "Shadow Color"
@@ -10861,14 +11818,13 @@ msgid "Shorter"
 msgstr "Коротше"
 
 #: src/features/career/preparation-list.tsx
+#: src/features/discover/jobs.tsx
 #: src/features/resume/editor/check/check-panel.tsx
 msgid "Show"
 msgstr "Показати"
 
 #. placeholder {0}: Math.min(remaining, COLUMN_PAGE_SIZE)
-#. placeholder {0}: visible.length - shown.length
 #: src/features/applications/components/board.tsx
-#: src/features/career/today.tsx
 msgid "Show {0} more"
 msgstr "Показати ще {0}"
 
@@ -11094,6 +12050,7 @@ msgstr "Навичка"
 
 #: src/features/homepage/check.tsx
 #: src/features/homepage/sheet.tsx
+#: src/features/profile/baseline-checks.ts
 #: src/libs/resume/section-title.ts
 #: src/libs/resume/section.tsx
 msgid "Skills"
@@ -11106,6 +12063,10 @@ msgstr "Пропустити"
 #: src/features/resume/editor/write/picture-settings.tsx
 msgid "Skip and Upload"
 msgstr "Пропустити та завантажити"
+
+#: src/features/setup/page.tsx
+msgid "Skip for now"
+msgstr ""
 
 #: src/features/homepage/page.tsx
 msgid "Skip to content"
@@ -11218,6 +12179,10 @@ msgstr "Щось пішло не так. Будь ласка, спробуйте
 msgid "Something went wrong. Try again."
 msgstr "Щось пішло не так. Спробуйте знову."
 
+#: src/features/career/pipeline-words.ts
+msgid "soon"
+msgstr ""
+
 #: src/features/documents/documents-page.tsx
 msgid "Sort"
 msgstr "Сортувати"
@@ -11230,6 +12195,7 @@ msgstr "Сортувати за датою"
 #: src/features/applications/components/application-form-sheet.tsx
 #: src/features/applications/components/import-applications-sheet.tsx
 #: src/features/career/knowledge/facts.tsx
+#: src/features/discover/jobs.tsx
 #: src/routes/dashboard/settings/route.tsx
 msgid "Source"
 msgstr "Джерело"
@@ -11343,6 +12309,7 @@ msgid "Stars on GitHub"
 msgstr "Зірки на GitHub"
 
 #: src/features/resume/editor/write/dates-field.tsx
+#: src/features/setup/page.tsx
 msgid "Start"
 msgstr "старт"
 
@@ -11352,12 +12319,17 @@ msgstr "Почати розбір"
 
 #: src/features/documents/documents-page.tsx
 #: src/features/documents/new-document-dialog.tsx
+#: src/features/setup/page.tsx
 msgid "Start blank"
 msgstr "Почніть порожньо"
 
 #: src/features/applications/components/export-applications-sheet.tsx
 msgid "Start date must be on or before end date."
 msgstr "Дата початку має відповідати даті завершення або передувати їй."
+
+#: src/features/setup/page.tsx
+msgid "Start discovery"
+msgstr ""
 
 #: src/features/ats-checker/messages.ts
 msgid "Start each one with a concrete verb: built, led, reduced, migrated."
@@ -11413,12 +12385,17 @@ msgid "Started"
 msgstr "Розпочато"
 
 #: src/features/career/discovery-runs.tsx
+#: src/features/discover/activity.tsx
 msgid "Started by you"
 msgstr ""
 
 #. placeholder {0}: when(report.at)
 #: src/features/career/discovery-status.tsx
 msgid "Started by you · {0}"
+msgstr ""
+
+#: src/features/career/pipeline-words.ts
+msgid "Starting within a minute"
 msgstr ""
 
 #: src/features/career/schedule-sheet.tsx
@@ -11439,11 +12416,8 @@ msgid "Starts now"
 msgstr "Починається зараз"
 
 #: src/features/career/discovery-status.tsx
+#: src/features/discover/search-header.tsx
 msgid "Starts within a minute"
-msgstr ""
-
-#: src/features/overview/page.tsx
-msgid "State"
 msgstr ""
 
 #: src/libs/resume/section.tsx
@@ -11465,6 +12439,10 @@ msgstr "Залишайся тут"
 #: src/features/resume/editor/design/fit.ts
 msgid "Still {pages} pages at 9 pt. Hide a section or shorten entries."
 msgstr "Нерухомі сторінки {pages} на 9 пт. Приховати розділ або скоротити записи."
+
+#: src/features/setup/page.tsx
+msgid "Still working. Longer resumes, and AI-assisted reading of PDFs and Word files, can take a minute or two. Please keep this page open."
+msgstr ""
 
 #: src/features/assistant/conversation.tsx
 #: src/features/career/coach-thread.tsx
@@ -11500,7 +12478,8 @@ msgstr "Зупинився. Не було запропоновано жодни�
 
 #: src/features/career/coach-thread.tsx
 #: src/features/career/workspace/prepare.tsx
-#: src/routes/dashboard/career/knowledge/route.tsx
+#: src/features/command-palette/pages/navigation.tsx
+#: src/routes/dashboard/profile/route.tsx
 msgid "Stories"
 msgstr "Розповіді"
 
@@ -11547,6 +12526,10 @@ msgstr "Тема"
 #: src/features/career/workspace/apply.tsx
 msgid "Submit through the employer's application page yourself."
 msgstr "Подайте заявку самостійно через сторінку роботодавця."
+
+#: src/features/overview/page.tsx
+msgid "Submitted"
+msgstr ""
 
 #. placeholder {0}: application.coverLetterName ?? "PDF"
 #: src/features/applications/components/application-detail-sheet.tsx
@@ -11725,18 +12708,40 @@ msgstr "Адаптуватися до посадової інструкції"
 msgid "Tailor to the {0} posting"
 msgstr "адаптуватися до оголошення про роботу {0}"
 
+#: src/features/profile/details.tsx
+msgid "Tailored documents take their contact details from the baseline resume. This page only shows them; it keeps no separate copy."
+msgstr ""
+
+#: src/features/profile/baseline.tsx
+msgid "Tailored documents will start from this resume"
+msgstr ""
+
+#: src/features/career/pipeline-words.ts
+msgid "tailored resume"
+msgstr ""
+
 #: src/features/career/discovery-runs.tsx
 #: src/features/career/preparation-list.tsx
 msgid "Tailored resume"
 msgstr ""
 
+#: src/features/career/pipeline-words.ts
+#: src/features/setup/page.tsx
+msgid "tailored resumes"
+msgstr ""
+
 #: src/features/overview/page.tsx
-msgid "Tailored resumes on"
+#: src/features/setup/page.tsx
+msgid "Tailored resumes"
 msgstr ""
 
 #: src/features/applications/components/insights-view.tsx
 msgid "Tailored vs. base resume"
 msgstr "адаптоване проти базового резюме"
+
+#: src/routes/dashboard/coach.{-$conversationId}.tsx
+msgid "Talk through your search, your answers and your offers."
+msgstr ""
 
 #: src/libs/locale.ts
 msgid "Tamil"
@@ -11938,9 +12943,38 @@ msgstr "Це налаштування постачальника недійсн�
 msgid "That recording was empty or over 2 MB. Try a shorter answer."
 msgstr "Запис порожній або більший за 2 МБ. Спробуйте коротшу відповідь."
 
+#: src/features/discover/activity.tsx
+msgid "That run is no longer kept. Runs are kept for 30 days."
+msgstr ""
+
 #: src/features/auth/pages/error.tsx
 msgid "That sign-in provider is no longer available on this server."
 msgstr "Цей постачальник входу більше не доступний на цьому сервері."
+
+#. placeholder {0}: reason ?? ""
+#. placeholder {1}: typeof data.retryAt === "string" ? when(data.retryAt) : t`soon`
+#: src/features/career/pipeline-words.ts
+msgid "The {kind} for {job} hit a problem. {0} Trying again {1}."
+msgstr ""
+
+#: src/features/career/pipeline-words.ts
+msgid "The {kind} for {job} is ready for review"
+msgstr ""
+
+#. placeholder {0}: Number(data.gaps)
+#: src/features/career/pipeline-words.ts
+msgid "The {kind} for {job} is ready, with {0} gaps for you to fill"
+msgstr ""
+
+#. placeholder {0}: typeof data.until === "string" ? when(data.until) : t`tomorrow`
+#: src/features/career/pipeline-words.ts
+msgid "The {kind} for {job} is waiting for the daily limit until {0}"
+msgstr ""
+
+#. placeholder {0}: reason ?? ""
+#: src/features/career/pipeline-words.ts
+msgid "The {kind} for {job} was canceled. {0}"
+msgstr ""
 
 #: src/features/resume/share/download-tab.tsx
 msgid "The {label} file couldn't be generated. Try again, or download PDF instead."
@@ -11981,6 +13015,10 @@ msgstr "Помічник не налаштований на цьому серв�
 #: src/features/assistant/provider-setup.tsx
 msgid "The assistant uses your own key. Nothing is sent anywhere until you connect one."
 msgstr "Помічник використовує ваш власний ключ. Нічого нікуди не надсилається, поки ви не підключите один."
+
+#: src/features/profile/baseline.tsx
+msgid "The baseline is only read, never changed. Tailored documents are separate copies."
+msgstr ""
 
 #: src/features/settings/ai/web-access.tsx
 msgid "The built-in reader remains active."
@@ -12030,6 +13068,18 @@ msgstr "Експортований PDF не вдалося перевірити.
 msgid "The file couldn't be read as a resume."
 msgstr "Не вдалося прочитати файл як резюме."
 
+#: src/features/career/run-results.tsx
+msgid "The first 50 results of a run are kept."
+msgstr ""
+
+#: src/features/setup/page.tsx
+msgid "The first search starts right away. Nothing is sent to employers and no application is marked as submitted."
+msgstr ""
+
+#: src/features/discover/jobs.tsx
+msgid "The full posting couldn't be loaded. Showing the search summary."
+msgstr ""
+
 #: src/routes/builder/letter/-components/write-panel.tsx
 msgid "The greeting follows the name."
 msgstr "Привітання йде після імені."
@@ -12043,15 +13093,23 @@ msgid "The key is encrypted on the server and never shown again. Saving tests th
 msgstr "Ключ зашифровано на сервері та більше ніколи не відображається. Збереження перевіряє підключення."
 
 #: src/features/overview/page.tsx
-msgid "The last discovery run failed. Open Pipeline to see why."
+msgid "The last discovery run failed"
 msgstr ""
 
-#: src/features/overview/page.tsx
-msgid "The last five runs found nothing new but kept seeing jobs you already have. Scheduling is working; try changing what you look for."
+#: src/features/career/pipeline-words.ts
+msgid "The last search failed"
 msgstr ""
 
-#: src/features/overview/page.tsx
-msgid "The latest run failed. Open Pipeline for the reason."
+#: src/features/career/pipeline-words.ts
+msgid "The last search failed. Open the run to see why."
+msgstr ""
+
+#: src/features/career/pipeline-words.ts
+msgid "The last search partly succeeded: some pages could not be read."
+msgstr ""
+
+#: src/features/career/pipeline-words.ts
+msgid "The last search succeeded"
 msgstr ""
 
 #: src/routes/builder/letter/-components/share-sheet.tsx
@@ -12084,6 +13142,15 @@ msgstr "Ранок дня співбесіди вже минув, тож бри�
 
 #: src/features/career/schedule-sheet.tsx
 msgid "The most one run retrieves. Search services rank results, so this finds relevant postings but cannot promise to list every job."
+msgstr ""
+
+#: src/features/career/pipeline-words.ts
+msgid "The next search is overdue."
+msgstr ""
+
+#. placeholder {0}: when(check.at)
+#: src/features/career/pipeline-words.ts
+msgid "The next search was due {0} and has not started. The server's scheduler may be behind."
 msgstr ""
 
 #: src/features/career/coach.tsx
@@ -12187,6 +13254,10 @@ msgstr "Не вдалося завершити огляд. Спробуйте з
 msgid "The run stopped before it finished. It tries again on its own; if this keeps happening, check your search connection."
 msgstr ""
 
+#: src/features/discover/jobs.tsx
+msgid "The run that found this role is no longer kept."
+msgstr ""
+
 #: src/features/ats-checker/messages.ts
 msgid "The same line repeats on every page."
 msgstr "Один і той самий рядок повторюється на кожній сторінці."
@@ -12208,6 +13279,10 @@ msgstr "Оцінку обмежено через блокувальну проб
 msgid "The score reflects how reliably text is extracted, not your chances."
 msgstr "Оцінка відображає, наскільки надійно видобуто текст, а не ваші шанси."
 
+#: src/features/setup/page.tsx
+msgid "The search could not run."
+msgstr ""
+
 #: src/features/career/discovery-run.ts
 msgid "The search did not run. Check the web search connection in Settings, then run it again."
 msgstr ""
@@ -12218,6 +13293,10 @@ msgstr ""
 
 #: src/features/career/discovery-run.ts
 msgid "The search returned no results. Try broader roles or places."
+msgstr ""
+
+#: src/features/automation/page.tsx
+msgid "The search that finds new roles. Edit it here or from Discover; it is the same search. Results are reviewed in Discover."
 msgstr ""
 
 #: src/features/settings/ai/web-access.tsx
@@ -12263,6 +13342,10 @@ msgstr "Далі введіть шестизначний код, який над
 #: src/features/ats-checker/messages.ts
 msgid "There is a gap between two dated roles."
 msgstr "Є проміжок між двома посадами з датами."
+
+#: src/features/career/pipeline-words.ts
+msgid "There is no discovery schedule yet."
+msgstr ""
 
 #: src/features/ats-checker/messages.ts
 msgid "There is no link to a profile, portfolio or repository."
@@ -12389,8 +13472,12 @@ msgstr "Цей файл використовує багато різних шр�
 msgid "This file uses Type 3 fonts, which carry drawings instead of characters."
 msgstr "Цей файл використовує шрифти Type 3, які містять малюнки замість символів."
 
-#: src/features/settings/automation/page.tsx
+#: src/features/automation/page.tsx
 msgid "This guides curation in addition to the fixed accuracy and privacy rules."
+msgstr ""
+
+#: src/features/setup/page.tsx
+msgid "This guides the writing in addition to the fixed accuracy and privacy rules."
 msgstr ""
 
 #: src/features/ats-checker/messages.ts
@@ -12401,9 +13488,23 @@ msgstr "Це PDF-портфоліо: видима сторінка — лише 
 msgid "This is an XFA form, so most software reads only the empty shell."
 msgstr "Це форма XFA, тому більшість програм читає лише порожню оболонку."
 
+#: src/features/profile/baseline.tsx
+#: src/features/setup/page.tsx
+msgid "This is my baseline resume"
+msgstr ""
+
+#: src/features/profile/baseline.tsx
+#: src/features/setup/page.tsx
+msgid "This is my baseline resume. Tailored documents may be based on it."
+msgstr ""
+
 #: src/features/ats-checker/messages.ts
 msgid "This is not a common resume page size."
 msgstr "Це нетиповий розмір сторінки для резюме."
+
+#: src/features/setup/page.tsx
+msgid "This is the resume your tailored documents start from. It is only read, never changed."
+msgstr ""
 
 #: src/features/career/preparation.ts
 msgid "This job has no description to work from."
@@ -12497,6 +13598,10 @@ msgstr "Не вдалося завантажити цю збережену ве�
 msgid "This saved version is no longer available."
 msgstr "Ця збережена версія більше недоступна."
 
+#: src/features/overview/page.tsx
+msgid "This search found nothing new."
+msgstr ""
+
 #: src/features/auth/pages/error.tsx
 msgid "This sign-in attempt expired or was already used. Please start again."
 msgstr "Термін дії цієї спроби входу минув або її вже використано. Почніть спочатку."
@@ -12516,6 +13621,10 @@ msgstr "Такого часу не існує у вибраному часово
 #: src/features/career/schedule-sheet.tsx
 msgid "This time does not exist in your timezone. Choose another time."
 msgstr "Такого часу не існує у вашому часовому поясі. Виберіть інший час."
+
+#: src/features/setup/page.tsx
+msgid "This usually takes under a minute. Please keep this page open."
+msgstr ""
 
 #: src/features/career/workspace/debrief.tsx
 msgid "This week: make your evidence easier to follow"
@@ -12562,6 +13671,10 @@ msgstr "Час, посилання, хто, що ви надіслали"
 msgid "Times are shown in {timeZone}."
 msgstr "Час показано в поясі {timeZone}."
 
+#: src/features/overview/page.tsx
+msgid "Times shown in {timeZone}"
+msgstr ""
+
 #: src/features/settings/preferences.tsx
 msgid "Timezone"
 msgstr "Часовий пояс"
@@ -12584,8 +13697,8 @@ msgid "To"
 msgstr "до"
 
 #: src/features/applications/components/calendar-view.tsx
+#: src/features/overview/page.tsx
 #: src/features/resume/share/link-tab.tsx
-#: src/routes/dashboard/career/route.tsx
 msgid "Today"
 msgstr "Сьогодні"
 
@@ -12600,11 +13713,20 @@ msgstr "Сьогодні, {hour}"
 #. placeholder {0}: data.usage.used
 #. placeholder {1}: data.usage.limit
 #. placeholder {2}: format(data.usage.resetsAt, { weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
-#: src/features/settings/automation/page.tsx
+#: src/features/automation/page.tsx
 msgid "Today: {0} of {1} used; resets {2}."
 msgstr ""
 
+#: src/features/career/pipeline-words.ts
+msgid "Today's document limit is used up. More start after midnight."
+msgstr ""
+
+#: src/features/career/pipeline-words.ts
+msgid "tomorrow"
+msgstr ""
+
 #: src/features/applications/components/calendar-view.tsx
+#: src/features/overview/page.tsx
 msgid "Tomorrow"
 msgstr "завтра"
 
@@ -12624,9 +13746,9 @@ msgstr "Всього"
 msgid "Track a job you're applying to and link the resume you sent."
 msgstr "Відстежуйте вакансію, на яку подаєтеся, і прив'яжіть надіслане резюме."
 
-#: src/features/career/today.tsx
-msgid "Track in Applications"
-msgstr "Відстежувати в Заявках"
+#: src/features/discover/jobs.tsx
+msgid "Track job"
+msgstr ""
 
 #: src/routes/dashboard/applications/index.tsx
 msgid "Track your first job"
@@ -12696,18 +13818,20 @@ msgid "Try a sample"
 msgstr "Спробуйте зразок"
 
 #: src/components/layout/error-screen.tsx
+#: src/features/automation/page.tsx
 #: src/features/career/coach-thread.tsx
 #: src/features/career/load-state.tsx
 #: src/features/career/workspace/practise.tsx
 #: src/features/career/workspace/shell.tsx
 #: src/features/documents/library-error.tsx
 #: src/features/overview/page.tsx
+#: src/features/profile/baseline.tsx
 #: src/features/resume/editor/write/improve.tsx
 #: src/features/resume/preview/preview.browser.tsx
 #: src/features/resume/share/download-tab.tsx
 #: src/features/settings/ai/web-access.tsx
-#: src/features/settings/automation/page.tsx
 #: src/features/settings/integrations/ai-provider-load-state.tsx
+#: src/features/setup/page.tsx
 #: src/routes/builder/letter/-components/write-panel.tsx
 msgid "Try again"
 msgstr "Спробуйте ще раз"
@@ -12752,7 +13876,7 @@ msgstr "Увімкніть публічне посилання для підра
 msgid "Turn this schedule on"
 msgstr "Увімкнути цей розклад"
 
-#: src/features/settings/automation/page.tsx
+#: src/features/automation/page.tsx
 msgid "Turning a type off stops new work of that type from starting, including work already waiting; a document being written finishes and is saved. Turning one on affects jobs found from now on. Jobs you already have are only prepared when you choose them."
 msgstr ""
 
@@ -12873,8 +13997,8 @@ msgstr "Підкресліть посилання"
 #: src/features/assistant/document.ts
 #: src/features/career/coach-thread.tsx
 #: src/features/career/shared.tsx
-#: src/features/career/today.tsx
 #: src/features/career/workspace/fit.tsx
+#: src/features/discover/jobs.tsx
 #: src/features/documents/document-actions.tsx
 #: src/features/homepage/write.tsx
 #: src/features/resume/editor/check/actions.ts
@@ -12952,6 +14076,10 @@ msgstr "Лист без назви"
 msgid "Untitled resume"
 msgstr "Резюме без назви"
 
+#: src/features/career/pipeline-words.ts
+msgid "Unusable address"
+msgstr ""
+
 #: src/features/career/workspace/practise.tsx
 msgid "Up to 2 minutes. Or <0>choose an audio file</0> up to 2 MB."
 msgstr "До 2 хвилин. Або <0>виберіть аудіофайл</0> розміром до 2 МБ."
@@ -13010,6 +14138,10 @@ msgstr "Оновлення резюме..."
 msgid "Upload .csv"
 msgstr "Завантажити .csv"
 
+#: src/features/setup/page.tsx
+msgid "Upload a file"
+msgstr ""
+
 #: src/features/ats-checker/checker.tsx
 msgid "Upload a PDF and see the text an applicant tracking system extracts: what's missing, what's out of order, and how to fix it. Free, no account needed."
 msgstr "Завантажте PDF і перегляньте текст, який витягує система відстеження заявника: чого не вистачає, що не в порядку та як це виправити. Безкоштовно, обліковий запис не потрібен."
@@ -13050,6 +14182,10 @@ msgstr "Використовуйте від 3 до 64 малих літер, ц�
 msgid "Use a darker shade"
 msgstr "Використовуйте більш темний відтінок"
 
+#: src/features/setup/page.tsx
+msgid "Use a PDF, Word, Reactive Resume or JSON Resume file, or a LinkedIn export (.zip)."
+msgstr ""
+
 #: src/features/ats-checker/messages.ts
 msgid "Use a plain international form, such as +1 555 010 1234."
 msgstr "Використовуйте простий міжнародний формат, наприклад +1 555 010 1234."
@@ -13065,6 +14201,10 @@ msgstr "Використовуйте одну колонку для всього
 #: src/features/ats-checker/messages.ts
 msgid "Use A4 or US Letter so the layout survives being re-rendered."
 msgstr "Використовуйте A4 або US Letter, щоб макет зберігався під час повторного рендерингу."
+
+#: src/features/setup/page.tsx
+msgid "Use an existing resume"
+msgstr ""
 
 #: src/features/ats-checker/messages.ts
 msgid "Use at least 9pt."
@@ -13092,6 +14232,10 @@ msgstr "Використовуйте деталі з “{0}”"
 msgid "Use for all applications"
 msgstr "Використовувати для всіх заявок"
 
+#: src/features/profile/baseline.tsx
+msgid "Use for tailoring"
+msgstr ""
+
 #: src/features/career/knowledge/facts.tsx
 msgid "Use in coaching: {excerpt}"
 msgstr "Використовувати в коучингу: {excerpt}"
@@ -13100,7 +14244,7 @@ msgstr "Використовувати в коучингу: {excerpt}"
 msgid "Use lowercase letters, numbers and single dashes."
 msgstr "Використовуйте малі літери, цифри та одинарні тире."
 
-#: src/features/settings/automation/page.tsx
+#: src/features/automation/page.tsx
 msgid "Use my default"
 msgstr ""
 
@@ -13147,6 +14291,10 @@ msgstr "Використано"
 #: src/features/career/workspace/saved.tsx
 msgid "used {used}"
 msgstr "використано: {used}"
+
+#: src/features/profile/baseline.tsx
+msgid "Used for tailoring"
+msgstr ""
 
 #: src/features/career/knowledge/facts.tsx
 #: src/features/homepage/remember.tsx
@@ -13287,15 +14435,35 @@ msgstr "Вʼєтнамська"
 msgid "View"
 msgstr "Переглянути"
 
+#: src/features/overview/page.tsx
+msgid "View all applications"
+msgstr ""
+
 #: src/features/applications/components/calendar-view.tsx
 msgid "View application"
 msgstr "Переглянути заяву на роботу"
+
+#: src/features/overview/page.tsx
+msgid "View discovery activity"
+msgstr ""
+
+#: src/features/overview/page.tsx
+msgid "View insights"
+msgstr ""
+
+#: src/features/overview/page.tsx
+msgid "View jobs"
+msgstr ""
 
 #: src/features/applications/components/add-application-dialog.tsx
 #: src/features/applications/components/application-detail-sheet.tsx
 #: src/features/career/workspace/shell.tsx
 msgid "View posting"
 msgstr "Переглянути оголошення про роботу"
+
+#: src/features/career/run-results.tsx
+msgid "View role"
+msgstr ""
 
 #. placeholder {0}: formatVersionTime(viewing.createdAt, i18n.locale)
 #. placeholder {0}: when(selected)
@@ -13336,12 +14504,20 @@ msgstr "Налаштування голосу"
 msgid "Volunteer"
 msgstr "Волонтерство"
 
+#: src/features/career/pipeline-map.tsx
+msgid "Waiting"
+msgstr ""
+
 #: src/features/career/preparation.ts
 msgid "Waiting for the daily limit"
 msgstr ""
 
 #: src/features/career/preparation.ts
 msgid "Waiting for the daily limit to reset."
+msgstr ""
+
+#: src/features/career/pipeline-words.ts
+msgid "Waiting for the first run"
 msgstr ""
 
 #: src/features/career/workspace/messages.tsx
@@ -13407,6 +14583,10 @@ msgstr "Не вдалося зберегти або завантажити на�
 msgid "Web research"
 msgstr "Вебпошук"
 
+#: src/features/setup/page.tsx
+msgid "Web search"
+msgstr ""
+
 #: src/features/assistant/conversation.tsx
 msgid "Web search didn't finish."
 msgstr "Пошук в Інтернеті не завершився."
@@ -13416,6 +14596,11 @@ msgstr "Пошук в Інтернеті не завершився."
 msgid "Web search failed: {0}"
 msgstr "Помилка веб-пошуку: {0}"
 
+#: src/features/career/pipeline-words.ts
+msgid "Web search is connected"
+msgstr ""
+
+#: src/features/profile/details.tsx
 #: src/features/resume/editor/write/basics-card.tsx
 msgid "Website"
 msgstr "Вебсайт"
@@ -13424,7 +14609,7 @@ msgstr "Вебсайт"
 msgid "Weekly"
 msgstr ""
 
-#: src/features/career/today.tsx
+#: src/features/automation/schedules.tsx
 msgid "Weekly at {clock} · next {next}"
 msgstr "Щотижня о {clock} · наступний запуск: {next}"
 
@@ -13482,6 +14667,14 @@ msgstr "Які формати я можу завантажити?"
 msgid "What goes in it?"
 msgstr "Що в нього входить?"
 
+#: src/features/career/activity-feed.tsx
+msgid "What happened behind the scenes, kept for 30 days."
+msgstr ""
+
+#: src/features/career/preparation-list.tsx
+msgid "What happened for this job"
+msgstr ""
+
 #: src/features/career/coach.tsx
 msgid "What interview answers should I practise?"
 msgstr "Які відповіді для співбесіди мені варто потренувати?"
@@ -13510,6 +14703,10 @@ msgstr "Що важливо"
 msgid "What matters to you"
 msgstr "Що для вас важливо"
 
+#: src/routes/dashboard/career/route.tsx
+msgid "What needs you, and your next interview."
+msgstr ""
+
 #: src/features/resume/editor/write/improve.tsx
 msgid "What should change?"
 msgstr "Що має змінитися?"
@@ -13517,6 +14714,10 @@ msgstr "Що має змінитися?"
 #: src/features/career/schedule-sheet.tsx
 msgid "What should run"
 msgstr "Що запускати"
+
+#: src/features/setup/page.tsx
+msgid "What should we look for?"
+msgstr ""
 
 #: src/features/assistant/assistant-panel.tsx
 msgid "What should we work on?"
@@ -13529,6 +14730,10 @@ msgstr "Яке програмне забезпечення читає"
 #: src/features/career/workspace/prepare.tsx
 msgid "What success looks like, which challenge matters most, and the next step."
 msgstr "Як виглядає успіх, який виклик найважливіший і який наступний крок."
+
+#: src/routes/dashboard/profile/route.tsx
+msgid "What the app knows about you, and what it may use when it writes for you."
+msgstr ""
 
 #: src/features/resume/editor/check/check-panel.tsx
 msgid "What the file-level check found in the PDF you'd send. It ran in this tab; nothing was uploaded."
@@ -13595,6 +14800,10 @@ msgstr "Коли ви натиснете «Надіслати», до {connectio
 #: src/features/applications/components/insights-view.tsx
 msgid "Where applications come from"
 msgstr "Звідки надходять заявки"
+
+#: src/features/discover/jobs.tsx
+msgid "Where it came from"
+msgstr ""
 
 #: src/features/career/knowledge/preferences.tsx
 msgid "Where you want to work"
@@ -13685,6 +14894,10 @@ msgstr "Без нього ви самостійно заповнюєте оде�
 msgid "Words run together when the text is extracted."
 msgstr "Слова зливаються під час видобування тексту."
 
+#: src/features/career/pipeline-map.tsx
+msgid "Working"
+msgstr ""
+
 #: src/features/career/workspace/prepare.tsx
 msgid "Works without AI or new research"
 msgstr "Працює без AI та нових досліджень"
@@ -13767,11 +14980,19 @@ msgstr "Опишіть, що ви зробили."
 msgid "Write your answer, or draft one from your Knowledge."
 msgstr "Напишіть відповідь або складіть чернетку на основі ваших Знань."
 
+#: src/features/career/pipeline-words.ts
+msgid "Writes a tailored resume and cover letter for each new job, within your daily limit."
+msgstr ""
+
 #: src/features/ats-checker/messages.ts
 #: src/features/resume/editor/check/check-panel.tsx
 #: src/features/resume/editor/check/issues.ts
 msgid "Writing"
 msgstr "Текст"
+
+#: src/features/career/pipeline-words.ts
+msgid "Writing {count}"
+msgstr ""
 
 #: src/features/career/coach-thread.tsx
 msgid "Writing an answer…"
@@ -13781,13 +15002,30 @@ msgstr "Пишу відповідь…"
 msgid "Writing help, tailored suggestions and the assistant. The default provider is used wherever you don't pick one. Your keys stay encrypted."
 msgstr "Допомога з текстом, адаптовані пропозиції та помічник. Типовий постачальник використовується там, де ви не вибрали інший. Ваші ключі зберігаються зашифрованими."
 
+#: src/features/career/pipeline-words.ts
+msgid "Writing the {kind} for {job}"
+msgstr ""
+
+#. placeholder {0}: Number(data.attempt)
+#: src/features/career/pipeline-words.ts
+msgid "Writing the {kind} for {job} (attempt {0})"
+msgstr ""
+
 #: src/features/homepage/sections.tsx
 msgid "writing, tailoring and sending"
 msgstr "написання, адаптація та відправка"
 
+#: src/features/setup/page.tsx
+msgid "Written from your baseline and the job. Gaps are listed for you to fill, not invented."
+msgstr ""
+
 #: src/features/career/offers.tsx
 msgid "Written offer"
 msgstr "Письмова пропозиція"
+
+#: src/features/career/pipeline-map.tsx
+msgid "Yes"
+msgstr ""
 
 #: src/features/homepage/faq.tsx
 msgid "Yes. Every feature is free: all {templates} templates, PDF and Word downloads, the ATS checker, cover letters and the job tracker. There are no ads, no tracking and no paid tier. Donations pay for hosting and development."
@@ -13827,13 +15065,21 @@ msgstr "Ви вже використовуєте це для «{0}»."
 msgid "You answered: {answer}"
 msgstr "Ви відповіли: {answer}"
 
+#: src/features/career/pipeline-words.ts
+msgid "You apply"
+msgstr ""
+
 #: src/features/overview/page.tsx
-msgid "You are up to date. Nothing is waiting for you."
+msgid "You are up to date. Nothing needs you right now."
 msgstr ""
 
 #: src/features/auth/pages/login.tsx
 msgid "You can also sign in with your username."
 msgstr "Увійти можна також за іменем користувача."
+
+#: src/features/setup/page.tsx
+msgid "You can finish this later from Overview."
+msgstr ""
 
 #: src/features/resume/editor/save-status.tsx
 msgid "You can keep editing. Changes sync when you're back online. Download and Share need a connection."
@@ -13867,6 +15113,10 @@ msgstr "У вас є незбережені зміни, які буде втра
 msgid "You partnered with engineering. How you led the work isn’t described yet."
 msgstr "Ви співпрацювали з інженерами. Як саме ви керували роботою, поки не описано."
 
+#: src/features/career/pipeline-words.ts
+msgid "You review"
+msgstr ""
+
 #: src/features/career/offers.tsx
 msgid "You said: “{said}” Ask before deciding."
 msgstr "Ви сказали: «{said}» Запитайте, перш ніж вирішувати."
@@ -13886,6 +15136,14 @@ msgstr "Ви входите без нього"
 #: src/features/career/workspace/apply.tsx
 msgid "You submit on the employer's site yourself. Marking it applied keeps the exact versions you sent."
 msgstr "Ви подаєте заявку самостійно на сайті роботодавця. Позначка «подано» зберігає точні версії, які ви надіслали."
+
+#: src/features/career/pipeline-words.ts
+msgid "You turned off {what}"
+msgstr ""
+
+#: src/features/career/pipeline-words.ts
+msgid "You turned on {what}"
+msgstr ""
 
 #: src/features/career/schedule-sheet.tsx
 msgid "You'll always see it in Today. Email depends on your server's mail setup."
@@ -13942,6 +15200,10 @@ msgstr "Ваше підключення до AI"
 #: src/features/career/workspace/practise.tsx
 msgid "Your answer"
 msgstr "Ваша відповідь"
+
+#: src/features/overview/page.tsx
+msgid "Your applications, priorities and progress."
+msgstr ""
 
 #: src/features/career/workspace/practise.tsx
 #: src/features/homepage/prepare.tsx
@@ -14021,13 +15283,13 @@ msgstr "Ваша електронна адреса розбита на кіль�
 msgid "Your email address isn't verified with the provider."
 msgstr "Вашу адресу електронної пошти не підтверджено в постачальника."
 
-#: src/routes/dashboard/career/knowledge/route.tsx
-msgid "Your enabled facts, stories and preferences can be sent to your AI connection when you use coaching tools or scheduled interview preparation. In chat, the Knowledge switch controls what is added to each message."
-msgstr "Ваші ввімкнені факти, розповіді й побажання можуть надсилатися через ваше підключення до AI, коли ви користуєтеся інструментами коучингу або запланованою підготовкою до співбесіди. У чаті перемикач «Знання» визначає, що додається до кожного повідомлення."
-
 #: src/features/career/workspace/fit.tsx
 msgid "Your evidence"
 msgstr "Ваші докази"
+
+#: src/routes/dashboard/profile/route.tsx
+msgid "Your facts, stories and preferences are the Knowledge the coach and your tailored documents draw on. Enabled ones can be sent to your AI connection when you use coaching tools or scheduled interview preparation. In chat, the Knowledge switch controls what is added to each message."
+msgstr ""
 
 #: src/features/ats-checker/checker.tsx
 msgid "Your file"
@@ -14046,7 +15308,7 @@ msgid "Your headline changed on the resume. The letter updated too."
 msgstr "Ваш заголовок у резюме змінився. Лист також оновлено."
 
 #: src/features/overview/page.tsx
-msgid "Your job search from discovery to offer, and what needs you now."
+msgid "Your interviews will appear here."
 msgstr ""
 
 #: src/features/career/workspace/debrief.tsx
@@ -14077,6 +15339,7 @@ msgstr "Ваші поля дуже вузькі."
 msgid "your message"
 msgstr "ваше повідомлення"
 
+#: src/features/profile/baseline-checks.ts
 #: src/features/resume/editor/write/basics-card.tsx
 msgid "Your name"
 msgstr "Ваше ім’я"
@@ -14092,6 +15355,10 @@ msgstr "Ваше ім'я в резюме змінено. Лист також о�
 #: src/features/resume/editor/check/issues.ts
 msgid "Your name is missing"
 msgstr "Ваше ім'я відсутнє"
+
+#: src/features/overview/page.tsx
+msgid "Your next actions"
+msgstr ""
 
 #: src/features/career/workspace/saved.tsx
 msgid "your notes"
@@ -14129,6 +15396,10 @@ msgstr "Ваш номер телефону записаний у незвичн�
 msgid "your preferences"
 msgstr "ваші побажання"
 
+#: src/features/discover/jobs.tsx
+msgid "Your preferences"
+msgstr ""
+
 #: src/features/assistant/assistant-panel.tsx
 msgid "your provider"
 msgstr "вашого провайдера"
@@ -14158,6 +15429,10 @@ msgstr "Резюме продубльовано."
 msgid "Your resume has been updated."
 msgstr "Резюме оновлено."
 
+#: src/features/overview/page.tsx
+msgid "Your resume or the posting changed since generation"
+msgstr ""
+
 #: src/features/ats-checker/messages.ts
 msgid "Your resume uses \"I\" and \"my\"."
 msgstr "Ваше резюме використовує \"I\" та \"my\"."
@@ -14165,6 +15440,10 @@ msgstr "Ваше резюме використовує \"I\" та \"my\"."
 #: src/features/homepage/share.tsx
 msgid "Your resume, live at"
 msgstr "Ваше резюме, наживо за адресою"
+
+#: src/features/overview/page.tsx
+msgid "Your saved applications and documents are available."
+msgstr ""
 
 #: src/libs/error-message.ts
 msgid "Your selected font can't display some characters. They show as “?”. In Design, choose a font that has them."
@@ -14178,9 +15457,22 @@ msgstr "ваші розповіді"
 msgid "Your story couldn't be loaded."
 msgstr "Не вдалося завантажити вашу розповідь."
 
+#: src/features/career/pipeline-map.tsx
 #: src/features/homepage/sections.tsx
 msgid "Your turn"
 msgstr "Ваша черга"
+
+#: src/features/career/pipeline-words.ts
+msgid "Your turn: read and edit the drafts. Nothing is final until you say so."
+msgstr ""
+
+#: src/features/career/job-journey.tsx
+msgid "Your turn: review the drafts, then apply yourself."
+msgstr ""
+
+#: src/features/career/pipeline-words.ts
+msgid "Your turn: you send applications yourself. Nothing is ever sent for you."
+msgstr ""
 
 #: src/features/career/workspace/prepare.tsx
 msgid "Your two-minute introduction"

@@ -4,8 +4,9 @@ import type { WorkspaceTab } from "@reactive-resume/schema/career";
 
 export type BuilderPane = "write" | "page" | "design" | "check";
 export type LetterPane = "write" | "page" | "design";
-export type CareerPane = "overview" | "today" | "pipeline" | "coach" | "knowledge" | "offers";
-export type SettingsPane = "account" | "preferences" | "automation" | "ai";
+export type DiscoverView = "jobs" | "activity";
+export type ProfileSection = "details" | "preferences" | "facts" | "stories" | "baseline";
+export type SettingsPane = "account" | "preferences" | "ai";
 export type ApplicationTab = WorkspaceTab;
 /** The Applications tab's views; List is the tab's index. */
 export type ApplicationsView = "list" | "board" | "calendar" | "insights";
@@ -22,7 +23,17 @@ export const routes = {
 	trash: () => "/documents/trash" as const,
 	applications: (view: ApplicationsView = "list") =>
 		view === "list" ? ("/applications" as const) : (`/applications/${view}` as const),
-	career: (pane: CareerPane = "today") => `/career/${pane}` as const,
+	overview: () => "/overview" as const,
+	discover: (view: DiscoverView = "jobs") =>
+		view === "jobs" ? ("/discover" as const) : ("/discover/activity" as const),
+	profile: (section: ProfileSection = "details") => `/profile/${section}` as const,
+	coach: () => "/coach" as const,
+	automation: () => "/automation" as const,
+	/** Notifications and the next interview, until Overview shows them in place. */
+	reminders: () => "/reminders" as const,
+	/** The phone's overflow tab: Profile, Coach, Automation, Settings and Trash. */
+	more: () => "/more" as const,
+	offers: () => "/applications/offers" as const,
 	settings: (pane?: SettingsPane) => (pane ? (`/settings/${pane}` as const) : ("/settings" as const)),
 
 	// Modals and full-screen flows

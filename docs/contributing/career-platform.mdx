@@ -17,7 +17,7 @@ The assistant uses the existing saved AI connections. Configure `ENCRYPTION_SECR
 
 The career platform has two places:
 
-- **Career** (sidebar): **Today** (notifications that need you, new roles from discovery, the next interview and your schedules), **Coach** (conversations across your whole search), **Knowledge** (facts, STARR stories and preferences) and **Offers** (two saved offers side by side).
+- **The sidebar**: **Overview** (what needs you; **Reminders** holds notifications and the next interview until Overview shows them in place), **Discover** (Jobs: roles from discovery; Search activity: every run), **Applications** (including **Offers**: two saved offers side by side), **Documents**, **Profile** (candidate details, job preferences, facts, STARR stories and the baseline resume), **Coach** (conversations across your whole search), then **Automation** (discovery, document preparation and every schedule), **Settings** and Trash. The phone bar shows Overview, Discover, New, Applications, Documents and More.
 - **The application workspace** (open an application, then **Open workspace**): one job in seven tabs, in the order a search happens. **Fit**, **Apply**, **Prepare**, **Practise**, **Debrief**, **Messages** and **Saved**. The workspace opens on the tab for the application's stage, and **Ask the coach** opens the coach beside any tab. A job can have several conversations: start a new one, or reopen or delete an earlier one from the sheet's history.
 
 Each workspace tab is a purpose-built tool. Its AI action (**Check fit**, **Plan my preparation**, **Get feedback**, **Review my answer**, **Read it for me**, **Draft** or **Tighten**) asks the default AI connection for one structured result and saves it to **Saved**. While it works, the button names each step in turn. The result arrives whole rather than streamed, because its actions (apply, tick, add evidence) need the complete, checked result. Checklists, plans, saved briefings and the offer table are stored data, so they open without a working provider; when a provider call fails, the error says what didn't run.
@@ -77,7 +77,7 @@ All adapters await the same bounded PostgreSQL-backed processor. Node prevents o
 
 ### Automation and document preparation
 
-**Settings → Automation** keeps one `career_automation` row per user for document preparation (toggles, baseline, AI connection, daily limit). Discovery is an ordinary `career_schedule` edited in Career → Schedules, so its query, interval, results budget and on/off state have a single source; roles it finds get preparation steps when a toggle is on. Each tick, after discovery, a bounded number of `career_preparation` steps run (two, each for a different person, each limited to 90 seconds of AI time). Discovery never waits for them. Steps retry with backoff (honoring `Retry-After`) up to four attempts, then wait for a person. The daily limit is one conditional `UPDATE` on the automation row, so concurrent workers cannot exceed it. The day is the schedule's timezone.
+**Automation** keeps one `career_automation` row per user for document preparation (toggles, baseline, AI connection, daily limit). Discovery is an ordinary `career_schedule` edited from Discover or Automation (one shared editor), so its query, interval, results budget and on/off state have a single source; roles it finds get preparation steps when a toggle is on. Each tick, after discovery, a bounded number of `career_preparation` steps run (two, each for a different person, each limited to 90 seconds of AI time). Discovery never waits for them. Steps retry with backoff (honoring `Retry-After`) up to four attempts, then wait for a person. The daily limit is one conditional `UPDATE` on the automation row, so concurrent workers cannot exceed it. The day is the schedule's timezone.
 
 On Vercel the tick carries both jobs, so the function's maximum duration must cover a discovery run plus two generation steps. Search providers cap one search at 20 results, and none of the three supports paging; hourly runs add a date filter (Tavily `start_date`, Exa `startPublishedDate`, Firecrawl `tbs`) with at least two hours of overlap.
 
@@ -100,11 +100,11 @@ The CLI rejects redirects, and times out after 250 seconds. The HTTP response wa
 
 ### Enable a user's schedule
 
-In **Career → Today**, **Schedules → Add** (or a schedule's row) opens the schedule sheet:
+In **Automation → Schedules**, **Add** (or a schedule's row; **Edit search** in Discover for the search) opens the schedule sheet:
 
-- **Find roles:** a public search (it starts from Preferences) run every day, every 3 days or every week. Results wait in Today for review; tracking one creates an application at Saved only when the user chooses **Track in Applications**.
+- **Find roles:** a public search (it starts from Preferences) run every day, every 3 days or every week. Results wait in Discover for review; tracking one creates an application at Saved only when the user chooses **Track in Applications**.
 - **Prepare:** an interview, when the briefing runs (24 hours before, 2 hours before, or Morning of: 08:00 on the day, moving earlier to two hours before interviews starting before 10:00) and a tested AI connection. If the interview starts sooner than that, saving runs it now.
-- **Remind me:** an application and a time; it fires once into Today.
+- **Remind me:** an application and a time; it fires once as a notification.
 
 Dates and times are entered in the account's timezone. Recurring discovery preserves its local time across daylight-saving changes; a local time that doesn't exist during a clock change moves forward to a valid time. Missed intervals are coalesced rather than replaying every missed scan.
 

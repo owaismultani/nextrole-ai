@@ -804,6 +804,11 @@ describe.skipIf(!databaseUrl)("autonomous discovery and document preparation", (
 			const byDecision = Object.fromEntries(detail.items.map((item) => [item.url.split("/").pop(), item.decision]));
 			expect(byDecision).toMatchObject({ "1": "new", "2": "rejected", "3": "unreadable", "not a url": "invalid" });
 			expect(detail.items.find((item) => item.decision === "new")?.host).toBe("jobs.example.test");
+			// A result that became a role points at it; an unusable address points at nothing.
+			const roleItem = detail.items.find((item) => item.decision === "new");
+			expect(roleItem?.opportunityId).toEqual(expect.any(String));
+			expect(roleItem?.applicationId).toBeNull();
+			expect(detail.items.find((item) => item.url === "not a url")?.opportunityId).toBeNull();
 			await expect(careerActivity.runDetail("bob", first?.id ?? "")).rejects.toMatchObject({ code: "NOT_FOUND" });
 		});
 

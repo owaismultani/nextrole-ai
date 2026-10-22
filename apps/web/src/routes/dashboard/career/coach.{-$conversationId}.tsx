@@ -1,17 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import z from "zod";
-import { CoachPage } from "@/features/career/coach";
 
+// Coach became a top-level page; the old address redirects and keeps the conversation and any offers.
 export const Route = createFileRoute("/dashboard/career/coach/{-$conversationId}")({
-	// `offers`: saved offer ids to add as context ("Plan what to ask" from Offers).
 	validateSearch: z.object({ offers: z.array(z.string()).max(2).optional().catch(undefined) }),
-	component: RouteComponent,
+	beforeLoad: ({ params, search }) => {
+		throw redirect({
+			to: "/dashboard/coach/{-$conversationId}",
+			params: { conversationId: params.conversationId },
+			search,
+			replace: true,
+		});
+	},
 });
-
-function RouteComponent() {
-	const { conversationId } = Route.useParams();
-	const { offers } = Route.useSearch();
-	// Not keyed by the conversation: the page keeps a new conversation's chat mounted (and streaming) when the URL moves
-	// to its id, and starts a fresh one for any other change.
-	return <CoachPage conversationId={conversationId} offerIds={offers ?? []} />;
-}

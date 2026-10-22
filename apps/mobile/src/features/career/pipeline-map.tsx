@@ -77,9 +77,9 @@ function Health({ data }: { data: Overview }) {
 	const problems = data.checks.filter((check) => check.status === "fail" || check.status === "warn").length;
 	const go = {
 		ai: () => router.push(routes.settings("ai")),
-		automation: () => router.push(routes.settings("automation")),
-		today: () => router.push(routes.career("today")),
-		pipeline: () => router.push(routes.career("pipeline")),
+		automation: () => router.push(routes.automation()),
+		today: () => router.push(routes.reminders()),
+		pipeline: () => router.push(routes.discover("activity")),
 	};
 	return (
 		<Section title={problems === 0 ? t`Is everything working? Yes` : t`Is everything working? ${problems} to look at`}>

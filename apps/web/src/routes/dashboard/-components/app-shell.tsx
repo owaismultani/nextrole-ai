@@ -8,6 +8,12 @@ import { Link, useMatchRoute } from "@tanstack/react-router";
 import { Avatar, AvatarFallback, AvatarImage } from "@reactive-resume/ui/components/avatar";
 import { BrandIcon } from "@reactive-resume/ui/components/brand-icon";
 import { Button } from "@reactive-resume/ui/components/button";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@reactive-resume/ui/components/dropdown-menu";
 import { Icon } from "@reactive-resume/ui/components/icon";
 import { Kbd } from "@reactive-resume/ui/components/kbd";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@reactive-resume/ui/components/tooltip";
@@ -16,7 +22,6 @@ import { getInitials } from "@reactive-resume/utils/string";
 import { cn } from "@reactive-resume/utils/style";
 import { MobileTabIndicator } from "@/components/layout/mobile-tab-indicator";
 import { useDialogStore } from "@/dialogs/store";
-import { applicationsListQueryOptions } from "@/features/applications/queries";
 import { GuestBanner } from "@/features/auth/components/guest-banner";
 import { useCommandPaletteStore } from "@/features/command-palette/store";
 import { isEditableElementFocused } from "@/features/resume/builder/draft";
@@ -27,54 +32,61 @@ type NavItem = {
 	to:
 		| "/dashboard"
 		| "/dashboard/overview"
+		| "/dashboard/discover"
 		| "/dashboard/applications"
-		| "/dashboard/career"
+		| "/dashboard/profile"
+		| "/dashboard/coach/{-$conversationId}"
+		| "/dashboard/automation"
 		| "/dashboard/trash"
 		| "/dashboard/settings";
 	icon: IconName;
 	label: string;
+	/** Only for something waiting on the user; a total is not a badge. */
 	count?: number;
 };
 
+/**
+ * The primary destinations, each with one purpose, then the utilities below a divider. Badges mark only what is
+ * waiting on the user: unread reminders on Overview, roles not yet reviewed on Discover.
+ */
 function useNavItems() {
 	const { data: counts } = useQuery(orpc.documents.counts.queryOptions());
-	const { data: applications } = useQuery(applicationsListQueryOptions());
 	const { data: notifications } = useQuery(orpc.career.notifications.queryOptions({ input: {} }));
+	const { data: roles } = useQuery(orpc.career.opportunities.queryOptions({ input: {} }));
 
-	const items: NavItem[] = [
-		{ to: "/dashboard/overview", icon: "squares-four", label: t`Overview` },
-		{
-			to: "/dashboard",
-			icon: "file-text",
-			label: t`Documents`,
-			...(counts ? { count: counts.resume + counts.letter } : {}),
-		},
-		{
-			to: "/dashboard/applications",
-			icon: "briefcase",
-			label: t`Applications`,
-			...(applications ? { count: applications.filter((application) => application.status !== "closed").length } : {}),
-		},
-	];
 	const unread = notifications?.filter((notification) => !notification.readAt).length ?? 0;
-	// Career counts what's waiting for the user (unread notifications), so nothing shows at zero.
-	items.push({ to: "/dashboard/career", icon: "compass", label: t`Career`, ...(unread ? { count: unread } : {}) });
-	const settings: NavItem = { to: "/dashboard/settings", icon: "gear-six", label: t`Settings` };
+	const fresh = roles?.filter((role) => !role.trackedApplicationId).length ?? 0;
+	const items: NavItem[] = [
+		{ to: "/dashboard/overview", icon: "squares-four", label: t`Overview`, ...(unread ? { count: unread } : {}) },
+		{ to: "/dashboard/discover", icon: "compass", label: t`Discover`, ...(fresh ? { count: fresh } : {}) },
+		{ to: "/dashboard/applications", icon: "briefcase", label: t`Applications` },
+		{ to: "/dashboard", icon: "file-text", label: t`Documents` },
+		{ to: "/dashboard/profile", icon: "user-circle", label: t`Profile` },
+		{ to: "/dashboard/coach/{-$conversationId}", icon: "sparkle", label: t`Coach` },
+	];
+	const utilities: NavItem[] = [
+		{ to: "/dashboard/automation", icon: "clock", label: t`Automation` },
+		{ to: "/dashboard/settings", icon: "gear-six", label: t`Settings` },
+	];
 	const trash: NavItem | null = counts?.trash
 		? { to: "/dashboard/trash", icon: "trash", label: t`Trash`, count: counts.trash }
 		: null;
 
-	return { items, settings, trash };
+	return { items, utilities, trash };
 }
 
-/** Whether the item is the current page: Documents is exact, the others match their section. */
+/** Whether the item is the current page: Documents is exact, the others match their section. Reminders belong to Overview. */
 function useIsCurrent() {
 	const matchRoute = useMatchRoute();
-	return (to: NavItem["to"]) => Boolean(matchRoute({ to, fuzzy: to !== "/dashboard" }));
+	return (to: NavItem["to"]) =>
+		Boolean(
+			matchRoute({ to, fuzzy: to !== "/dashboard" }) ||
+			(to === "/dashboard/overview" && matchRoute({ to: "/dashboard/career", fuzzy: true })),
+		);
 }
 
 /**
- * The app shell for Documents, Trash, Applications and Settings: a 240px sidebar at ≥1024, an icon rail at
+ * The app shell for every dashboard page: a 240px sidebar at ≥1024, an icon rail at
  * 640–1023 and a bottom tab bar below 640. An application's workspace is full screen on phones, with its own back
  * link and action bar, so it has no tab bar. N opens New anywhere outside a field.
  */
@@ -122,7 +134,7 @@ export function AppShell({ children }: AppShellProps) {
 }
 
 function Sidebar() {
-	const { items, settings, trash } = useNavItems();
+	const { items, utilities, trash } = useNavItems();
 	const isCurrent = useIsCurrent();
 	const openPalette = useCommandPaletteStore((state) => state.setOpen);
 	const openDialog = useDialogStore((state) => state.openDialog);
@@ -155,13 +167,15 @@ function Sidebar() {
 				{items.map((item) => (
 					<NavLink key={item.to} item={item} current={isCurrent(item.to)} />
 				))}
-				<div className="mt-2 border-t border-line pt-2">
-					<NavLink item={settings} current={isCurrent(settings.to)} />
+				<div className="mt-2 grid gap-0.5 border-t border-line pt-2">
+					{utilities.map((item) => (
+						<NavLink key={item.to} item={item} current={isCurrent(item.to)} />
+					))}
+					{trash && <NavLink item={trash} current={isCurrent(trash.to)} />}
 				</div>
 			</nav>
 
 			<div className="mt-auto grid gap-2">
-				{trash && <NavLink item={trash} current={isCurrent(trash.to)} />}
 				<Button
 					aria-label={t`New`}
 					aria-keyshortcuts="N"
@@ -217,7 +231,7 @@ function NavLink({ item, current }: { item: NavItem; current: boolean }) {
 
 /** Tablets: the same destinations as icons, with their names in tooltips. */
 function Rail() {
-	const { items, settings, trash } = useNavItems();
+	const { items, utilities, trash } = useNavItems();
 	const isCurrent = useIsCurrent();
 	const openPalette = useCommandPaletteStore((state) => state.setOpen);
 	const openDialog = useDialogStore((state) => state.openDialog);
@@ -239,7 +253,7 @@ function Rail() {
 				/>
 			</RailTip>
 			<nav aria-label={t`App`} className="grid gap-1">
-				{[...items, settings].map((item) => (
+				{[...items, ...utilities, ...(trash ? [trash] : [])].map((item) => (
 					<RailTip key={item.to} label={item.label} icon={item.icon} filled={isCurrent(item.to)}>
 						<Link
 							to={item.to}
@@ -254,15 +268,6 @@ function Rail() {
 				))}
 			</nav>
 			<div className="mt-auto grid justify-items-center gap-2">
-				{trash && (
-					<RailTip label={trash.label} icon={trash.icon}>
-						<Link
-							to={trash.to}
-							aria-label={t`Trash`}
-							className="grid size-10 place-items-center rounded-lg text-ink-2 transition-[background-color,scale] duration-quick ease-enter hover:bg-hover active:scale-[0.97]"
-						/>
-					</RailTip>
-				)}
 				<RailTip label={t`New`} icon="plus">
 					<Button size="icon" aria-label={t`New`} onClick={() => openDialog("document.new", undefined)} />
 				</RailTip>
@@ -303,50 +308,57 @@ function RailTip({
 	);
 }
 
-/** Phones: Overview · Documents · Applications · New · Career · Settings, with New as an accent pill. */
+/** Phones: Overview · Discover · New · Applications · Documents · More, with New as an accent pill. More holds the rest. */
 function MobileTabs() {
 	const isCurrent = useIsCurrent();
 	const openDialog = useDialogStore((state) => state.openDialog);
+	const { items, utilities, trash } = useNavItems();
+	const first = items.filter((item) => ["/dashboard/overview", "/dashboard/discover"].includes(item.to));
+	const more = [
+		...items.filter((item) => ["/dashboard/profile", "/dashboard/coach/{-$conversationId}"].includes(item.to)),
+		...utilities,
+		...(trash ? [trash] : []),
+	];
+	const moreCurrent = more.some((item) => isCurrent(item.to));
 
-	const tab = (icon: IconName, label: string, current: boolean) => (
+	const tab = (icon: IconName, label: string, current: boolean, count?: number) => (
 		<>
 			{current && <MobileTabIndicator />}
-			<Icon name={icon} size={24} filled={current} />
+			<span className="relative">
+				<Icon name={icon} size={24} filled={current} />
+				{count ? (
+					<span
+						aria-hidden="true"
+						className="absolute -inset-e-2 -top-1 grid min-w-4 place-items-center rounded-full bg-accent px-1 font-mono text-[10px] leading-4 text-on-accent"
+					>
+						{count > 9 ? "9+" : count}
+					</span>
+				) : null}
+			</span>
 			<span className={cn("max-w-full truncate px-0.5 text-[11px]", current ? "font-semibold text-ink" : "text-ink-2")}>
 				{label}
 			</span>
 		</>
 	);
+	const link =
+		"relative flex min-h-[52px] flex-col items-center justify-center gap-0.5 transition-[scale] duration-quick ease-enter active:scale-[0.97]";
 
 	return (
 		<nav
 			aria-label={t`App`}
 			className="sticky bottom-0 z-30 grid grid-cols-6 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] [view-transition-name:app-nav]"
 		>
-			<Link
-				to="/dashboard/overview"
-				aria-current={isCurrent("/dashboard/overview") ? "page" : undefined}
-				viewTransition={false}
-				className="relative flex min-h-[52px] flex-col items-center justify-center gap-0.5 transition-[scale] duration-quick ease-enter active:scale-[0.97]"
-			>
-				{tab("squares-four", t`Overview`, isCurrent("/dashboard/overview"))}
-			</Link>
-			<Link
-				to="/dashboard"
-				aria-current={isCurrent("/dashboard") ? "page" : undefined}
-				viewTransition={false}
-				className="relative flex min-h-[52px] flex-col items-center justify-center gap-0.5 transition-[scale] duration-quick ease-enter active:scale-[0.97]"
-			>
-				{tab("file-text", t`Documents`, isCurrent("/dashboard"))}
-			</Link>
-			<Link
-				to="/dashboard/applications"
-				aria-current={isCurrent("/dashboard/applications") ? "page" : undefined}
-				viewTransition={false}
-				className="relative flex min-h-[52px] flex-col items-center justify-center gap-0.5 transition-[scale] duration-quick ease-enter active:scale-[0.97]"
-			>
-				{tab("briefcase", t`Applications`, isCurrent("/dashboard/applications"))}
-			</Link>
+			{first.map((item) => (
+				<Link
+					key={item.to}
+					to={item.to}
+					aria-current={isCurrent(item.to) ? "page" : undefined}
+					viewTransition={false}
+					className={link}
+				>
+					{tab(item.icon, item.label, isCurrent(item.to), item.count)}
+				</Link>
+			))}
 			<button
 				type="button"
 				onClick={() => openDialog("document.new", undefined)}
@@ -360,21 +372,38 @@ function MobileTabs() {
 				</span>
 			</button>
 			<Link
-				to="/dashboard/career"
-				aria-current={isCurrent("/dashboard/career") ? "page" : undefined}
+				to="/dashboard/applications"
+				aria-current={isCurrent("/dashboard/applications") ? "page" : undefined}
 				viewTransition={false}
-				className="relative flex min-h-[52px] flex-col items-center justify-center gap-0.5 transition-[scale] duration-quick ease-enter active:scale-[0.97]"
+				className={link}
 			>
-				{tab("compass", t`Career`, isCurrent("/dashboard/career"))}
+				{tab("briefcase", t`Applications`, isCurrent("/dashboard/applications"))}
 			</Link>
 			<Link
-				to="/dashboard/settings"
-				aria-current={isCurrent("/dashboard/settings") ? "page" : undefined}
+				to="/dashboard"
+				aria-current={isCurrent("/dashboard") ? "page" : undefined}
 				viewTransition={false}
-				className="relative flex min-h-[52px] flex-col items-center justify-center gap-0.5 transition-[scale] duration-quick ease-enter active:scale-[0.97]"
+				className={link}
 			>
-				{tab("gear-six", t`Settings`, isCurrent("/dashboard/settings"))}
+				{tab("file-text", t`Documents`, isCurrent("/dashboard"))}
 			</Link>
+			<DropdownMenu>
+				<DropdownMenuTrigger aria-label={t`More`} className={cn(link, "outline-none")}>
+					{tab("dots-three", t`More`, moreCurrent)}
+				</DropdownMenuTrigger>
+				<DropdownMenuContent side="top" align="end" className="min-w-48">
+					{more.map((item) => (
+						<DropdownMenuItem
+							key={item.to}
+							render={<Link to={item.to} aria-current={isCurrent(item.to) ? "page" : undefined} />}
+						>
+							<Icon name={item.icon} />
+							<span className="flex-1">{item.label}</span>
+							{item.count ? <span className="font-mono text-xs text-ink-3">{item.count}</span> : null}
+						</DropdownMenuItem>
+					))}
+				</DropdownMenuContent>
+			</DropdownMenu>
 		</nav>
 	);
 }

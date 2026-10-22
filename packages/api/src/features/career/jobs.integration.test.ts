@@ -256,6 +256,18 @@ describe.skipIf(!databaseUrl)("durable career scheduling", () => {
 		await run();
 		expect(await jobs.opportunities("alice")).toEqual([]);
 		expect(await jobs.notifications("alice")).toHaveLength(1);
+
+		// A dismissed role can be found again, shows where it came from, and comes back on restore.
+		expect((await jobs.opportunities("alice", true)).map((row) => row.id)).toContain(opportunity.id);
+		expect(await jobs.opportunity("alice", opportunity.id)).toMatchObject({
+			run: { trigger: "schedule", outcome: "success" },
+		});
+		await expect(jobs.opportunity("bob", opportunity.id)).rejects.toMatchObject({ code: "NOT_FOUND" });
+		await jobs.restoreOpportunity("bob", opportunity.id);
+		expect(await jobs.opportunities("alice")).toEqual([]);
+		await jobs.restoreOpportunity("alice", opportunity.id);
+		expect(await jobs.opportunities("alice")).toMatchObject([{ id: opportunity.id }]);
+		expect((await jobs.opportunities("alice", true)).map((row) => row.id)).not.toContain(opportunity.id);
 	});
 
 	it.each(["pause", "delete schedule", "delete application"] as const)(
@@ -408,7 +420,7 @@ describe.skipIf(!databaseUrl)("durable career scheduling", () => {
 								notice: { type: "briefing-paused" },
 								applicationId: "alice-app",
 								title: "Interview briefing paused",
-								url: "/dashboard/career?schedule=interview-preparation",
+								url: "/dashboard/automation?schedule=interview-preparation",
 							},
 						],
 			);
@@ -521,7 +533,7 @@ describe.skipIf(!databaseUrl)("durable career scheduling", () => {
 		expect(await jobs.opportunities("alice")).toEqual([]);
 		const notifications = await jobs.notifications("alice");
 		expect(notifications).toMatchObject([
-			{ title: "Career schedule needs attention", url: `/dashboard/career?schedule=${failing.id}` },
+			{ title: "Career schedule needs attention", url: `/dashboard/automation?schedule=${failing.id}` },
 		]);
 		expect(JSON.stringify(notifications)).not.toContain("private-key-material");
 		expect(

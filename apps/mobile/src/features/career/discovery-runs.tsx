@@ -6,7 +6,6 @@ import { openBrowserAsync } from "expo-web-browser";
 import { useState } from "react";
 import { View } from "react-native";
 import { diagnose } from "./discovery-run";
-import { DiscoveryStatus } from "./discovery-status";
 import { useCareerTime, useTodayQueries } from "./hooks";
 import { RunResults } from "./pipeline-detail";
 import { summaryLabel } from "./preparation";
@@ -19,7 +18,7 @@ import { Button, Card, Text, useTheme } from "@/ui";
 const PAGE_SIZE = 10;
 
 /**
- * Career → Today: how discovery is doing and a paged history of its runs. Each run lists the jobs it found with links
+ * Discover → Search activity: a paged history of discovery runs. Each run lists the jobs it found with links
  * to the application and to the resume and cover letter made for it. Hidden until a discovery schedule exists.
  */
 export function DiscoveryRuns() {
@@ -54,8 +53,7 @@ export function DiscoveryRuns() {
 	const total = runs.data?.total ?? 0;
 	const last = Math.min(total, (page + 1) * PAGE_SIZE);
 	return (
-		<Section title={t`Discovery`}>
-			<DiscoveryStatus schedule={schedule} onEnabledChange={() => undefined} />
+		<Section title={t`Runs`}>
 			{runs.data && runs.data.items.length === 0 ? (
 				<Text color="ink3">{t`No runs yet. The first one starts as soon as discovery is on.`}</Text>
 			) : null}

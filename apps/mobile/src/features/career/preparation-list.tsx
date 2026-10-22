@@ -145,11 +145,7 @@ export function PreparationList() {
 					</View>
 				) : null}
 				{action.error ? <Banner tone="danger" message={action.error} /> : null}
-				<Button
-					variant="ghost"
-					label={t`Automation settings`}
-					onPress={() => router.push(routes.settings("automation"))}
-				/>
+				<Button variant="ghost" label={t`Automation settings`} onPress={() => router.push(routes.automation())} />
 			</View>
 		</Section>
 	);

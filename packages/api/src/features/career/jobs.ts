@@ -2,7 +2,7 @@ import type { SearchOptions } from "../web-access/contracts";
 import type { CareerRunReport, careerScheduleInputSchema, RunItemDecision } from "@reactive-resume/schema/career";
 import type z from "zod";
 import { ORPCError } from "@orpc/client";
-import { and, asc, desc, eq, inArray, isNull, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
 import { db } from "@reactive-resume/db/client";
 import * as tables from "@reactive-resume/db/schema";
 import { sendCareerNotification } from "@reactive-resume/email/transport";
@@ -22,9 +22,11 @@ import { isCareerSchedulingEnabled } from "./runner";
 import { advanceRun, canonicalOpportunityUrl, parseListingTitle, plainSnippet, prepareRunAt } from "./scheduling";
 import { careerService, requireCareerApplication } from "./service";
 
-const CAREER_URL = "/dashboard/career";
+const DISCOVER_URL = "/dashboard/discover";
+const AUTOMATION_URL = "/dashboard/automation";
+const OVERVIEW_URL = "/dashboard/overview";
 const workspaceUrl = (applicationId: string | null, tab?: string) =>
-	applicationId ? `/dashboard/applications/${encodeURIComponent(applicationId)}${tab ? `/${tab}` : ""}` : CAREER_URL;
+	applicationId ? `/dashboard/applications/${encodeURIComponent(applicationId)}${tab ? `/${tab}` : ""}` : DISCOVER_URL;
 
 function assertRunner() {
 	if (!isCareerSchedulingEnabled())
@@ -224,17 +226,49 @@ export const careerJobs = {
 			.set({ readAt: new Date() })
 			.where(and(eq(tables.careerNotification.id, id), eq(tables.careerNotification.userId, userId)));
 	},
-	/** Each role with the preferences its posting matches and what it leaves out; the posting text stays here. */
-	opportunities: async (userId: string) => {
+	/**
+	 * Each role with the preferences its posting matches and what it leaves out; the posting text stays here. Dismissed
+	 * roles are listed only on request, so a person can find them again and restore one.
+	 */
+	opportunities: async (userId: string, dismissed = false) => {
 		const [rows, profile] = await Promise.all([
 			db
 				.select()
 				.from(tables.careerOpportunity)
-				.where(and(eq(tables.careerOpportunity.userId, userId), isNull(tables.careerOpportunity.dismissedAt)))
+				.where(
+					and(
+						eq(tables.careerOpportunity.userId, userId),
+						dismissed ? isNotNull(tables.careerOpportunity.dismissedAt) : isNull(tables.careerOpportunity.dismissedAt),
+					),
+				)
 				.orderBy(desc(tables.careerOpportunity.lastSeenAt)),
 			careerService.profile(userId),
 		]);
 		return rows.map(({ description, ...row }) => ({ ...row, ...matchPosting({ ...row, description }, profile) }));
+	},
+	/** One role with its posting text and the discovery run that first found it (null when the run is gone or unknown). */
+	opportunity: async (userId: string, id: string) => {
+		const [row] = await db
+			.select()
+			.from(tables.careerOpportunity)
+			.where(and(eq(tables.careerOpportunity.id, id), eq(tables.careerOpportunity.userId, userId)));
+		if (!row) throw new ORPCError("NOT_FOUND");
+		const [run] = row.runId
+			? await db
+					.select({ id: tables.careerRun.id, at: tables.careerRun.createdAt, report: tables.careerRun.report })
+					.from(tables.careerRun)
+					.where(and(eq(tables.careerRun.id, row.runId), eq(tables.careerRun.userId, userId)))
+			: [];
+		return {
+			description: row.description,
+			run: run ? { id: run.id, at: run.at, trigger: run.report.trigger, outcome: run.report.outcome } : null,
+		};
+	},
+	restoreOpportunity: async (userId: string, id: string) => {
+		await db
+			.update(tables.careerOpportunity)
+			.set({ dismissedAt: null })
+			.where(and(eq(tables.careerOpportunity.id, id), eq(tables.careerOpportunity.userId, userId)));
 	},
 	dismissOpportunity: async (userId: string, id: string) => {
 		await db
@@ -786,7 +820,7 @@ async function sendPendingEmail() {
 					to: owner.email,
 					subject: noticeText(notification.notice).title,
 					text: "You have a career update in Reactive Resume.",
-					url: new URL(notification.url ?? CAREER_URL, env.APP_URL).toString(),
+					url: new URL(notification.url ?? OVERVIEW_URL, env.APP_URL).toString(),
 					key: notification.key,
 				});
 				if (!sent) throw new Error("SMTP unavailable");
@@ -801,7 +835,7 @@ async function sendPendingEmail() {
 						userId: notification.userId,
 						key: `email-failed:${notification.key}`,
 						notice: { type: "email-failed" },
-						url: CAREER_URL,
+						url: AUTOMATION_URL,
 					})
 					.onConflictDoNothing();
 			}
@@ -835,7 +869,7 @@ export async function runCareerJobs() {
 				userId: job.userId,
 				key: `failed:${job.id}`,
 				notice: { type: "schedule-failed", reason: "stopped" },
-				url: `${CAREER_URL}?schedule=${encodeURIComponent(job.scheduleId)}`,
+				url: `${AUTOMATION_URL}?schedule=${encodeURIComponent(job.scheduleId)}`,
 			})
 			.onConflictDoNothing();
 	}
@@ -872,7 +906,7 @@ export async function runCareerJobs() {
 						userId: job.userId,
 						key: `failed:${job.id}`,
 						notice: { type: "schedule-failed", reason: "failed" },
-						url: `${CAREER_URL}?schedule=${encodeURIComponent(job.scheduleId)}`,
+						url: `${AUTOMATION_URL}?schedule=${encodeURIComponent(job.scheduleId)}`,
 					})
 					.onConflictDoNothing();
 		}

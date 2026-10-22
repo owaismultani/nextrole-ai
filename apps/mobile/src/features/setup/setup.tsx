@@ -10,6 +10,7 @@ import { useHasAIProvider } from "../ai/provider-state";
 import { WebAccessSettings } from "../ai/web-access";
 import { useCareerTime } from "../career/hooks";
 import { SwitchRow } from "../career/shared";
+import { baselineCheckLabels } from "../profile/baseline-checks";
 import { client, orpc } from "@/api/client";
 import { useSession } from "@/auth/session";
 import { routes } from "@/routes";
@@ -101,7 +102,7 @@ export function SetupScreen() {
 			}),
 		onSuccess: async () => {
 			await refreshSetup();
-			router.replace(routes.career("overview"));
+			router.replace(routes.overview());
 		},
 		onError: () => setError(t`Couldn't start discovery. Check your connections and try again.`),
 	});
@@ -133,17 +134,7 @@ export function SetupScreen() {
 	const queryOk = plan.query.trim().length >= 3;
 	const wantsDocuments = plan.resumesEnabled || plan.lettersEnabled;
 
-	const labels = {
-		name: t`Your name`,
-		email: t`A valid email address`,
-		headline: t`A headline (your target role)`,
-		summary: t`A summary`,
-		experience: t`At least one experience entry`,
-		"experience-dates": t`Dates on every experience entry`,
-		"experience-detail": t`A description on every experience entry`,
-		education: t`Education`,
-		skills: t`Skills`,
-	} as const;
+	const labels = baselineCheckLabels();
 	const steps = [t`Baseline resume`, t`Connect services`, t`Set up discovery`, t`Start`];
 	const index = ["baseline", "services", "discovery", "launch"].indexOf(current);
 

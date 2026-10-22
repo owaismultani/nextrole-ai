@@ -16,7 +16,7 @@ type Overview = RouterOutput["career"]["overview"];
 type Days = "7" | "14" | "30";
 type Tab = "all" | "ready" | "followups" | "issues";
 
-/** Career → Overview: your next actions, what is coming up, how automation and discovery are doing, and your outcomes. */
+/** Overview: your next actions, what is coming up, how automation and discovery are doing, and your outcomes. */
 export function OverviewScreen() {
 	const { t } = useLingui();
 	const { space } = useTheme();
@@ -86,8 +86,8 @@ function DiscoveryBanner({ data }: { data: Overview }) {
 			<Banner
 				tone="danger"
 				title={t`The last discovery run failed`}
-				message={t`Open Pipeline to see why and what to do.`}
-				action={{ label: t`See why`, onPress: () => router.push(routes.career("pipeline")) }}
+				message={t`Open Search activity to see why and what to do.`}
+				action={{ label: t`See why`, onPress: () => router.push(routes.discover("activity")) }}
 			/>
 		);
 	if (discovery.enabled) return null;
@@ -151,9 +151,7 @@ function NextActions({ data }: { data: Overview }) {
 							variant="secondary"
 							label={info.button}
 							onPress={() =>
-								router.push(
-									info.to === "pipeline" ? routes.career("pipeline") : routes.application(action.applicationId),
-								)
+								router.push(info.to === "automation" ? routes.automation() : routes.application(action.applicationId))
 							}
 						/>
 					</Card>
@@ -226,11 +224,19 @@ function RecentActivity() {
 					<Button
 						variant="ghost"
 						label={item.label}
-						onPress={() => router.push(item.open === "pipeline" ? routes.career("pipeline") : routes.applications())}
+						onPress={() =>
+							router.push(
+								item.open === "automation"
+									? routes.automation()
+									: item.open === "discover"
+										? routes.discover()
+										: routes.discover("activity"),
+							)
+						}
 					/>
 				</Card>
 			))}
-			<Button variant="ghost" label={t`See all`} onPress={() => router.push(routes.career("pipeline"))} />
+			<Button variant="ghost" label={t`See all`} onPress={() => router.push(routes.discover("activity"))} />
 		</Section>
 	);
 }
@@ -268,11 +274,7 @@ function AutomationCard({ data }: { data: Overview }) {
 						}}
 					/>
 				</View>
-				<Button
-					variant="ghost"
-					label={t`Manage automation`}
-					onPress={() => router.push(routes.settings("automation"))}
-				/>
+				<Button variant="ghost" label={t`Manage automation`} onPress={() => router.push(routes.automation())} />
 			</Card>
 		</Section>
 	);
@@ -345,9 +347,9 @@ function LatestDiscovery({ data }: { data: Overview }) {
 				<Button
 					variant="ghost"
 					label={t`View discovery activity`}
-					onPress={() => router.push(routes.career("pipeline"))}
+					onPress={() => router.push(routes.discover("activity"))}
 				/>
-				<Button variant="secondary" label={t`Edit search`} onPress={() => router.push(routes.career("today"))} />
+				<Button variant="secondary" label={t`Edit search`} onPress={() => router.push(routes.discover())} />
 			</Card>
 		</Section>
 	);

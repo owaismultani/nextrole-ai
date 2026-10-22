@@ -7,20 +7,15 @@ import { Icon } from "@reactive-resume/ui/components/icon";
 import { popTransition } from "@/features/settings/root";
 
 type Page = {
-	to:
-		| "/dashboard/settings/account"
-		| "/dashboard/settings/preferences"
-		| "/dashboard/settings/automation"
-		| "/dashboard/settings/ai";
+	to: "/dashboard/settings/account" | "/dashboard/settings/preferences" | "/dashboard/settings/ai";
 	icon: IconName;
 	label: () => string;
 };
 
-// Six pages became three, each with one job (README §5.9); Automation is the fourth, for background work.
+// Six pages became three, each with one job (README §5.9). Automation has its own place in the main navigation.
 const SETTINGS_PAGES: Page[] = [
 	{ to: "/dashboard/settings/account", icon: "user-circle", label: () => t`Account` },
 	{ to: "/dashboard/settings/preferences", icon: "sliders-horizontal", label: () => t`Preferences` },
-	{ to: "/dashboard/settings/automation", icon: "clock", label: () => t`Automation` },
 	{ to: "/dashboard/settings/ai", icon: "sparkle", label: () => t`AI & developer` },
 ];
 

@@ -186,7 +186,7 @@ export function CoachPage({ conversationId, offerIds: routeOfferIds }: CoachPage
 		writeOfferIds(id, offerIds);
 		setSession((current) => ({ ...current, created: id }));
 		void navigate({
-			to: "/dashboard/career/coach/{-$conversationId}",
+			to: "/dashboard/coach/{-$conversationId}",
 			params: { conversationId: id },
 			search: offerIds.length > 0 ? { offers: offerIds } : {},
 			replace: true,
@@ -236,7 +236,7 @@ export function CoachPage({ conversationId, offerIds: routeOfferIds }: CoachPage
 			() => {
 				setHidden((current) => new Set(current).add(thread.id));
 				if (thread.id === threadId)
-					void navigate({ to: "/dashboard/career/coach/{-$conversationId}", params: { conversationId: undefined } });
+					void navigate({ to: "/dashboard/coach/{-$conversationId}", params: { conversationId: undefined } });
 			},
 			() =>
 				setHidden((current) => {
@@ -556,7 +556,7 @@ function ConversationRail({ threads, currentId, onNavigate, onRename, onDelete }
 	return (
 		<nav aria-label={t`Conversations`} className="flex min-h-0 flex-1 flex-col gap-4">
 			<Link
-				to="/dashboard/career/coach/{-$conversationId}"
+				to="/dashboard/coach/{-$conversationId}"
 				params={{ conversationId: undefined }}
 				onClick={onNavigate}
 				className={cn(buttonVariants({ variant: "secondary" }), "justify-start gap-2")}
@@ -662,7 +662,7 @@ function RailItem({
 					/>
 				) : (
 					<Link
-						to="/dashboard/career/coach/{-$conversationId}"
+						to="/dashboard/coach/{-$conversationId}"
 						params={{ conversationId: thread.id }}
 						aria-current={current ? "page" : undefined}
 						onClick={onNavigate}

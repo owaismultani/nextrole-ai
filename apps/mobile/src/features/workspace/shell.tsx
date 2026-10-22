@@ -240,7 +240,7 @@ function Header({ application, onAskCoach }: HeaderProps) {
 						variant="secondary"
 						icon="scales"
 						label={t`Compare offers`}
-						onPress={() => router.push(routes.career("offers"))}
+						onPress={() => router.push(routes.offers())}
 					/>
 				) : null}
 			</View>

@@ -54,6 +54,20 @@ export const careerOpportunitySchema = createSelectSchema(tables.careerOpportuni
 		unknowns: z.array(z.enum(["salary", "office"])),
 	});
 
+export const careerOpportunityDetailSchema = z.object({
+	/** The posting's text as read when it was found; empty for a role saved from a search snippet alone. */
+	description: z.string(),
+	/** The discovery run that first found it, or null when that run is unknown or gone. */
+	run: z
+		.object({
+			id: z.string(),
+			at: z.date(),
+			trigger: z.enum(["schedule", "manual"]),
+			outcome: z.enum(["success", "partial", "failed"]),
+		})
+		.nullable(),
+});
+
 export const careerAutomationSchema = z.object({
 	resumesEnabled: z.boolean(),
 	lettersEnabled: z.boolean(),
@@ -315,7 +329,18 @@ export const careerRunDetailSchema = z.object({
 	id: z.string(),
 	createdAt: z.date(),
 	report: careerRunReportSchema,
-	items: z.array(z.object({ url: z.string(), host: z.string(), title: z.string(), decision: runItemDecisionSchema })),
+	items: z.array(
+		z.object({
+			url: z.string(),
+			host: z.string(),
+			title: z.string(),
+			decision: runItemDecisionSchema,
+			/** The role this result is, when it is one; null for results that were not roles. */
+			opportunityId: z.string().nullable(),
+			/** Its application, when it has been tracked or automation created one. */
+			applicationId: z.string().nullable(),
+		}),
+	),
 });
 
 export const careerJourneySchema = z.object({

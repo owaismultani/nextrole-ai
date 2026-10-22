@@ -36,7 +36,7 @@ function Row({ icon, label, value }: RowProps) {
 const rowClass =
 	"flex h-14 items-center gap-3 px-3.5 font-medium text-base transition-colors duration-quick ease-enter active:bg-press";
 
-/** Phones: the Settings tab opens the root, three rows showing their current values. */
+/** Phones: the Settings tab opens the root, rows showing their current values. */
 export function SettingsRoot() {
 	const { i18n } = useLingui();
 	const { session } = useRouteContext({ from: "/dashboard" });
@@ -69,9 +69,6 @@ export function SettingsRoot() {
 				</Link>
 				<Link to="/dashboard/settings/preferences" viewTransition={pushTransition} className={rowClass}>
 					<Row icon="sliders-horizontal" label={<Trans>Preferences</Trans>} value={i18n.t(themeMap[theme])} />
-				</Link>
-				<Link to="/dashboard/settings/automation" viewTransition={pushTransition} className={rowClass}>
-					<Row icon="clock" label={<Trans>Automation</Trans>} />
 				</Link>
 				<Link to="/dashboard/settings/ai" viewTransition={pushTransition} className={rowClass}>
 					<Row

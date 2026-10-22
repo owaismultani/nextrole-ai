@@ -18,6 +18,7 @@ import { toast } from "@reactive-resume/ui/components/toast";
 import { cn } from "@reactive-resume/utils/style";
 import { useCareerTime } from "@/features/career/shared";
 import { ImportProgress } from "@/features/documents/new-document-dialog";
+import { baselineCheckLabels } from "@/features/profile/baseline-checks";
 import { detectImportKind, ImportError, readResumeFile, summarizeImport } from "@/features/resume/import/read-file";
 import { ProvidersSection } from "@/features/settings/ai/providers";
 import { WebAccessSection } from "@/features/settings/ai/web-access";
@@ -275,17 +276,7 @@ function BaselineStep({ setup, onConfirmed }: BaselineStepProps) {
 		}
 	};
 
-	const labels = {
-		name: t`Your name`,
-		email: t`A valid email address`,
-		headline: t`A headline (your target role)`,
-		summary: t`A summary`,
-		experience: t`At least one experience entry`,
-		"experience-dates": t`Dates on every experience entry`,
-		"experience-detail": t`A description on every experience entry`,
-		education: t`Education`,
-		skills: t`Skills`,
-	} as const;
+	const labels = baselineCheckLabels();
 
 	return (
 		<Panel

@@ -7,7 +7,6 @@ import { useState } from "react";
 import { Button } from "@reactive-resume/ui/components/button";
 import { cn } from "@reactive-resume/utils/style";
 import { diagnose } from "./discovery-run";
-import { DiscoveryStatus } from "./discovery-status";
 import { summaryLabel } from "./preparation";
 import { RunResults } from "./run-results";
 import { Eyebrow, useCareerTime } from "./shared";
@@ -27,8 +26,8 @@ const outcomeTone = (outcome: Run["report"]["outcome"]) =>
 type DiscoveryRunsProps = { className?: string };
 
 /**
- * Career → Today: how discovery is doing and a paged history of its runs. Each run lists the jobs it found with links
- * to the application and to the resume and cover letter made for it. Hidden until a discovery schedule exists.
+ * Discover → Search activity: a paged history of discovery runs. Each run lists the jobs it found with links to the
+ * application and to the resume and cover letter made for it. Hidden until a discovery schedule exists.
  */
 export function DiscoveryRuns({ className }: DiscoveryRunsProps) {
 	const [page, setPage] = useState(0);
@@ -68,15 +67,11 @@ export function DiscoveryRuns({ className }: DiscoveryRunsProps) {
 			<div className="flex items-center ps-4 pe-4 pt-3.5 pb-2.5">
 				<Eyebrow className="flex-1">
 					<span id="discovery-runs">
-						<Trans>Discovery</Trans>
+						<Trans>Runs</Trans>
 					</span>
 				</Eyebrow>
 			</div>
 			<div className="grid gap-3 px-4 pb-4">
-				<DiscoveryStatus schedule={schedule} onEnabledChange={() => undefined} />
-				<h3 className="text-xs font-semibold tracking-wide text-ink-3 uppercase">
-					<Trans>Runs</Trans>
-				</h3>
 				{runs && runs.items.length === 0 ? (
 					<p className="text-[13px] text-ink-3">
 						<Trans>No runs yet. The first one starts as soon as discovery is on.</Trans>

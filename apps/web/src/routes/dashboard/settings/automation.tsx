@@ -1,6 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { AutomationSettings } from "@/features/settings/automation/page";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
+// Automation moved out of Settings into the main navigation; the old address redirects.
 export const Route = createFileRoute("/dashboard/settings/automation")({
-	component: AutomationSettings,
+	beforeLoad: () => {
+		throw redirect({ to: "/dashboard/automation", replace: true });
+	},
 });

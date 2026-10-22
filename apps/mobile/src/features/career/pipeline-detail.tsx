@@ -1,11 +1,13 @@
 import { useLingui } from "@lingui/react/macro";
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 import { useCareerTime } from "./hooks";
 import { decisionLabel, describeEvent } from "./pipeline-words";
 import { orpc } from "@/api/client";
 import { useSession } from "@/auth/session";
+import { routes } from "@/routes";
 import { Button, Text, useTheme } from "@/ui";
 
 const TONE = {
@@ -20,6 +22,7 @@ const TONE = {
 export function RunResults({ runId }: { runId: string }) {
 	const { t } = useLingui();
 	const { space } = useTheme();
+	const router = useRouter();
 	const session = useSession();
 	const query = useQuery({
 		...orpc.career.runDetail.queryOptions({ input: { id: runId } }),
@@ -37,6 +40,19 @@ export function RunResults({ runId }: { runId: string }) {
 				<View key={`${item.decision}-${item.url}`}>
 					<Text color={TONE[item.decision]}>{decisionLabel(item.decision)}</Text>
 					<Text color="ink2">{`${item.title || item.url}${item.host ? ` · ${item.host}` : ""}`}</Text>
+					{item.applicationId ? (
+						<Button
+							variant="ghost"
+							label={t`Open application`}
+							onPress={() => router.push(routes.application(item.applicationId ?? ""))}
+						/>
+					) : item.opportunityId ? (
+						<Button
+							variant="ghost"
+							label={t`View role`}
+							onPress={() => router.push({ pathname: routes.discover(), params: { job: item.opportunityId } })}
+						/>
+					) : null}
 				</View>
 			))}
 			<Text variant="callout" color="ink3">{t`The first 50 results of a run are kept.`}</Text>

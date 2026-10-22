@@ -2,7 +2,7 @@ import type { Application } from "@/features/applications/types";
 import { t } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, stripSearchParams, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, stripSearchParams, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import z from "zod";
 import { Button } from "@reactive-resume/ui/components/button";
@@ -132,6 +132,10 @@ function RouteComponent() {
 								</DropdownMenuItem>
 							</DropdownMenuContent>
 						</DropdownMenu>
+						<Button variant="secondary" nativeButton={false} render={<Link to="/dashboard/applications/offers" />}>
+							<Icon name="scales" />
+							<Trans>Offers</Trans>
+						</Button>
 						<Button onClick={() => setAdding(true)}>
 							<Icon name="plus" />
 							<Trans>Save job</Trans>

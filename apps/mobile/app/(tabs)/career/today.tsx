@@ -1,1 +1,6 @@
-export { TodayScreen as default } from "@/features/career/today";
+import { Redirect } from "expo-router";
+import { routes } from "@/routes";
+
+export default function CareerToday() {
+	return <Redirect href={routes.reminders()} />;
+}

@@ -28,6 +28,66 @@ export function NavigationCommandGroup() {
 
 				<CommandItem
 					disabled={!session}
+					keywords={[t`Overview`, t`Dashboard`, t`Next actions`]}
+					value="navigation.overview"
+					onSelect={() => onNavigate("/dashboard/overview")}
+				>
+					<Icon name="squares-four" size={16} />
+					<Trans>Overview</Trans>
+				</CommandItem>
+
+				<CommandItem
+					disabled={!session}
+					keywords={[t`Discover`, t`Jobs`, t`Roles`, t`Search activity`]}
+					value="navigation.discover"
+					onSelect={() => onNavigate("/dashboard/discover")}
+				>
+					<Icon name="compass" size={16} />
+					<Trans>Discover</Trans>
+				</CommandItem>
+
+				<CommandItem
+					disabled={!session}
+					keywords={[t`Profile`, t`Knowledge`, t`Facts`, t`Stories`, t`Preferences`, t`Baseline`]}
+					value="navigation.profile"
+					onSelect={() => onNavigate("/dashboard/profile")}
+				>
+					<Icon name="user-circle" size={16} />
+					<Trans>Profile</Trans>
+				</CommandItem>
+
+				<CommandItem
+					disabled={!session}
+					keywords={[t`Coach`, t`Interview`, t`Chat`]}
+					value="navigation.coach"
+					onSelect={() => onNavigate("/dashboard/coach")}
+				>
+					<Icon name="sparkle" size={16} />
+					<Trans>Coach</Trans>
+				</CommandItem>
+
+				<CommandItem
+					disabled={!session}
+					keywords={[t`Automation`, t`Schedules`, t`Discovery`, t`Document preparation`]}
+					value="navigation.automation"
+					onSelect={() => onNavigate("/dashboard/automation")}
+				>
+					<Icon name="clock" size={16} />
+					<Trans>Automation</Trans>
+				</CommandItem>
+
+				<CommandItem
+					disabled={!session}
+					keywords={[t`Offers`, t`Compare offers`]}
+					value="navigation.offers"
+					onSelect={() => onNavigate("/dashboard/applications/offers")}
+				>
+					<Icon name="scales" size={16} />
+					<Trans>Offers</Trans>
+				</CommandItem>
+
+				<CommandItem
+					disabled={!session}
 					keywords={[t`Documents`, t`Resumes`, t`Cover letters`]}
 					value="navigation.documents"
 					onSelect={() => onNavigate("/dashboard")}

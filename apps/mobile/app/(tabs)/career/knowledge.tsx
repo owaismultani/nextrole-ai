@@ -1,1 +1,6 @@
-export { KnowledgeScreen as default } from "@/features/career/knowledge";
+import { Redirect } from "expo-router";
+import { routes } from "@/routes";
+
+export default function CareerKnowledge() {
+	return <Redirect href={routes.profile("facts")} />;
+}

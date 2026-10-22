@@ -1,6 +1,7 @@
 import { t } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { cn } from "@reactive-resume/utils/style";
 import { decisionLabel } from "./pipeline-words";
 import { orpc } from "@/libs/orpc/client";
@@ -42,6 +43,21 @@ export function RunResults({ runId }: { runId: string }) {
 							{item.title || item.url}
 							{item.host && <span className="text-ink-3"> · {item.host}</span>}
 						</span>
+						{item.applicationId ? (
+							<Link
+								to="/dashboard/applications/$applicationId/{-$tab}"
+								params={{ applicationId: item.applicationId }}
+								className="underline"
+							>
+								<Trans>Open application</Trans>
+							</Link>
+						) : (
+							item.opportunityId && (
+								<Link to="/dashboard/discover" search={{ job: item.opportunityId }} className="underline">
+									<Trans>View role</Trans>
+								</Link>
+							)
+						)}
 					</li>
 				))}
 			</ul>

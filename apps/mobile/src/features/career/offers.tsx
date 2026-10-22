@@ -53,7 +53,7 @@ export function OffersScreen() {
 							label={t`Plan what to ask`}
 							onPress={() =>
 								router.push({
-									pathname: routes.career("coach"),
+									pathname: routes.coach(),
 									params: { offers: [a?.id, b?.id].filter((id): id is string => !!id) },
 								})
 							}

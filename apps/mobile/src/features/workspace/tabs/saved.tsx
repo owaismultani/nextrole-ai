@@ -181,12 +181,7 @@ function SavedRow({ item, applicationId, expanded, onToggle, onOpen, onDelete }:
 			{tab ? (
 				<Button variant="secondary" size="sm" label={t`Open in ${tabName}`} onPress={() => onOpen(tab)} />
 			) : (
-				<Button
-					variant="secondary"
-					size="sm"
-					label={t`Open in Offers`}
-					onPress={() => router.push(routes.career("offers"))}
-				/>
+				<Button variant="secondary" size="sm" label={t`Open in Offers`} onPress={() => router.push(routes.offers())} />
 			)}
 		</Block>
 	);

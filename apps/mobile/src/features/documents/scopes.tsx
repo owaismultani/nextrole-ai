@@ -11,7 +11,7 @@ import { orpc } from "@/api/client";
 import { useSession } from "@/auth/session";
 import { summaryLabel } from "@/features/career/preparation";
 import { routes } from "@/routes";
-import { Button, Card, Text, useTheme } from "@/ui";
+import { Button, Text, useTheme } from "@/ui";
 
 export type DocumentOrigin = RouterOutput["career"]["documentOrigins"][number];
 export type DocumentsScope = "all" | "applications" | "baseline";
@@ -50,72 +50,6 @@ export function originLine(origin: DocumentOrigin | undefined) {
 	return t`Prepared from a baseline that has since been removed`;
 }
 
-/** The resume tailored documents start from, pinned: confirmed or not, edited since, and used for tailoring. */
-export function BaselineSummary({ documents }: { documents: readonly DocumentSummary[] }) {
-	const { t } = useLingui();
-	const { space } = useTheme();
-	const router = useRouter();
-	const session = useSession();
-	const setupOptions = orpc.career.setup.queryOptions({ input: {} });
-	const setup = useQuery({
-		...setupOptions,
-		queryKey: [...setupOptions.queryKey, session.server],
-		enabled: session.status === "signed-in",
-	});
-	const automationOptions = orpc.career.automation.queryOptions({ input: {} });
-	const automation = useQuery({
-		...automationOptions,
-		queryKey: [...automationOptions.queryKey, session.server],
-		enabled: session.status === "signed-in",
-	});
-	if (!setup.data || !automation.data) return null;
-	const baseline = setup.data.baseline;
-	const usedForTailoring = Boolean(baseline && automation.data.baselineResumeId === baseline.resumeId);
-	const document = baseline ? documents.find((item) => item.type === "resume" && item.id === baseline.resumeId) : null;
-	return (
-		<Card style={{ gap: space.s2 }}>
-			<Text variant="caption" color="ink3">
-				{t`Baseline resume`}
-			</Text>
-			{baseline ? (
-				<>
-					<Text variant="title">{document?.name ?? baseline.name}</Text>
-					<Text color={baseline.confirmed ? "accentText" : "warnText"}>
-						{baseline.confirmed ? t`Confirmed` : t`Not confirmed yet`}
-					</Text>
-					{baseline.confirmed && baseline.changedSinceConfirm ? (
-						<Text color="warnText">{t`Edited since you confirmed it`}</Text>
-					) : null}
-					<Text color={usedForTailoring ? "accentText" : "ink3"}>
-						{usedForTailoring ? t`Used for tailoring` : t`Not the resume used for tailoring`}
-					</Text>
-					<View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.s2 }}>
-						<Button
-							variant="secondary"
-							label={t`Open`}
-							onPress={() => router.push(routes.builder(baseline.resumeId))}
-						/>
-						<Button
-							variant="ghost"
-							label={t`Manage baseline`}
-							onPress={() => router.push(routes.profile("baseline"))}
-						/>
-					</View>
-				</>
-			) : (
-				<>
-					<Text color="ink2">{t`No baseline is confirmed yet. Tailored documents start from it.`}</Text>
-					<Button
-						variant="secondary"
-						label={t`Choose a baseline`}
-						onPress={() => router.push(routes.profile("baseline"))}
-					/>
-				</>
-			)}
-		</Card>
-	);
-}
-
 type GroupHeaderProps = {
 	application: NonNullable<DocumentSummary["application"]>;
 	origins: ReadonlyMap<string, DocumentOrigin>;
@@ -138,10 +72,7 @@ export function ApplicationGroupHeader({ application, origins, documents }: Grou
 			<Text variant="title" accessibilityRole="header">
 				{[application.role, application.company].filter(Boolean).join(" · ")}
 			</Text>
-			<Text
-				variant="callout"
-				color={summary === "attention" ? "dangerText" : summary === "ready" ? "accentText" : "ink3"}
-			>
+			<Text variant="callout" color={summary === "attention" ? "dangerText" : summary === "ready" ? "okText" : "ink3"}>
 				{[
 					summary ? (summary === "ready" ? t`Documents ready` : summaryLabel(summary)) : "",
 					stale ? t`Out of date` : "",

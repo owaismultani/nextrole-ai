@@ -276,9 +276,9 @@ export const careerRouter = {
 			operationId: "listCareerRuns",
 			summary: "List discovery runs",
 			description:
-				"Discovery runs, newest first, with what each found and the jobs it led to, including the resume and cover letter made for each. Paginated with limit (default 10) and offset.",
+				"Discovery runs, newest first, with what each found and the jobs it led to, including the resume and cover letter made for each. Paginated with limit (default 10) and offset. Pass id to get just that run.",
 		})
-		.input(z.object(paginationShape))
+		.input(z.object({ ...paginationShape, id: z.string().optional() }))
 		.output(careerRunListSchema)
 		.handler(({ context, input }) => careerAutomation.runs(context.user.id, input)),
 	preparations: protectedProcedure
@@ -338,7 +338,8 @@ export const careerRouter = {
 			tags: ["Career"],
 			operationId: "regenerateCareerPreparation",
 			summary: "Regenerate a document",
-			description: "Makes a new document from the current baseline and posting. The earlier one is never overwritten.",
+			description:
+				"Writes a new generation from the current baseline and posting over the same document. The generation it replaces, including any edits, is kept in the document's version history. A trashed or locked document gets a new one instead.",
 		})
 		.input(id)
 		.output(z.void())

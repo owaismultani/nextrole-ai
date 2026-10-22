@@ -20,7 +20,7 @@ const TONE: Record<RunState, { icon: IconName; className: string }> = {
 	paused: { icon: "clock", className: "text-ink-3" },
 	failed: { icon: "warning-circle", className: "text-danger-text" },
 	partial: { icon: "warning", className: "text-warn-text" },
-	succeeded: { icon: "check-circle", className: "text-accent-text" },
+	succeeded: { icon: "check-circle", className: "text-ok-text" },
 	never: { icon: "clock", className: "text-ink-3" },
 };
 
@@ -183,7 +183,7 @@ function Count({ label, value, tone }: { label: string; value: number; tone?: "g
 			<dd
 				className={cn(
 					"text-base font-semibold tabular-nums",
-					tone === "good" && "text-accent-text",
+					tone === "good" && "text-ok-text",
 					tone === "bad" && "text-danger-text",
 				)}
 			>

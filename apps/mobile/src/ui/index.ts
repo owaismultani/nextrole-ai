@@ -1,4 +1,5 @@
 // The Desk & Paper primitives (M2-T1). `app/dev/ui.tsx` shows every one of them in a dev build.
+export { Badge, type BadgeProps, type BadgeTone } from "./badge";
 export { Button, IconButton, type ButtonProps, type ButtonVariant, type IconButtonProps } from "./button";
 export {
 	Chip,

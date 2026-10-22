@@ -10,7 +10,7 @@ import { useHasAIProvider } from "../ai/provider-state";
 import { WebAccessSettings } from "../ai/web-access";
 import { useCareerTime } from "../career/hooks";
 import { SwitchRow } from "../career/shared";
-import { baselineCheckLabels } from "../profile/baseline-checks";
+import { baselineCheckLabels } from "../documents/baseline-checks";
 import { client, orpc } from "@/api/client";
 import { useSession } from "@/auth/session";
 import { routes } from "@/routes";

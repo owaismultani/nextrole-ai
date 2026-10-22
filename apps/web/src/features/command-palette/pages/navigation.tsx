@@ -48,12 +48,12 @@ export function NavigationCommandGroup() {
 
 				<CommandItem
 					disabled={!session}
-					keywords={[t`Profile`, t`Knowledge`, t`Facts`, t`Stories`, t`Preferences`, t`Baseline`]}
-					value="navigation.profile"
-					onSelect={() => onNavigate("/dashboard/profile")}
+					keywords={[t`Knowledge`, t`Facts`, t`Stories`]}
+					value="navigation.knowledge"
+					onSelect={() => onNavigate("/dashboard/knowledge/facts")}
 				>
-					<Icon name="user-circle" size={16} />
-					<Trans>Profile</Trans>
+					<Icon name="list-checks" size={16} />
+					<Trans>Knowledge</Trans>
 				</CommandItem>
 
 				<CommandItem
@@ -90,7 +90,7 @@ export function NavigationCommandGroup() {
 					disabled={!session}
 					keywords={[t`Documents`, t`Resumes`, t`Cover letters`]}
 					value="navigation.documents"
-					onSelect={() => onNavigate("/dashboard")}
+					onSelect={() => onNavigate("/dashboard/documents")}
 				>
 					<Icon name="file-text" size={16} />
 					<Trans>Documents</Trans>
@@ -190,12 +190,30 @@ export function NavigationCommandGroup() {
 				</CommandItem>
 
 				<CommandItem
-					keywords={[t`AI & developer`, t`AI providers`, t`API Keys`, t`MCP`, t`Integrations`]}
+					keywords={[t`AI providers`, t`Web search`, t`Integrations`]}
 					value="navigation.settings.ai"
 					onSelect={() => onNavigate("/dashboard/settings/ai")}
 				>
+					<Icon name="sparkle" size={16} />
+					<Trans>Integrations</Trans>
+				</CommandItem>
+
+				<CommandItem
+					keywords={[t`Passkeys`, t`Two-factor`, t`Password`, t`Sessions`]}
+					value="navigation.settings.security"
+					onSelect={() => onNavigate("/dashboard/settings/security")}
+				>
+					<Icon name="lock" size={16} />
+					<Trans>Security</Trans>
+				</CommandItem>
+
+				<CommandItem
+					keywords={[t`API Keys`, t`MCP`, t`OAuth`, t`Connected apps`]}
+					value="navigation.settings.developer"
+					onSelect={() => onNavigate("/dashboard/settings/developer")}
+				>
 					<Icon name="key" size={16} />
-					<Trans>AI & developer</Trans>
+					<Trans>Developer</Trans>
 				</CommandItem>
 			</BaseCommandGroup>
 		</>

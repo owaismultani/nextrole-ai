@@ -42540,7 +42540,7 @@
 			"get": {
 				"operationId": "listCareerRuns",
 				"summary": "List discovery runs",
-				"description": "Discovery runs, newest first, with what each found and the jobs it led to, including the resume and cover letter made for each. Paginated with limit (default 10) and offset.",
+				"description": "Discovery runs, newest first, with what each found and the jobs it led to, including the resume and cover letter made for each. Paginated with limit (default 10) and offset. Pass id to get just that run.",
 				"tags": [
 					"Career"
 				],
@@ -42565,6 +42565,15 @@
 							"minimum": 0,
 							"maximum": 9007199254740991,
 							"description": "Zero-based offset. Defaults to 0; limit defaults to 20 when only offset is given."
+						},
+						"allowEmptyValue": true,
+						"allowReserved": true
+					},
+					{
+						"name": "id",
+						"in": "query",
+						"schema": {
+							"type": "string"
 						},
 						"allowEmptyValue": true,
 						"allowReserved": true
@@ -43003,6 +43012,16 @@
 																}
 															]
 														},
+														"replacedVersionId": {
+															"anyOf": [
+																{
+																	"type": "string"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
 														"eligibleAt": {
 															"anyOf": [
 																{
@@ -43072,6 +43091,7 @@
 														"manual",
 														"generation",
 														"outputId",
+														"replacedVersionId",
 														"eligibleAt",
 														"completedAt",
 														"baseline",
@@ -43509,7 +43529,7 @@
 			"post": {
 				"operationId": "regenerateCareerPreparation",
 				"summary": "Regenerate a document",
-				"description": "Makes a new document from the current baseline and posting. The earlier one is never overwritten.",
+				"description": "Writes a new generation from the current baseline and posting over the same document. The generation it replaces, including any edits, is kept in the document's version history. A trashed or locked document gets a new one instead.",
 				"tags": [
 					"Career"
 				],
@@ -59072,7 +59092,8 @@
 													"named",
 													"before-restore",
 													"restored",
-													"sent"
+													"sent",
+													"generated"
 												],
 												"type": "string",
 												"description": "What made the version: created, auto (an editing session), named, before-restore, restored or sent."
@@ -59232,7 +59253,8 @@
 												"named",
 												"before-restore",
 												"restored",
-												"sent"
+												"sent",
+												"generated"
 											],
 											"type": "string",
 											"description": "What made the version: created, auto (an editing session), named, before-restore, restored or sent."
@@ -59362,7 +59384,8 @@
 												"named",
 												"before-restore",
 												"restored",
-												"sent"
+												"sent",
+												"generated"
 											],
 											"type": "string",
 											"description": "What made the version: created, auto (an editing session), named, before-restore, restored or sent."
@@ -60100,7 +60123,8 @@
 												"named",
 												"before-restore",
 												"restored",
-												"sent"
+												"sent",
+												"generated"
 											],
 											"type": "string",
 											"description": "What made the version: created, auto (an editing session), named, before-restore, restored or sent."
@@ -82625,7 +82649,8 @@
 													"before-restore",
 													"restored",
 													"ai",
-													"sent"
+													"sent",
+													"generated"
 												],
 												"type": "string",
 												"description": "What made the version: created, import, auto (an editing session's autosave), named, before-restore, restored, ai (an AI or API edit) or sent."
@@ -82790,7 +82815,8 @@
 												"before-restore",
 												"restored",
 												"ai",
-												"sent"
+												"sent",
+												"generated"
 											],
 											"type": "string",
 											"description": "What made the version: created, import, auto (an editing session's autosave), named, before-restore, restored, ai (an AI or API edit) or sent."
@@ -82924,7 +82950,8 @@
 												"before-restore",
 												"restored",
 												"ai",
-												"sent"
+												"sent",
+												"generated"
 											],
 											"type": "string",
 											"description": "What made the version: created, import, auto (an editing session's autosave), named, before-restore, restored, ai (an AI or API edit) or sent."
@@ -87305,7 +87332,8 @@
 												"before-restore",
 												"restored",
 												"ai",
-												"sent"
+												"sent",
+												"generated"
 											],
 											"type": "string",
 											"description": "What made the version: created, import, auto (an editing session's autosave), named, before-restore, restored, ai (an AI or API edit) or sent."

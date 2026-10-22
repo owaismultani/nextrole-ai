@@ -23,7 +23,11 @@ describe("authentication callback", () => {
 		"javascript:alert(1)",
 	])("falls back for unsafe callback %s", (callbackURL) => {
 		expect(authSearchSchema.parse({ callbackURL }).callbackURL).toBeUndefined();
-		expect(getAuthRedirectOptions(callbackURL)).toEqual({ href: "/dashboard", reloadDocument: false, replace: true });
+		expect(getAuthRedirectOptions(callbackURL)).toEqual({
+			href: "/dashboard/overview",
+			reloadDocument: false,
+			replace: true,
+		});
 	});
 	it("accepts application paths without interpreting nested URL query values", () => {
 		const callbackURL = "/dashboard?next=https%3A%2F%2Fexample.com";

@@ -56,91 +56,91 @@ export const providerOptions: {
 		label: "OpenAI",
 		keywords: ["openai", "gpt", "chatgpt"],
 		defaultBaseURL: AI_PROVIDER_DEFAULT_BASE_URLS.openai,
-		defaultModel: "gpt-4.1",
+		defaultModel: "gpt-6.1-sol",
 	},
 	{
 		value: "anthropic",
 		label: "Anthropic Claude",
 		keywords: ["anthropic", "claude", "ai"],
 		defaultBaseURL: AI_PROVIDER_DEFAULT_BASE_URLS.anthropic,
-		defaultModel: "claude-3-5-sonnet-latest",
+		defaultModel: "claude-sonnet-5-5",
 	},
 	{
 		value: "gemini",
 		label: "Google Gemini",
 		keywords: ["gemini", "google"],
 		defaultBaseURL: AI_PROVIDER_DEFAULT_BASE_URLS.gemini,
-		defaultModel: "gemini-2.0-flash",
+		defaultModel: "gemini-3.8-flash",
 	},
 	{
 		value: "vercel-ai-gateway",
 		label: "Vercel AI Gateway",
 		keywords: ["vercel", "gateway", "ai"],
 		defaultBaseURL: AI_PROVIDER_DEFAULT_BASE_URLS["vercel-ai-gateway"],
-		defaultModel: "openai/gpt-4.1",
+		defaultModel: "anthropic/claude-sonnet-5.5",
 	},
 	{
 		value: "openrouter",
 		label: "OpenRouter",
 		keywords: ["openrouter", "router"],
 		defaultBaseURL: AI_PROVIDER_DEFAULT_BASE_URLS.openrouter,
-		defaultModel: "openai/gpt-4.1",
+		defaultModel: "anthropic/claude-sonnet-5.5",
 	},
 	{
 		value: "mistral",
 		label: "Mistral AI",
 		keywords: ["mistral", "magistral"],
 		defaultBaseURL: AI_PROVIDER_DEFAULT_BASE_URLS.mistral,
-		defaultModel: "mistral-large-latest",
+		defaultModel: "mistral-medium-latest",
 	},
 	{
 		value: "cohere",
 		label: "Cohere",
 		keywords: ["cohere", "command"],
 		defaultBaseURL: AI_PROVIDER_DEFAULT_BASE_URLS.cohere,
-		defaultModel: "command-a-03-2025",
+		defaultModel: "command-a-plus-05-2026",
 	},
 	{
 		value: "xai",
 		label: "xAI Grok",
 		keywords: ["xai", "grok"],
 		defaultBaseURL: AI_PROVIDER_DEFAULT_BASE_URLS.xai,
-		defaultModel: "grok-4",
+		defaultModel: "grok-4.7",
 	},
 	{
 		value: "groq",
 		label: "Groq",
 		keywords: ["groq", "llama"],
 		defaultBaseURL: AI_PROVIDER_DEFAULT_BASE_URLS.groq,
-		defaultModel: "llama-3.3-70b-versatile",
+		defaultModel: "openai/gpt-oss-120b",
 	},
 	{
 		value: "deepseek",
 		label: "DeepSeek",
 		keywords: ["deepseek"],
 		defaultBaseURL: AI_PROVIDER_DEFAULT_BASE_URLS.deepseek,
-		defaultModel: "deepseek-chat",
+		defaultModel: "deepseek-v4-pro",
 	},
 	{
 		value: "togetherai",
 		label: "Together.ai",
 		keywords: ["together", "togetherai", "llama"],
 		defaultBaseURL: AI_PROVIDER_DEFAULT_BASE_URLS.togetherai,
-		defaultModel: "meta-llama/Meta-Llama-3.3-70B-Instruct-Turbo",
+		defaultModel: "deepseek-ai/DeepSeek-V4.1-Flash",
 	},
 	{
 		value: "fireworks",
 		label: "Fireworks",
 		keywords: ["fireworks", "llama", "deepseek"],
 		defaultBaseURL: AI_PROVIDER_DEFAULT_BASE_URLS.fireworks,
-		defaultModel: "accounts/fireworks/models/llama-v3p3-70b-instruct",
+		defaultModel: "accounts/fireworks/models/glm-5p3",
 	},
 	{
 		value: "cerebras",
 		label: "Cerebras",
 		keywords: ["cerebras", "llama"],
 		defaultBaseURL: AI_PROVIDER_DEFAULT_BASE_URLS.cerebras,
-		defaultModel: "llama3.3-70b",
+		defaultModel: "gpt-oss-120b",
 	},
 	{
 		value: "perplexity",
@@ -154,7 +154,7 @@ export const providerOptions: {
 		label: "Ollama",
 		keywords: ["ollama", "cloud"],
 		defaultBaseURL: AI_PROVIDER_DEFAULT_BASE_URLS.ollama,
-		defaultModel: "llama3.1",
+		defaultModel: "glm-5.3",
 	},
 	{
 		value: "openai-compatible",
@@ -210,6 +210,11 @@ export async function loadModelSuggestions(signal: AbortSignal): Promise<Record<
 					!model.id ||
 					typeof model.name !== "string" ||
 					model.status === "deprecated" ||
+					// Untyped entries are chat models; rerankers, embeddings, speech and realtime can't answer a prompt.
+					(model.type !== undefined && model.type !== "chat") ||
+					!record(model.limit) ||
+					typeof model.limit.output !== "number" ||
+					model.limit.output <= 0 ||
 					!record(model.modalities) ||
 					!Array.isArray(model.modalities.input) ||
 					!model.modalities.input.includes("text") ||

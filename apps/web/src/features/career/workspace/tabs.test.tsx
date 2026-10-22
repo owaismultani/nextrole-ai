@@ -134,6 +134,7 @@ const step = (kind: "resume" | "letter", patch: Record<string, unknown> = {}) =>
 	manual: false,
 	generation: 1,
 	outputId: `${kind}-output`,
+	replacedVersionId: null,
 	eligibleAt: null,
 	completedAt: new Date("2026-10-21T12:00:00Z"),
 	baseline: { resumeId: "base", name: "My baseline" },

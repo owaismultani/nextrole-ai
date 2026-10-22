@@ -27,7 +27,7 @@ type TestCapabilityProps = { result: { success: boolean; error?: string | undefi
 function TestCapability({ result, label }: TestCapabilityProps) {
 	const failure = webTestFailure(result.error);
 	return (
-		<Text accessibilityLiveRegion="polite" color={result.success ? "accentText" : "warnText"}>
+		<Text accessibilityLiveRegion="polite" color={result.success ? "okText" : "warnText"}>
 			{label}
 			{result.success ? "" : ` · ${failure}`}
 		</Text>

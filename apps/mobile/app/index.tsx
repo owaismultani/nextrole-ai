@@ -17,7 +17,7 @@ export default function Index() {
 	});
 	if (signedIn && setup.isPending) return null;
 	if (signedIn && setup.data?.needsSetup) return <Redirect href={routes.setup()} />;
-	// Expired stays on Documents under the "Sign in again" sheet (SessionGate).
-	if (signedIn || session.status === "expired") return <Redirect href={routes.documents()} />;
+	// Expired stays on Overview under the "Sign in again" sheet (SessionGate).
+	if (signedIn || session.status === "expired") return <Redirect href={routes.overview()} />;
 	return <Redirect href={routes.signIn()} />;
 }

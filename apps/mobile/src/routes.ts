@@ -5,9 +5,9 @@ import { resolveWorkspaceTab } from "@reactive-resume/schema/career";
 
 export type BuilderPane = "write" | "page" | "design" | "check";
 export type LetterPane = "write" | "page" | "design";
-export type DiscoverView = "jobs" | "activity";
-export type ProfileSection = "details" | "preferences" | "facts" | "stories" | "baseline";
-export type SettingsPane = "account" | "preferences" | "ai";
+export type DiscoverView = "jobs" | "activity" | "dismissed";
+export type KnowledgeSection = "facts" | "stories";
+export type SettingsPane = "account" | "preferences" | "ai" | "security" | "developer";
 export type ApplicationTab = WorkspaceTab;
 /** A workspace tab, or a former tab name that now means a tab and an interview section. */
 export type ApplicationTarget = WorkspaceTab | "fit" | "apply" | "prepare" | "practise" | "debrief";
@@ -29,8 +29,8 @@ export const routes = {
 		view === "list" ? ("/applications" as const) : (`/applications/${view}` as const),
 	overview: () => "/overview" as const,
 	discover: (view: DiscoverView = "jobs") =>
-		view === "jobs" ? ("/discover" as const) : ("/discover/activity" as const),
-	profile: (section: ProfileSection = "details") => `/profile/${section}` as const,
+		view === "jobs" ? ("/discover" as const) : (`/discover/${view}` as const),
+	knowledge: (section: KnowledgeSection = "facts") => `/knowledge/${section}` as const,
 	coach: () => "/coach" as const,
 	automation: () => "/automation" as const,
 	/** The phone's overflow tab: Profile, Coach, Automation, Settings and Trash. */

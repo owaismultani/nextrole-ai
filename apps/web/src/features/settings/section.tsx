@@ -13,16 +13,16 @@ type SettingsSectionProps = {
 	id?: string;
 };
 
-/** A settings group: a title and its rows, divided from the group above by a rule. No card around it. */
+/** A settings group: a card with a title and its rows. */
 export function SettingsSection({ title, description, action, children, className, id }: SettingsSectionProps) {
 	return (
 		<section
 			id={id}
-			className={cn("grid scroll-mt-6 gap-3 border-t border-line pt-6 first:border-t-0 first:pt-0", className)}
+			className={cn("grid scroll-mt-6 gap-4 rounded-2xl border border-line bg-surface p-6 max-sm:p-4", className)}
 		>
 			<div className="flex items-center justify-between gap-3">
 				<div className="grid gap-0.5">
-					<h2 className="text-[17px] font-semibold">{title}</h2>
+					<h2 className="font-display text-[17px] leading-6 font-[750] tracking-[-0.035em]">{title}</h2>
 					{description && <p className="text-sm text-ink-3">{description}</p>}
 				</div>
 				{action}

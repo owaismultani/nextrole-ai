@@ -6,7 +6,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@reactive-resume/ui/components/button";
 import { Icon } from "@reactive-resume/ui/components/icon";
-import { Skeleton } from "@reactive-resume/ui/components/skeleton";
 import { cn } from "@reactive-resume/utils/style";
 import { applicationsListQueryOptions } from "@/features/applications/queries";
 import { getStageLabel } from "@/features/applications/stages";
@@ -28,91 +27,6 @@ function originLine(origin: DocumentOrigin | undefined) {
 	if (!origin.baseline) return t`Prepared for this job · baseline not recorded`;
 	if (origin.baseline.name) return t`Prepared from “${origin.baseline.name}”`;
 	return t`Prepared from a baseline that has since been removed`;
-}
-
-type BaselineProps = { documents: readonly DocumentSummary[] };
-
-/**
- * Baseline and reusable: the resume your tailored documents start from, pinned, with whether it is confirmed, edited
- * since, and the one used for tailoring. The standalone documents (not made for a job) are listed below it by the page.
- */
-export function BaselineSummary({ documents }: BaselineProps) {
-	const setup = useQuery(orpc.career.setup.queryOptions({ input: {} }));
-	const automation = useQuery(orpc.career.automation.queryOptions({ input: {} }));
-	if (setup.isPending || automation.isPending) return <Skeleton className="h-28 rounded-xl" />;
-	if (setup.isError || automation.isError)
-		return (
-			<p role="alert" className="rounded-xl border border-line bg-surface p-4 text-sm text-ink-2">
-				<Trans>Couldn't load your baseline.</Trans>{" "}
-				<button
-					type="button"
-					className="underline"
-					onClick={() => {
-						void setup.refetch();
-						void automation.refetch();
-					}}
-				>
-					<Trans>Try again</Trans>
-				</button>
-			</p>
-		);
-	const baseline = setup.data?.baseline ?? null;
-	const usedForTailoring = Boolean(baseline && automation.data?.baselineResumeId === baseline.resumeId);
-	const document = baseline ? documents.find((item) => item.type === "resume" && item.id === baseline.resumeId) : null;
-	return (
-		<section aria-label={t`Baseline resume`} className="grid gap-3 rounded-xl border border-line bg-surface p-4">
-			<div className="flex flex-wrap items-start gap-3">
-				<span
-					aria-hidden="true"
-					className="grid size-10 shrink-0 place-items-center rounded-[9px] bg-sunken text-ink-2"
-				>
-					<Icon name="file-text" size={22} />
-				</span>
-				<div className="grid min-w-0 flex-1 gap-1">
-					<p className="text-xs font-semibold tracking-wide text-ink-3 uppercase">
-						<Trans>Baseline resume</Trans>
-					</p>
-					{baseline ? (
-						<>
-							<h2 className="truncate text-[17px] font-semibold">{document?.name ?? baseline.name}</h2>
-							<p className="flex flex-wrap gap-x-3 gap-y-1 text-[13px]">
-								<span className={baseline.confirmed ? "text-accent-text" : "text-warn-text"}>
-									{baseline.confirmed ? t`Confirmed` : t`Not confirmed yet`}
-								</span>
-								{baseline.confirmed && baseline.changedSinceConfirm && (
-									<span className="text-warn-text">
-										<Trans>Edited since you confirmed it</Trans>
-									</span>
-								)}
-								<span className={usedForTailoring ? "font-medium text-accent-text" : "text-ink-3"}>
-									{usedForTailoring ? t`Used for tailoring` : t`Not the resume used for tailoring`}
-								</span>
-							</p>
-						</>
-					) : (
-						<p className="text-sm text-ink-2">
-							<Trans>No baseline is confirmed yet. Tailored documents start from it.</Trans>
-						</p>
-					)}
-				</div>
-				<div className="flex flex-wrap gap-2">
-					{baseline && (
-						<Button
-							variant="secondary"
-							size="sm"
-							nativeButton={false}
-							render={<Link to="/builder/$resumeId" params={{ resumeId: baseline.resumeId }} />}
-						>
-							<Trans>Open</Trans>
-						</Button>
-					)}
-					<Button variant="ghost" size="sm" nativeButton={false} render={<Link to="/dashboard/profile/baseline" />}>
-						{baseline ? <Trans>Manage baseline</Trans> : <Trans>Choose a baseline</Trans>}
-					</Button>
-				</div>
-			</div>
-		</section>
-	);
 }
 
 type GroupsProps = {
@@ -180,7 +94,7 @@ export function ApplicationGroups({ documents, origins }: GroupsProps) {
 												summary === "attention"
 													? "text-danger-text"
 													: summary === "ready"
-														? "text-accent-text"
+														? "text-ok-text"
 														: "text-info-text",
 											)}
 										>

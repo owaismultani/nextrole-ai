@@ -72,6 +72,9 @@ export function getVersionTitle(version: Pick<VersionSummary, "kind" | "name">) 
 		case "sent":
 			// Sent versions are named after the company they went to.
 			return version.name ? t`Sent to ${version.name}` : t`Sent`;
+		case "generated":
+			// Named after the generation automation made ("Generation 2"); a regenerate keeps the one it replaced.
+			return version.name || t`Generated`;
 	}
 }
 
@@ -85,6 +88,8 @@ export function getVersionDetail(version: Pick<VersionSummary, "kind">) {
 			return t`autosaved`;
 		case "ai":
 			return t`from the assistant or API`;
+		case "generated":
+			return t`made by automation`;
 		default:
 			return t`saved`;
 	}

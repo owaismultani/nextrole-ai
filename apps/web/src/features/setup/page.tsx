@@ -17,8 +17,8 @@ import { Textarea } from "@reactive-resume/ui/components/textarea";
 import { toast } from "@reactive-resume/ui/components/toast";
 import { cn } from "@reactive-resume/utils/style";
 import { useCareerTime } from "@/features/career/shared";
+import { baselineCheckLabels } from "@/features/documents/baseline-checks";
 import { ImportProgress } from "@/features/documents/new-document-dialog";
-import { baselineCheckLabels } from "@/features/profile/baseline-checks";
 import { detectImportKind, ImportError, readResumeFile, summarizeImport } from "@/features/resume/import/read-file";
 import { ProvidersSection } from "@/features/settings/ai/providers";
 import { WebAccessSection } from "@/features/settings/ai/web-access";
@@ -456,7 +456,7 @@ function ServicesStep({ onBack, onNext }: { onBack: () => void; onNext: () => vo
 function Ready({ ok, label }: { ok: boolean; label: string }) {
 	return (
 		<span className="inline-flex items-center gap-1.5">
-			<Icon name={ok ? "check-circle" : "warning"} size={18} className={ok ? "text-accent-text" : "text-ink-3"} />
+			<Icon name={ok ? "check-circle" : "warning"} size={18} className={ok ? "text-ok-text" : "text-ink-3"} />
 			{label}
 		</span>
 	);

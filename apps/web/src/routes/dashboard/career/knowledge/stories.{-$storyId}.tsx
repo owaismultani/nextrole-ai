@@ -5,7 +5,7 @@ export const Route = createFileRoute("/dashboard/career/knowledge/stories/{-$sto
 	validateSearch: z.object({ edit: z.boolean().optional().catch(undefined) }),
 	beforeLoad: ({ params, search }) => {
 		throw redirect({
-			to: "/dashboard/profile/stories/{-$storyId}",
+			to: "/dashboard/knowledge/stories/{-$storyId}",
 			params: { storyId: params.storyId },
 			search,
 			replace: true,

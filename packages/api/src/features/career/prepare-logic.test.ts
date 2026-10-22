@@ -46,6 +46,57 @@ describe("tailoring a copy of the resume", () => {
 		expect(issues).toHaveLength(2);
 	});
 
+	it("treats digits inside names such as EC2 or OAuth2 as words, not new figures", () => {
+		const { data, issues } = applyTailoring(baseline, {
+			summary: "",
+			experience: [{ id: first.id, description: "<p>Deployed services on EC2 and S3 behind OAuth2.</p>" }],
+		});
+		expect(data.sections.experience.items[0]?.description).toBe(
+			"<p>Deployed services on EC2 and S3 behind OAuth2.</p>",
+		);
+		expect(issues).toEqual(["No tailored summary was produced, so your original summary was kept."]);
+	});
+
+	it("rewrites project descriptions under the same figure rule", () => {
+		const [project, other] = baseline.sections.projects.items;
+		if (!project || !other) throw new Error("The sample resume needs two projects.");
+		const { data, issues } = applyTailoring(baseline, {
+			summary: "<p>x</p>",
+			projects: [
+				{ id: project.id, description: "<p>Reworded project.</p>" },
+				{ id: other.id, description: "<p>Reached 123456 players.</p>" },
+			],
+		});
+		expect(data.sections.projects.items[0]).toMatchObject({
+			name: project.name,
+			description: "<p>Reworded project.</p>",
+		});
+		expect(data.sections.projects.items[1]?.description).toBe(other.description);
+		expect(issues).toEqual([`Kept your original wording for ${other.name}: the rewrite added figures.`]);
+	});
+
+	it("reorders a skill's keywords and adds only ones the resume already shows", () => {
+		const skill = baseline.sections.skills.items[0];
+		if (!skill) throw new Error("The sample resume needs a skill.");
+		const { data } = applyTailoring(baseline, {
+			summary: "<p>x</p>",
+			skillKeywords: [{ id: skill.id, keywords: ["performance profiling", "Unity", "Kubernetes"] }],
+		});
+		const keywords = data.sections.skills.items.find((item) => item.id === skill.id)?.keywords;
+		expect(keywords?.slice(0, 2)).toEqual(["Performance Profiling", "Unity"]);
+		expect(keywords).not.toContain("Kubernetes");
+		for (const known of skill.keywords) expect(keywords).toContain(known);
+	});
+
+	it("lists requirements the resume does not show as issues, without touching the resume", () => {
+		const { data, issues } = applyTailoring(baseline, {
+			summary: "<p>x</p>",
+			unsupported: ["Java", "Next.js"],
+		});
+		expect(issues).toEqual(["Not in your resume: Java", "Not in your resume: Next.js"]);
+		expect(data.sections).toEqual(baseline.sections);
+	});
+
 	it("ignores unknown ids and keeps unlisted skills in place", () => {
 		const skills = baseline.sections.skills.items;
 		const { data } = applyTailoring(baseline, {

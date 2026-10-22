@@ -103,7 +103,7 @@ export function PreparationCard({ job, scope = "all" }: PreparationCardProps) {
 	return (
 		<Card style={{ gap: space.s2 }}>
 			{scope === "all" ? <Text variant="title">{[job.company, job.role].filter(Boolean).join(" · ")}</Text> : null}
-			<Text color={job.summary === "attention" ? "dangerText" : job.summary === "ready" ? "accentText" : "infoText"}>
+			<Text color={job.summary === "attention" ? "dangerText" : job.summary === "ready" ? "okText" : "infoText"}>
 				{summaryLabel(job.summary)}
 			</Text>
 			{job.steps.map((step) => {
@@ -132,12 +132,28 @@ export function PreparationCard({ job, scope = "all" }: PreparationCardProps) {
 									: t`The baseline it was made from was not recorded.`}
 							</Text>
 						) : null}
+						{step.outputId && step.replacedVersionId ? (
+							<View style={{ gap: space.s1 }}>
+								<Text color="ink3">{t`Generation ${step.generation}. The one it replaced is kept in History.`}</Text>
+								<Button
+									variant="ghost"
+									label={t`See the earlier version`}
+									onPress={() =>
+										router.push(
+											step.kind === "resume"
+												? routes.history(step.outputId ?? "", step.replacedVersionId ?? undefined)
+												: routes.letter(step.outputId ?? "", "write", step.replacedVersionId ?? undefined),
+										)
+									}
+								/>
+							</View>
+						) : null}
 						{step.eligibleAt ? <Text color="ink3">{t`Eligible again ${time.when(step.eligibleAt)}.`}</Text> : null}
 						{step.stale ? (
-							<Text color="warnText">{t`Your baseline resume or the posting changed since this was made. Regenerate for a fresh copy.`}</Text>
+							<Text color="warnText">{t`Your baseline resume or the posting changed since this was made. Regenerate to bring it up to date.`}</Text>
 						) : null}
 						{step.edited ? (
-							<Text color="ink3">{t`You edited this document. Regenerating makes a new copy and leaves yours untouched.`}</Text>
+							<Text color="ink3">{t`You edited this document. Regenerating writes over it and keeps your edits in its History.`}</Text>
 						) : null}
 						<Gaps issues={step.issues} />
 						{step.outputId ? (

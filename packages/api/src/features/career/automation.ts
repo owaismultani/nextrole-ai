@@ -227,6 +227,7 @@ export const careerAutomation = {
 				manual: step.manual,
 				generation: step.generation,
 				outputId: done ? step.outputId : null,
+				replacedVersionId: done ? step.replacedVersionId : null,
 				/** When a waiting step may start again (a daily limit or a retry delay). */
 				eligibleAt: step.status === "queued" && step.nextAttemptAt > new Date() ? step.nextAttemptAt : null,
 				completedAt: step.completedAt,
@@ -239,7 +240,7 @@ export const careerAutomation = {
 					Boolean(done) &&
 					((step.baselineResumeId ? baselineAt.get(step.baselineResumeId) !== step.baselineVersion : false) ||
 						(entry.jobDescription ? jobHash(entry.jobDescription) !== step.jobHash : false)),
-				/** The document was changed after it was generated, so regenerating makes a new copy beside it. */
+				/** The document was changed after it was generated; regenerating keeps those edits in its History. */
 				edited: Boolean(done && step.completedAt && output.updatedAt.getTime() - step.completedAt.getTime() > 5_000),
 			};
 		};
@@ -285,23 +286,29 @@ export const careerAutomation = {
 
 	/**
 	 * Discovery runs, newest first, each with the jobs it found and the documents made for them, so a run can be traced
-	 * to the right resume and cover letter. Paginated with limit and offset.
+	 * to the right resume and cover letter. Paginated with limit and offset, or narrowed to one run by id.
 	 */
-	runs: async (userId: string, input: { limit?: number | undefined; offset?: number | undefined }) => {
+	runs: async (
+		userId: string,
+		input: { limit?: number | undefined; offset?: number | undefined; id?: string | undefined },
+	) => {
+		const scope = input.id
+			? and(eq(tables.careerRun.userId, userId), eq(tables.careerRun.id, input.id))
+			: eq(tables.careerRun.userId, userId);
 		const limit = input.limit ?? 10;
 		const offset = input.offset ?? 0;
 		const [rows, [counted]] = await Promise.all([
 			db
 				.select()
 				.from(tables.careerRun)
-				.where(eq(tables.careerRun.userId, userId))
+				.where(scope)
 				.orderBy(desc(tables.careerRun.createdAt), desc(tables.careerRun.id))
 				.limit(limit)
 				.offset(offset),
 			db
 				.select({ total: sql<number>`count(*)::int` })
 				.from(tables.careerRun)
-				.where(eq(tables.careerRun.userId, userId)),
+				.where(scope),
 		]);
 		const runIds = rows.map((row) => row.id);
 		const opportunities = runIds.length
@@ -489,7 +496,11 @@ export const careerAutomation = {
 		if (!row) throw new ORPCError("NOT_FOUND");
 	},
 
-	/** Makes a new document from the current baseline and posting. The earlier one, edited or not, is left alone. */
+	/**
+	 * Writes the next generation from the current baseline and posting over the same document. The generation it
+	 * replaces, edited or not, is kept in the document's History; a trashed or locked document gets a new one instead.
+	 * The output and when it was made stay recorded, so the worker can tell what it replaces.
+	 */
 	regenerate: async (userId: string, id: string) => {
 		const [row] = await db
 			.update(tables.careerPreparation)
@@ -501,8 +512,6 @@ export const careerAutomation = {
 				counted: false,
 				error: null,
 				issues: [],
-				outputId: null,
-				completedAt: null,
 				startedAt: null,
 				nextAttemptAt: new Date(),
 				lease: null,

@@ -58,7 +58,7 @@ export function RegisterPage({ disableEmailAuth }: Props) {
 				password: value.password,
 				username: value.username,
 				displayUsername: value.username,
-				callbackURL: callbackURL ?? "/dashboard",
+				callbackURL: callbackURL ?? "/dashboard/overview",
 				...(!createPrompt ? oauthOptions : {}),
 			});
 

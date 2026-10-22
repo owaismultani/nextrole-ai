@@ -224,7 +224,7 @@ export function WebAccessSection() {
 								].map(({ result, label }, index) => (
 									<p
 										key={index}
-										className={cn("flex items-start gap-2", result.success ? "text-accent-text" : "text-warn-text")}
+										className={cn("flex items-start gap-2", result.success ? "text-ok-text" : "text-warn-text")}
 									>
 										<Icon name={result.success ? "check-circle" : "info"} size={16} className="mt-0.5 shrink-0" />
 										<span>

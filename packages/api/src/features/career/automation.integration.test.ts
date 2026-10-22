@@ -24,6 +24,8 @@ const fixture = vi.hoisted(() => ({
 	skipPrep: false,
 	search_connection: { provider: "tavily", apiKey: "synthetic" } as { provider: string; apiKey: string } | null,
 	ai: { id: "fixture", label: "Fixture", provider: "openai", model: "m", apiKey: "k", baseURL: "" } as object | null,
+	/** The connection chosen in Automation was switched off or removed; the default still works. */
+	chosenGone: false,
 }));
 vi.mock("@reactive-resume/db/client", () => ({
 	get db() {
@@ -49,7 +51,7 @@ vi.mock("@reactive-resume/email/transport", () => ({ sendCareerNotification: vi.
 vi.mock("../ai-providers/service", () => ({
 	aiProvidersService: {
 		getRunnableById: async () => {
-			if (!fixture.ai) throw new Error("not usable");
+			if (!fixture.ai || fixture.chosenGone) throw new Error("not usable");
 			return fixture.ai;
 		},
 		getDefaultRunnable: async () => fixture.ai,
@@ -136,6 +138,7 @@ describe.skipIf(!databaseUrl)("autonomous discovery and document preparation", (
 	beforeEach(async () => {
 		vi.stubEnv("VERCEL", "");
 		fixture.skipPrep = false;
+		fixture.chosenGone = false;
 		fixture.search_connection = { provider: "tavily", apiKey: "synthetic" };
 		fixture.ai = { id: "fixture", label: "Fixture", provider: "openai", model: "m", apiKey: "k", baseURL: "" };
 		fixture.search.mockReset().mockResolvedValue([hit(1)]);
@@ -327,7 +330,12 @@ describe.skipIf(!databaseUrl)("autonomous discovery and document preparation", (
 		expect(app?.resumeId).toBe(made[0]?.id);
 		expect(app?.status).toBe("saved");
 		const [letter] = await getDb().select().from(tables.coverLetter);
-		expect(letter).toMatchObject({ sourceApplicationId: app?.id, sourceResumeId: base });
+		// The letter waited for the tailored copy and was written from it.
+		expect(letter).toMatchObject({ sourceApplicationId: app?.id, sourceResumeId: made[0]?.id });
+		const letterCall = fixture.generate.mock.calls
+			.map(([, request]) => request as { prompt: string })
+			.find(({ prompt }) => prompt.includes("Write the body of a cover letter"));
+		expect(letterCall?.prompt).toContain("Reliability-focused engineer.");
 		expect((await resumes.getById({ id: base, userId: "alice" })).data).toEqual(before);
 		expect(job?.steps.find((step) => step.kind === "letter")?.issues).toEqual([
 			"Not in your resume or facts: Why this company",
@@ -551,7 +559,22 @@ describe.skipIf(!databaseUrl)("autonomous discovery and document preparation", (
 		expect((await counts()).letters).toBe(1);
 	});
 
-	it("flags stale and edited documents, and regenerates only as a new copy beside the edited one", async () => {
+	/** The generations kept in a document's History, oldest first. */
+	const generations = async (table: "resume" | "letter", documentId: string) => {
+		const rows =
+			table === "resume"
+				? await getDb().select().from(tables.resumeVersion).where(eq(tables.resumeVersion.resumeId, documentId))
+				: await getDb()
+						.select()
+						.from(tables.coverLetterVersion)
+						.where(eq(tables.coverLetterVersion.coverLetterId, documentId));
+		return rows
+			.filter((row) => row.kind === "generated")
+			.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+			.map((row) => ({ name: row.name, data: row.data }));
+	};
+
+	it("flags stale and edited documents, and regenerates over the same resume with the edits kept in History", async () => {
 		const base = await baseline();
 		await save("alice", settings({ resumesEnabled: true, baselineResumeId: base }));
 		await run();
@@ -559,45 +582,129 @@ describe.skipIf(!databaseUrl)("autonomous discovery and document preparation", (
 		let [job] = await automation.preparations("alice");
 		const step = job?.steps[0];
 		expect(step).toMatchObject({ status: "done", stale: false, edited: false });
+		const outputId = step?.outputId ?? "";
 		// A person edits the generated resume and later the baseline changes.
 		await new Promise((resolve) => setTimeout(resolve, 20));
+		const [made] = await getDb().select().from(tables.resume).where(eq(tables.resume.id, outputId));
+		const edited = structuredClone(made?.data);
+		if (!edited) throw new Error("Expected the generated resume.");
+		edited.summary.content = "<p>My own words.</p>";
 		await getDb()
 			.update(tables.resume)
-			.set({ name: "My edit", updatedAt: new Date(Date.now() + 60_000) })
-			.where(eq(tables.resume.id, step?.outputId ?? ""));
+			.set({ name: "My edit", data: edited, updatedAt: new Date(Date.now() + 60_000) })
+			.where(eq(tables.resume.id, outputId));
 		await getDb()
 			.update(tables.resume)
 			.set({ name: "Baseline v2", updatedAt: new Date(Date.now() + 120_000) })
 			.where(eq(tables.resume.id, base));
 		[job] = await automation.preparations("alice");
 		expect(job?.steps[0]).toMatchObject({ stale: true, edited: true });
+
+		fixture.generate.mockImplementation(async () => ({
+			summary: "<p>Second generation.</p>",
+			experience: [],
+			skillOrder: [],
+		}));
 		await automation.regenerate("alice", step?.id ?? "");
 		await settle(2);
 		const mine = await getDb().select().from(tables.resume).where(eq(tables.resume.userId, "alice"));
-		expect(mine.find((row) => row.id === step?.outputId)?.name).toBe("My edit");
-		expect(mine.filter((row) => row.tags.includes("auto"))).toHaveLength(2);
+		// One document: the same resume, keeping the name the person gave it, now holding generation 2.
+		expect(mine.filter((row) => row.tags.includes("auto"))).toHaveLength(1);
+		const current = mine.find((row) => row.id === outputId);
+		expect(current?.name).toBe("My edit");
+		expect(current?.data.summary.content).toBe("<p>Second generation.</p>");
+		const history = await generations("resume", outputId);
+		expect(history.map((version) => version.name)).toEqual(["Generation 1 · your edits", "Generation 2"]);
+		expect(history[0]?.data).toMatchObject({ summary: { content: "<p>My own words.</p>" } });
 		[job] = await automation.preparations("alice");
-		expect(job?.steps[0]).toMatchObject({ status: "done", generation: 2, stale: false });
-		expect(job?.steps[0]?.outputId).not.toBe(step?.outputId);
+		expect(job?.steps[0]).toMatchObject({ status: "done", generation: 2, stale: false, edited: false, outputId });
+		const [replaced] = await getDb()
+			.select()
+			.from(tables.resumeVersion)
+			.where(eq(tables.resumeVersion.id, job?.steps[0]?.replacedVersionId ?? ""));
+		expect(replaced?.name).toBe("Generation 1 · your edits");
+		expect((await steps())[0]).toMatchObject({ outputId, outputGeneration: 2 });
 	});
 
-	it("regenerates a cover letter as a new document and links the new output", async () => {
+	it("regenerates a cover letter over the same letter and keeps the earlier one in History", async () => {
 		const base = await baseline();
 		await save("alice", settings({ lettersEnabled: true, baselineResumeId: base }));
 		await run();
 		let [job] = await automation.preparations("alice");
 		const first = job?.steps[0];
 		expect(first).toMatchObject({ kind: "letter", status: "done" });
+		const letterId = first?.outputId ?? "";
 		await automation.regenerate("alice", first?.id ?? "");
 		[job] = await automation.preparations("alice");
+		// While it is being made again the step shows no document, as before.
 		expect(job?.steps[0]).toMatchObject({ status: "queued", outputId: null, generation: 2 });
+		fixture.generate.mockImplementation(async () => ({ body: "Dear team\n\nA fresh start.", missing: [] }));
 		await runNow();
 		[job] = await automation.preparations("alice");
-		expect(job?.steps[0]).toMatchObject({ status: "done", generation: 2 });
-		expect(job?.steps[0]?.outputId).not.toBe(first?.outputId);
-		expect((await getDb().select().from(tables.coverLetter)).map((letter) => letter.id)).toEqual(
-			expect.arrayContaining([first?.outputId, job?.steps[0]?.outputId]),
-		);
+		expect(job?.steps[0]).toMatchObject({ status: "done", generation: 2, outputId: letterId, issues: [] });
+		const letters = await getDb().select().from(tables.coverLetter);
+		expect(letters).toHaveLength(1);
+		expect(letters[0]?.content).toContain("A fresh start.");
+		const history = await generations("letter", letterId);
+		expect(history.map((version) => version.name)).toEqual(["Generation 1", "Generation 2"]);
+		expect(history[0]?.data).toMatchObject({ content: expect.stringContaining("I would like to apply.") });
+	});
+
+	it("makes a new document when the earlier generation was trashed", async () => {
+		const base = await baseline();
+		await save("alice", settings({ resumesEnabled: true, baselineResumeId: base }));
+		await run();
+		await settle(2);
+		const [step] = await steps();
+		await getDb()
+			.update(tables.resume)
+			.set({ trashedAt: new Date() })
+			.where(eq(tables.resume.id, step?.outputId ?? ""));
+		await automation.regenerate("alice", step?.id ?? "");
+		await settle(2);
+		const [after] = await steps();
+		expect(after).toMatchObject({ status: "done", generation: 2, outputGeneration: 2, replacedVersionId: null });
+		expect(after?.outputId).not.toBe(step?.outputId);
+		expect(await generations("resume", after?.outputId ?? "")).toEqual([]);
+	});
+
+	it("does not generate again when a regenerate was saved but the step was not yet marked done", async () => {
+		const base = await baseline();
+		await save("alice", settings({ resumesEnabled: true, baselineResumeId: base }));
+		await run();
+		await settle(2);
+		const [step] = await steps();
+		// The document already holds generation 2; the worker stopped before recording the step as done.
+		await getDb()
+			.update(tables.careerPreparation)
+			.set({ status: "queued", generation: 2, outputGeneration: 2, nextAttemptAt: new Date(Date.now() - 1000) });
+		fixture.generate.mockClear();
+		await runNow();
+		expect(fixture.generate).not.toHaveBeenCalled();
+		expect((await steps())[0]).toMatchObject({ status: "done", outputId: step?.outputId, generation: 2 });
+		expect(await generations("resume", step?.outputId ?? "")).toEqual([]);
+	});
+
+	it("uses the default AI connection when the one chosen for documents is gone", async () => {
+		const base = await baseline();
+		await getDb().insert(tables.aiProvider).values({
+			id: "chosen",
+			userId: "alice",
+			label: "Chosen",
+			provider: "openai",
+			model: "m",
+			enabled: true,
+			testStatus: "success",
+			encryptedApiKey: "",
+			apiKeySalt: "",
+			apiKeyHash: "",
+			apiKeyPreview: "",
+		});
+		await save("alice", settings({ resumesEnabled: true, baselineResumeId: base, aiProviderId: "chosen" }));
+		fixture.chosenGone = true;
+		await run();
+		await settle(2);
+		expect((await steps())[0]).toMatchObject({ status: "done", error: null });
 	});
 
 	it("isolates people from each other", async () => {

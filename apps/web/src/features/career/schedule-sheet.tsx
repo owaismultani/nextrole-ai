@@ -327,6 +327,13 @@ export function ScheduleSheet({ schedule, onScheduleChange, onDelete }: Schedule
 											/>
 										)}
 									</Field>
+									<Link
+										to="/dashboard/discover"
+										search={{ preferences: true }}
+										className="-mt-3 w-fit text-xs text-accent-text underline underline-offset-2"
+									>
+										<Trans>Edit your job preferences</Trans>
+									</Link>
 									<Field
 										label={t`How often`}
 										hint={t`Hourly runs keep a fixed gap. Daily and longer keep the same time of day in ${timeZone}.`}

@@ -4,7 +4,6 @@ import { useDiscover } from "@/features/discover/context";
 import { JobsPage } from "@/features/discover/jobs";
 
 const searchSchema = z.object({
-	status: z.enum(["new", "tracked", "dismissed"]).default("new").catch("new"),
 	q: z.string().default("").catch(""),
 	source: z.string().default("").catch(""),
 	match: z.boolean().default(false).catch(false),
@@ -14,7 +13,7 @@ const searchSchema = z.object({
 
 export const Route = createFileRoute("/dashboard/discover/")({
 	validateSearch: searchSchema,
-	search: { middlewares: [stripSearchParams({ status: "new", q: "", source: "", match: false })] },
+	search: { middlewares: [stripSearchParams({ q: "", source: "", match: false })] },
 	component: RouteComponent,
 });
 
@@ -24,6 +23,7 @@ function RouteComponent() {
 	const navigate = useNavigate({ from: Route.fullPath });
 	return (
 		<JobsPage
+			mode="open"
 			search={search}
 			onSearch={(patch) =>
 				void navigate({ search: (previous: typeof search) => ({ ...previous, ...patch }), replace: true })

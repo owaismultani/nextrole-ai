@@ -303,7 +303,7 @@ function ComparisonTable({ offers, left, right, onChoose }: ComparisonTableProps
 												key={note.text}
 												className={cn(
 													"mt-1 flex items-center gap-1 text-xs",
-													note.tone === "better" && "text-accent-text",
+													note.tone === "better" && "text-ok-text",
 													note.tone === "warn" && "text-warn-text",
 													note.tone === "muted" && "text-ink-3",
 												)}

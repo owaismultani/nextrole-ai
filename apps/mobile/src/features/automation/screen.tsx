@@ -23,6 +23,7 @@ import { useApplications } from "@/features/applications/queries";
 import { routes } from "@/routes";
 import { Banner, Button, Card, Screen, Segmented, SelectSheet, Text, TextArea, TextField, useTheme } from "@/ui";
 
+type Section = "discovery" | "documents" | "schedules";
 type Automation = Awaited<ReturnType<typeof client.career.automation>>;
 type Draft = {
 	resumesEnabled: boolean;
@@ -54,6 +55,7 @@ export function AutomationScreen() {
 	const { space } = useTheme();
 	const queryClient = useQueryClient();
 	const undo = useUndoRows();
+	const [section, setSection] = useState<Section>("discovery");
 	const [sheet, setSheet] = useState<{
 		schedule: Schedule | null;
 		kind: "discovery" | "prepare" | "follow-up";
@@ -61,16 +63,36 @@ export function AutomationScreen() {
 	return (
 		<Screen onRefresh={() => Promise.allSettled([queryClient.invalidateQueries({ queryKey: orpc.career.key() })])}>
 			<Text color="ink3">{t`Find jobs on a schedule and prepare documents for them. You apply yourself; nothing is ever sent to an employer.`}</Text>
+			<Segmented
+				label={t`Automation`}
+				value={section}
+				onChange={(value) => setSection(value as Section)}
+				options={[
+					{ value: "discovery", label: t`Discovery` },
+					{ value: "documents", label: t`Documents` },
+					{ value: "schedules", label: t`Schedules` },
+				]}
+			/>
 			<View style={{ gap: space.s4 }}>
-				<DiscoverySection onEdit={(schedule) => setSheet({ schedule, kind: "discovery" })} hidden={undo.hidden} />
-				<AutomationSettings />
-				<Schedules hidden={undo.hidden} onOpen={(schedule, kind) => setSheet({ schedule, kind })} />
-				<SettingsGroup title={t`How it's working`}>
-					<View style={{ padding: space.s3, gap: space.s3 }}>
-						<PipelineHealth />
+				{section === "discovery" ? (
+					<>
+						<DiscoverySection onEdit={(schedule) => setSheet({ schedule, kind: "discovery" })} hidden={undo.hidden} />
+						<SettingsGroup title={t`How it's working`}>
+							<View style={{ padding: space.s3, gap: space.s3 }}>
+								<PipelineHealth />
+							</View>
+						</SettingsGroup>
+					</>
+				) : null}
+				{section === "documents" ? (
+					<>
+						<AutomationSettings />
 						<PreparationList />
-					</View>
-				</SettingsGroup>
+					</>
+				) : null}
+				{section === "schedules" ? (
+					<Schedules hidden={undo.hidden} onOpen={(schedule, kind) => setSheet({ schedule, kind })} />
+				) : null}
 			</View>
 			{sheet ? (
 				<ScheduleSheet
@@ -152,7 +174,7 @@ function AutomationForm({ data }: { data: Automation }) {
 						value={draft.lettersEnabled}
 						onValueChange={(lettersEnabled) => set({ lettersEnabled })}
 					/>
-					<Text color="ink3">{t`A letter for the job, written from your baseline resume and the facts you have approved. Gaps are listed for you to fill, not invented.`}</Text>
+					<Text color="ink3">{t`A letter for the job, written from its tailored resume (or your baseline) and the facts you have approved. Gaps are listed for you to fill, not invented.`}</Text>
 					<SelectSheet
 						label={t`Baseline resume`}
 						value={draft.baselineResumeId}
@@ -211,7 +233,7 @@ function AutomationForm({ data }: { data: Automation }) {
 								maxLength={2000}
 								minLines={3}
 								onChangeText={(coverLetterPrompt) => set({ coverLetterPrompt })}
-								helper={t`This guides curation in addition to the fixed accuracy and privacy rules.`}
+								helper={t`This guides every letter you generate, including drafts in the letter editor, in addition to the fixed accuracy and privacy rules.`}
 							/>
 						</View>
 					) : null}

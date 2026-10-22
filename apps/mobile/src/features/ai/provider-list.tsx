@@ -115,7 +115,7 @@ function ProviderRow({ provider, isDefault, onEdit }: ProviderRowProps) {
 					{keyEnding(provider.apiKeyPreview)}
 				</Text>
 			)}
-			<Text color={provider.enabled && provider.testStatus === "success" ? "accentText" : "ink3"}>
+			<Text color={provider.enabled && provider.testStatus === "success" ? "okText" : "ink3"}>
 				{provider.testStatus === "failure"
 					? t`Needs attention`
 					: provider.enabled && provider.testStatus === "success"

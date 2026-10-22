@@ -9,7 +9,9 @@ import { useState } from "react";
 import { Button } from "@reactive-resume/ui/components/button";
 import { Icon } from "@reactive-resume/ui/components/icon";
 import { IconButton } from "@reactive-resume/ui/components/icon-button";
+import { Sheet, SheetClose, SheetContent, SheetTitle } from "@reactive-resume/ui/components/sheet";
 import { Skeleton } from "@reactive-resume/ui/components/skeleton";
+import { useBreakpoint } from "@reactive-resume/ui/hooks/use-breakpoint";
 import { cn } from "@reactive-resume/utils/style";
 import { applicationsListQueryOptions } from "@/features/applications/queries";
 import { CareerLoadError } from "@/features/career/load-state";
@@ -35,14 +37,18 @@ const notificationKind = (kind: Notification["notice"]["type"]): { icon: IconNam
 	return { icon: "info", tone: "bg-warn-soft text-warn-text", action: t`Open` };
 };
 
-type NotificationsProps = { className?: string };
+type NotificationsProps = {
+	className?: string;
+	/** Leave out the heading when the surrounding panel already has one. */
+	hideHeading?: boolean;
+};
 
 /**
  * Notifications that need you: new roles to review, follow-up drafts, briefings, and anything that stopped working (a
  * failed schedule, failed email, a paused briefing), each with the action that recovers it. Mark as read, with Undo; read
  * ones can be shown again.
  */
-export function Notifications({ className }: NotificationsProps) {
+export function Notifications({ className, hideHeading }: NotificationsProps) {
 	const now = useNow();
 	const queryClient = useQueryClient();
 	const router = useRouter();
@@ -106,8 +112,14 @@ export function Notifications({ className }: NotificationsProps) {
 	};
 
 	return (
-		<section aria-labelledby="needs-you" className={cn("flex flex-col gap-2.5", className)}>
-			<SectionHeading id="needs-you" title={t`Notifications`} count={data ? unread.length : undefined} />
+		<section
+			aria-labelledby={hideHeading ? undefined : "needs-you"}
+			aria-label={hideHeading ? t`Notifications` : undefined}
+			className={cn("flex flex-col gap-2.5", className)}
+		>
+			{!hideHeading && (
+				<SectionHeading id="needs-you" title={t`Notifications`} count={data ? unread.length : undefined} />
+			)}
 			{isError || applicationQuery.isError ? (
 				<CareerLoadError
 					onRetry={() => {
@@ -192,5 +204,52 @@ export function Notifications({ className }: NotificationsProps) {
 				</Swap>
 			)}
 		</section>
+	);
+}
+
+/**
+ * The bell on Overview: how many notifications are unread, and a panel with all of them. They stay one tap away
+ * without taking space from what you came to do.
+ */
+export function NotificationsBell() {
+	const [open, setOpen] = useState(false);
+	const split = useBreakpoint() !== "mobile";
+	const { data } = useQuery(orpc.career.notifications.queryOptions({ input: {} }));
+	const unread = data?.filter((row) => !row.readAt).length ?? 0;
+	return (
+		<>
+			<Button
+				variant="secondary"
+				size="icon"
+				className="relative"
+				aria-label={unread > 0 ? t`Notifications, ${unread} unread` : t`Notifications`}
+				onClick={() => setOpen(true)}
+			>
+				<Icon name="bell" size={18} />
+				{unread > 0 && (
+					<span
+						aria-hidden="true"
+						className="absolute -end-1.5 -top-1.5 grid min-w-[18px] place-items-center rounded-full bg-accent px-1 text-[10px] leading-[18px] font-bold text-on-accent"
+					>
+						{unread > 9 ? "9+" : unread}
+					</span>
+				)}
+			</Button>
+			<Sheet open={open} onOpenChange={setOpen}>
+				<SheetContent side={split ? "right" : "bottom"} showCloseButton={false} className="max-h-[90svh] gap-0">
+					<div className="flex items-center gap-3 border-b border-line ps-[22px] pe-3 pt-[18px] pb-3.5">
+						<SheetTitle className="flex-1">
+							<Trans>Notifications</Trans>
+						</SheetTitle>
+						<SheetClose aria-label={t`Close`} render={<Button variant="ghost" size="icon" className="text-ink-2" />}>
+							<Icon name="x" />
+						</SheetClose>
+					</div>
+					<div className="overflow-y-auto px-[22px] py-5">
+						<Notifications hideHeading />
+					</div>
+				</SheetContent>
+			</Sheet>
+		</>
 	);
 }

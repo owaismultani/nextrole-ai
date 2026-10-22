@@ -120,7 +120,7 @@ export function NextStepCard({ application, onScheduleInterview }: NextStepCardP
 type FollowUpDialogProps = { application: Application; open: boolean; onOpenChange: (open: boolean) => void };
 
 /** The follow-up: a date and a note, or cleared. */
-function FollowUpDialog({ application, open, onOpenChange }: FollowUpDialogProps) {
+export function FollowUpDialog({ application, open, onOpenChange }: FollowUpDialogProps) {
 	const id = useId();
 	const invalidate = useInvalidateApplications();
 	const [date, setDate] = useState("");

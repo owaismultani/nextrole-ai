@@ -98,6 +98,8 @@ export const careerPreparationStepSchema = z.object({
 	manual: z.boolean(),
 	generation: z.number(),
 	outputId: z.string().nullable(),
+	/** The document's History version holding the generation the last regenerate wrote over, if there was one. */
+	replacedVersionId: z.string().nullable(),
 	eligibleAt: z.date().nullable(),
 	completedAt: z.date().nullable(),
 	/** The resume this document started from, or null when that was not recorded (older documents). */

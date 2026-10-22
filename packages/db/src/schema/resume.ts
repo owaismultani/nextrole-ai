@@ -55,7 +55,8 @@ export const resume = pg.pgTable(
 
 /**
  * What made a version: created or imported (the first entry), an editing session's autosave, a version the
- * user named, the state saved before a restore, the restore itself, an AI edit, or a sent application.
+ * user named, the state saved before a restore, the restore itself, an AI edit, a sent application, or a generation
+ * written by automation (the one a regenerate replaces, and the new one).
  */
 export const RESUME_VERSION_KINDS = [
 	"created",
@@ -66,6 +67,7 @@ export const RESUME_VERSION_KINDS = [
 	"restored",
 	"ai",
 	"sent",
+	"generated",
 ] as const;
 
 export type ResumeVersionKind = (typeof RESUME_VERSION_KINDS)[number];
@@ -89,7 +91,7 @@ export const resumeVersion = pg.pgTable(
 		// Snapshot of the resume data. A session's autosave is refreshed while the session lasts; the rest are immutable.
 		data: pg.jsonb("data").notNull().$type<ResumeData>(),
 		kind: pg.text("kind", { enum: RESUME_VERSION_KINDS }).notNull().default("auto"),
-		// The user's name for a `named` version.
+		// The user's name for a `named` version, or which generation a `generated` one is.
 		name: pg.text("name"),
 		// The editing session an `auto` version belongs to (one row per session).
 		sessionId: pg.text("session_id"),

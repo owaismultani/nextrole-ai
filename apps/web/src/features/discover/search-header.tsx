@@ -1,6 +1,8 @@
 import { t } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
+import { Badge } from "@reactive-resume/ui/components/badge";
 import { Button } from "@reactive-resume/ui/components/button";
 import { Icon } from "@reactive-resume/ui/components/icon";
 import { toast } from "@reactive-resume/ui/components/toast";
@@ -41,7 +43,7 @@ export function SearchHeader({ deleted, onEdit }: SearchHeaderProps) {
 		return (
 			<section
 				aria-label={t`Saved search`}
-				className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed border-line-2 px-4 py-3.5"
+				className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed border-line-2 bg-surface px-4 py-3.5"
 			>
 				<p className="text-sm text-ink-2">
 					<Trans>No saved search yet. Set one up and new roles will appear here.</Trans>
@@ -55,37 +57,76 @@ export function SearchHeader({ deleted, onEdit }: SearchHeaderProps) {
 
 	const state = runState(schedule);
 	const busy = schedule.activeRun !== null;
-	const next = !schedule.enabled
+	const paused = !schedule.enabled;
+	// What the search is doing, said once: a paused search is not also "next run: paused".
+	const status = paused
 		? t`Paused`
 		: schedule.activeRun === "queued"
 			? t`Starts within a minute`
 			: t`Next run ${when(schedule.nextRunAt)}`;
+	const lastRun = paused || state === "running" || state === "queued" ? null : stateLabel(state);
+	const setEnabled = (enabled: boolean) =>
+		toggle.mutate(
+			{ id: schedule.id, enabled },
+			{
+				onSuccess: (saved) => toast.add({ description: saved.enabled ? t`Discovery resumed` : t`Discovery paused` }),
+				onError: (error) => failed(error, t`Couldn't change this schedule.`),
+			},
+		);
 
 	return (
 		<section
 			aria-label={t`Saved search`}
-			className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-xl border border-line bg-surface px-4 py-3.5"
+			className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl border border-line bg-surface px-5 py-4"
 		>
-			<div className="grid min-w-0 flex-1 basis-64 gap-0.5">
-				<p className="truncate text-sm font-semibold">{schedule.query}</p>
+			<span
+				aria-hidden="true"
+				className={cn(
+					"grid size-10 shrink-0 place-items-center rounded-[11px]",
+					paused ? "bg-warn-soft text-warn-text" : "bg-accent-soft text-accent-text",
+				)}
+			>
+				<Icon name={paused ? "pause" : "globe-simple"} size={20} />
+			</span>
+			<div className="grid min-w-0 flex-1 basis-64 gap-1">
+				<div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+					<p className="min-w-0 text-[15px] leading-snug font-bold wrap-break-word">{schedule.query}</p>
+					<Badge variant={paused ? "warn" : state === "failed" ? "danger" : state === "running" ? "info" : "ok"}>
+						{paused
+							? t`Paused`
+							: state === "failed"
+								? t`Last run failed`
+								: state === "running"
+									? t`Running now`
+									: t`On`}
+					</Badge>
+				</div>
 				<p className="text-xs text-ink-3">
-					{[cadenceLabel(schedule), next].join(" · ")}
+					{[cadenceLabel(schedule), paused ? null : status, lastRun].filter(Boolean).join(" · ")}
+					{paused && (
+						<>
+							{cadenceLabel(schedule) ? " · " : ""}
+							<Trans>Your existing roles are available.</Trans>
+						</>
+					)}
 					{" · "}
-					<span
-						className={cn(
-							state === "failed" && "text-danger-text",
-							state === "partial" && "text-warn-text",
-							(state === "running" || state === "queued") && "text-info-text",
-						)}
-					>
-						{stateLabel(state)}
-					</span>
+					<Link to="/dashboard/automation/discovery" className="text-accent-text hover:underline">
+						<Trans>Discovery settings</Trans>
+					</Link>
 				</p>
 			</div>
 			<div className="flex flex-wrap items-center gap-2">
+				{paused ? (
+					<Button loading={toggle.isPending} onClick={() => setEnabled(true)}>
+						<Trans>Resume discovery</Trans>
+					</Button>
+				) : (
+					<Button variant="secondary" loading={toggle.isPending} onClick={() => setEnabled(false)}>
+						<Trans>Pause</Trans>
+					</Button>
+				)}
 				<Button
 					variant="secondary"
-					size="sm"
 					loading={run.isPending}
 					disabled={busy}
 					onClick={() =>
@@ -105,24 +146,7 @@ export function SearchHeader({ deleted, onEdit }: SearchHeaderProps) {
 				>
 					<Trans>Run now</Trans>
 				</Button>
-				<Button
-					variant="secondary"
-					size="sm"
-					loading={toggle.isPending}
-					onClick={() =>
-						toggle.mutate(
-							{ id: schedule.id, enabled: !schedule.enabled },
-							{
-								onSuccess: (saved) =>
-									toast.add({ description: saved.enabled ? t`Discovery resumed` : t`Discovery paused` }),
-								onError: (error) => failed(error, t`Couldn't change this schedule.`),
-							},
-						)
-					}
-				>
-					{schedule.enabled ? <Trans>Pause</Trans> : <Trans>Resume</Trans>}
-				</Button>
-				<Button variant="ghost" size="sm" className="text-ink-2" onClick={() => onEdit(schedule.id)}>
+				<Button variant="secondary" onClick={() => onEdit(schedule.id)}>
 					<Icon name="pencil-simple" size={18} />
 					<Trans>Edit search</Trans>
 				</Button>

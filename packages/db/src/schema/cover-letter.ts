@@ -49,7 +49,15 @@ export const coverLetter = pg.pgTable(
 	(table) => [pg.index().on(table.userId, table.updatedAt.desc(), table.id.desc())],
 );
 
-export const COVER_LETTER_VERSION_KINDS = ["created", "auto", "named", "before-restore", "restored", "sent"] as const;
+export const COVER_LETTER_VERSION_KINDS = [
+	"created",
+	"auto",
+	"named",
+	"before-restore",
+	"restored",
+	"sent",
+	"generated",
+] as const;
 
 export type CoverLetterVersionKind = (typeof COVER_LETTER_VERSION_KINDS)[number];
 
@@ -85,7 +93,7 @@ export const coverLetterVersion = pg.pgTable(
 			.references(() => user.id, { onDelete: "cascade" }),
 		data: pg.jsonb("data").notNull().$type<CoverLetterVersionData>(),
 		kind: pg.text("kind", { enum: COVER_LETTER_VERSION_KINDS }).notNull().default("auto"),
-		// The user's name for a `named` version, or the company a `sent` one went to.
+		// The user's name for a `named` version, the company a `sent` one went to, or which generation a `generated` one is.
 		name: pg.text("name"),
 		// The editing session an `auto` version belongs to (one row per session).
 		sessionId: pg.text("session_id"),

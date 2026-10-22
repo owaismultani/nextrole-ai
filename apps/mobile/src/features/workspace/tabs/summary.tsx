@@ -94,7 +94,7 @@ function Posting({ application }: WorkspaceTabProps) {
 						const status = statusOf(requirement);
 						return (
 							<View key={requirement} style={{ flexDirection: "row", gap: space.s2 }}>
-								<Text color={status === "supported" ? "accentText" : "ink3"}>{status === "supported" ? "✓" : "•"}</Text>
+								<Text color={status === "supported" ? "okText" : "ink3"}>{status === "supported" ? "✓" : "•"}</Text>
 								<View style={{ flex: 1 }}>
 									<Text>{requirement}</Text>
 									<Text variant="callout" color="ink3">

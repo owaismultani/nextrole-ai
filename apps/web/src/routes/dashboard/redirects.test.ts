@@ -23,7 +23,7 @@ function redirectsFrom(route: unknown, context: Record<string, unknown> = {}) {
 it("sends the old Career pages to where their features live now", () => {
 	expect(redirectsFrom(careerPipeline)).toMatchObject({ to: "/dashboard/discover/activity" });
 	expect(redirectsFrom(settingsAutomation)).toMatchObject({ to: "/dashboard/automation" });
-	expect(redirectsFrom(knowledgePreferences)).toMatchObject({ to: "/dashboard/profile/preferences" });
+	expect(redirectsFrom(knowledgePreferences)).toMatchObject({ to: "/dashboard/discover" });
 });
 
 it("keeps the parameters a link carried", () => {
@@ -32,7 +32,7 @@ it("keeps the parameters a link carried", () => {
 		search: { a: "offer-1", b: "offer-2" },
 	});
 	expect(redirectsFrom(knowledgeFacts, { search: { highlight: "fact-1" } })).toMatchObject({
-		to: "/dashboard/profile/facts",
+		to: "/dashboard/knowledge/facts",
 		search: { highlight: "fact-1" },
 	});
 });

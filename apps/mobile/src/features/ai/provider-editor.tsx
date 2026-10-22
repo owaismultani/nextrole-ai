@@ -108,6 +108,11 @@ function ProviderForm({ saved, onClose, onReady }: ProviderFormProps) {
 		retry: false,
 	});
 	const models = catalogId ? (suggestions.data?.[catalogId] ?? []) : [];
+	// A prefilled or picked ID would filter the list down to itself; show the newest models until something else is typed.
+	const modelQuery =
+		fields.model === providerDefaults(provider).model || models.some((model) => model.id === fields.model)
+			? ""
+			: fields.model.toLowerCase();
 	const invalidate = () => queryClient.invalidateQueries({ queryKey: orpc.aiProviders.list.key() });
 	const set = (patch: Partial<typeof fields>) => setFields((previous) => ({ ...previous, ...patch }));
 	const baseline = saved ?? current;
@@ -270,7 +275,7 @@ function ProviderForm({ saved, onClose, onReady }: ProviderFormProps) {
 			/>
 			{modelFocused &&
 				models
-					.filter((model) => model.id.toLowerCase().includes(fields.model.toLowerCase()))
+					.filter((model) => model.id.toLowerCase().includes(modelQuery))
 					.slice(0, 6)
 					.map((model) => (
 						<ListRow

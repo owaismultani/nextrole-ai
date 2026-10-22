@@ -1,15 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import z from "zod";
-import { StoriesPage } from "@/features/career/knowledge/stories";
 
 export const Route = createFileRoute("/dashboard/profile/stories/{-$storyId}")({
-	// `edit`: the story editor; with no story id it's a new story.
 	validateSearch: z.object({ edit: z.boolean().optional().catch(undefined) }),
-	component: RouteComponent,
+	beforeLoad: ({ params, search }) => {
+		throw redirect({ to: "/dashboard/knowledge/stories/{-$storyId}", params, search, replace: true });
+	},
 });
-
-function RouteComponent() {
-	const { storyId } = Route.useParams();
-	const { edit } = Route.useSearch();
-	return <StoriesPage storyId={storyId} edit={edit ?? false} />;
-}

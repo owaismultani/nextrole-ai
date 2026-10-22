@@ -26,6 +26,7 @@ const catalogProviderSchema = z.object({ models: z.record(z.string(), z.unknown(
 const catalogModelSchema = z.object({
 	id: z.string().min(1),
 	name: z.string().min(1),
+	type: z.string().optional(),
 	release_date: z.string().optional(),
 	status: z.string().optional(),
 	modalities: z.object({ input: z.array(z.string()), output: z.array(z.string()) }),
@@ -51,6 +52,8 @@ export async function loadModelSuggestions(signal: AbortSignal) {
 						if (
 							!model.success ||
 							model.data.status === "deprecated" ||
+							// Untyped entries are chat models; rerankers, embeddings, speech and realtime can't answer a prompt.
+							(model.data.type !== undefined && model.data.type !== "chat") ||
 							!model.data.modalities.input.includes("text") ||
 							!model.data.modalities.output.includes("text")
 						)
@@ -74,91 +77,91 @@ export const providerOptions: AIProviderOption[] = [
 		label: "OpenAI",
 		keywords: ["openai", "gpt", "chatgpt"],
 		defaultBaseURL: AI_PROVIDER_DEFAULT_BASE_URLS.openai,
-		defaultModel: "gpt-4.1",
+		defaultModel: "gpt-6.1-sol",
 	},
 	{
 		value: "anthropic",
 		label: "Anthropic Claude",
 		keywords: ["anthropic", "claude", "ai"],
 		defaultBaseURL: AI_PROVIDER_DEFAULT_BASE_URLS.anthropic,
-		defaultModel: "claude-3-5-sonnet-latest",
+		defaultModel: "claude-sonnet-5-5",
 	},
 	{
 		value: "gemini",
 		label: "Google Gemini",
 		keywords: ["gemini", "google"],
 		defaultBaseURL: AI_PROVIDER_DEFAULT_BASE_URLS.gemini,
-		defaultModel: "gemini-2.0-flash",
+		defaultModel: "gemini-3.8-flash",
 	},
 	{
 		value: "vercel-ai-gateway",
 		label: "Vercel AI Gateway",
 		keywords: ["vercel", "gateway", "ai"],
 		defaultBaseURL: AI_PROVIDER_DEFAULT_BASE_URLS["vercel-ai-gateway"],
-		defaultModel: "openai/gpt-4.1",
+		defaultModel: "anthropic/claude-sonnet-5.5",
 	},
 	{
 		value: "openrouter",
 		label: "OpenRouter",
 		keywords: ["openrouter", "router"],
 		defaultBaseURL: AI_PROVIDER_DEFAULT_BASE_URLS.openrouter,
-		defaultModel: "openai/gpt-4.1",
+		defaultModel: "anthropic/claude-sonnet-5.5",
 	},
 	{
 		value: "mistral",
 		label: "Mistral AI",
 		keywords: ["mistral", "magistral"],
 		defaultBaseURL: AI_PROVIDER_DEFAULT_BASE_URLS.mistral,
-		defaultModel: "mistral-large-latest",
+		defaultModel: "mistral-medium-latest",
 	},
 	{
 		value: "cohere",
 		label: "Cohere",
 		keywords: ["cohere", "command"],
 		defaultBaseURL: AI_PROVIDER_DEFAULT_BASE_URLS.cohere,
-		defaultModel: "command-a-03-2025",
+		defaultModel: "command-a-plus-05-2026",
 	},
 	{
 		value: "xai",
 		label: "xAI Grok",
 		keywords: ["xai", "grok"],
 		defaultBaseURL: AI_PROVIDER_DEFAULT_BASE_URLS.xai,
-		defaultModel: "grok-4",
+		defaultModel: "grok-4.7",
 	},
 	{
 		value: "groq",
 		label: "Groq",
 		keywords: ["groq", "llama"],
 		defaultBaseURL: AI_PROVIDER_DEFAULT_BASE_URLS.groq,
-		defaultModel: "llama-3.3-70b-versatile",
+		defaultModel: "openai/gpt-oss-120b",
 	},
 	{
 		value: "deepseek",
 		label: "DeepSeek",
 		keywords: ["deepseek"],
 		defaultBaseURL: AI_PROVIDER_DEFAULT_BASE_URLS.deepseek,
-		defaultModel: "deepseek-chat",
+		defaultModel: "deepseek-v4-pro",
 	},
 	{
 		value: "togetherai",
 		label: "Together.ai",
 		keywords: ["together", "togetherai", "llama"],
 		defaultBaseURL: AI_PROVIDER_DEFAULT_BASE_URLS.togetherai,
-		defaultModel: "meta-llama/Meta-Llama-3.3-70B-Instruct-Turbo",
+		defaultModel: "deepseek-ai/DeepSeek-V4.1-Flash",
 	},
 	{
 		value: "fireworks",
 		label: "Fireworks",
 		keywords: ["fireworks", "llama", "deepseek"],
 		defaultBaseURL: AI_PROVIDER_DEFAULT_BASE_URLS.fireworks,
-		defaultModel: "accounts/fireworks/models/llama-v3p3-70b-instruct",
+		defaultModel: "accounts/fireworks/models/glm-5p3",
 	},
 	{
 		value: "cerebras",
 		label: "Cerebras",
 		keywords: ["cerebras", "llama"],
 		defaultBaseURL: AI_PROVIDER_DEFAULT_BASE_URLS.cerebras,
-		defaultModel: "llama3.3-70b",
+		defaultModel: "gpt-oss-120b",
 	},
 	{
 		value: "perplexity",
@@ -172,7 +175,7 @@ export const providerOptions: AIProviderOption[] = [
 		label: "Ollama",
 		keywords: ["ollama", "cloud"],
 		defaultBaseURL: AI_PROVIDER_DEFAULT_BASE_URLS.ollama,
-		defaultModel: "llama3.1",
+		defaultModel: "glm-5.3",
 	},
 	{
 		value: "openai-compatible",

@@ -66,16 +66,28 @@ export function SectionLayout<Name extends string>({
 }
 
 /** A tab with a single screen under a plain title (Overview, Coach, Automation): no switcher, no large title. */
-export function PlainLayout({ title, children }: { title: string; children?: ReactNode }) {
+export function PlainLayout({
+	title,
+	actions,
+	children,
+}: {
+	/** Leave out for a screen that carries its own header (Coach), so the content gets the whole height. */
+	title?: string;
+	/** At the end of the title row, for example Overview's notifications bell. */
+	actions?: ReactNode;
+	children?: ReactNode;
+}) {
 	const { colors, motion, space } = useTheme();
 	const insets = useSafeAreaInsets();
 	const stackOptions = useTabStackOptions(true);
 	return (
 		<SafeAreaView edges={["top", "left", "right"]} style={{ flex: 1, backgroundColor: colors.bg }}>
-			<View style={{ paddingHorizontal: space.s4, paddingTop: space.s4, paddingBottom: space.s1, gap: space.s3 }}>
-				<CollectionHeader title={title} />
-				{children}
-			</View>
+			{title || children ? (
+				<View style={{ paddingHorizontal: space.s4, paddingTop: space.s4, paddingBottom: space.s1, gap: space.s3 }}>
+					{title ? <CollectionHeader title={title} actions={actions} /> : null}
+					{children}
+				</View>
+			) : null}
 			<SafeAreaInsetsContext value={{ ...insets, top: 0, left: 0, right: 0 }}>
 				<Stack
 					screenOptions={{ ...stackOptions, animation: "fade", animationDuration: motion.d2, headerTransparent: false }}

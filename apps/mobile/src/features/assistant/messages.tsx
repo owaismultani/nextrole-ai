@@ -533,7 +533,7 @@ function RememberNote({ part }: { part: ToolPart }) {
 		const id = output.id;
 		return (
 			<View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: space.s2 }}>
-				<Icon name="check-circle" size={18} color={colors.accentText} />
+				<Icon name="check-circle" size={18} color={colors.okText} />
 				<Text variant="callout" color="ink2" style={{ flexShrink: 1 }}>
 					<Trans>Remembered: “{text}”</Trans>
 				</Text>

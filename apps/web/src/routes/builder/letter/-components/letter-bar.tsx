@@ -218,7 +218,7 @@ function LetterMenu() {
 				throw new Error(t`Couldn't save your changes. Try again before continuing.`);
 			await client.documents.trash(ref);
 			void queryClient.invalidateQueries({ queryKey: orpc.documents.key() });
-			void navigate({ to: "/dashboard" });
+			void navigate({ to: "/dashboard/documents" });
 			toast.add({
 				description: t`“${name}” moved to Trash`,
 				actionProps: {

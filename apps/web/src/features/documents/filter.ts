@@ -35,9 +35,14 @@ export function filterDocuments(documents: readonly DocumentSummary[], filters: 
 		});
 }
 
-/** Every tag in use, alphabetically; the tag chips appear only when there are some. */
+/** Tags the app puts on documents it prepares. The ownership tabs already say this, so they are not filter chips. */
+const SYSTEM_TAGS = new Set(["auto", "tailored"]);
+
+/** Every tag you use, alphabetically; the tag chips appear only when there are some. Search still matches every tag. */
 export const collectTags = (documents: readonly DocumentSummary[]) =>
-	[...new Set(documents.flatMap((document) => document.tags))].sort(byName.compare);
+	[...new Set(documents.flatMap((document) => document.tags))]
+		.filter((tag) => !SYSTEM_TAGS.has(tag.toLowerCase()))
+		.sort(byName.compare);
 
 /** Days until a document in Trash is deleted for good (at least 0). */
 export function daysLeftInTrash(trashedAt: Date, now = Date.now()) {

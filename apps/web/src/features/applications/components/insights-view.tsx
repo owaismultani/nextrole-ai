@@ -94,7 +94,7 @@ export function ApplicationInsights({ applications }: { applications: Applicatio
 
 			<div className="grid gap-4 sm:grid-cols-2">
 				<div className="rounded-xl border border-line p-5">
-					<div className="font-display text-[34px] leading-10 font-medium">
+					<div className="font-display text-[32px] leading-[1.3] font-[750] tracking-[-0.05em] tabular-nums">
 						{Math.round((outcomes.heardBack / outcomes.sent) * 100)}%
 					</div>
 					<div className="text-sm text-ink-2">
@@ -102,7 +102,7 @@ export function ApplicationInsights({ applications }: { applications: Applicatio
 					</div>
 				</div>
 				<div className="rounded-xl border border-line p-5">
-					<div className="font-display text-[34px] leading-10 font-medium">
+					<div className="font-display text-[32px] leading-[1.3] font-[750] tracking-[-0.05em] tabular-nums">
 						{outcomes.medianDaysToReply === null ? (
 							"—"
 						) : (

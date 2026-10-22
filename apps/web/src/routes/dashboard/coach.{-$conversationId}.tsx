@@ -1,7 +1,6 @@
 import { Trans } from "@lingui/react/macro";
 import { createFileRoute } from "@tanstack/react-router";
 import z from "zod";
-import { PageHeader } from "@/components/layout/page-header";
 import { CoachPage } from "@/features/career/coach";
 
 export const Route = createFileRoute("/dashboard/coach/{-$conversationId}")({
@@ -16,11 +15,11 @@ function RouteComponent() {
 	// Not keyed by the conversation: the page keeps a new conversation's chat mounted (and streaming) when the URL moves
 	// to its id, and starts a fresh one for any other change.
 	return (
-		<div className="mx-auto flex min-h-svh w-full max-w-[1180px] flex-col gap-5 px-8 py-8 max-sm:px-4 max-sm:py-5">
-			<PageHeader
-				title={<Trans>Coach</Trans>}
-				description={<Trans>Talk through your search, your answers and your offers.</Trans>}
-			/>
+		// The chat gets the whole window: no page header or card around it; its own title bar sits across the top.
+		<div className="flex h-svh w-full flex-col">
+			<h1 className="sr-only">
+				<Trans>Coach</Trans>
+			</h1>
 			<CoachPage conversationId={conversationId} offerIds={offers ?? []} />
 		</div>
 	);

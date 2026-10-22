@@ -14,7 +14,7 @@ import { Skeleton } from "@reactive-resume/ui/components/skeleton";
 import { toast } from "@reactive-resume/ui/components/toast";
 import { getInitials } from "@reactive-resume/utils/string";
 import { cn } from "@reactive-resume/utils/style";
-import { Notifications } from "./notifications";
+import { NotificationsBell } from "./notifications";
 import { PageHeader } from "@/components/layout/page-header";
 import { AddApplicationDialog } from "@/features/applications/components/add-application-dialog";
 import { interviewKindOf } from "@/features/applications/interviews";
@@ -41,13 +41,17 @@ export function OverviewPage() {
 	return (
 		<div className="mx-auto flex min-h-svh w-full max-w-[1280px] flex-col gap-5 px-8 py-8 max-sm:px-4 max-sm:py-5">
 			<PageHeader
+				eyebrow={<Trans>Your career workspace</Trans>}
 				title={<Trans>Overview</Trans>}
 				description={<Trans>Your applications, priorities and progress.</Trans>}
 				actions={
-					<Button variant="secondary" onClick={() => setAdding(true)}>
-						<Icon name="plus" size={18} />
-						<Trans>Add application</Trans>
-					</Button>
+					<>
+						<NotificationsBell />
+						<Button variant="secondary" onClick={() => setAdding(true)}>
+							<Icon name="plus" size={18} />
+							<Trans>Add application</Trans>
+						</Button>
+					</>
 				}
 			/>
 			{isError ? (
@@ -69,7 +73,6 @@ export function OverviewPage() {
 					<div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
 						<div className="grid gap-5">
 							<NextActions data={data} />
-							<Notifications />
 							<RecentActivity />
 						</div>
 						<div className="grid gap-5">
@@ -269,7 +272,7 @@ function describeAction(action: Action) {
 }
 
 const CHIP = {
-	good: { text: "text-accent-text", dot: "bg-accent" },
+	good: { text: "text-ok-text", dot: "bg-ok" },
 	warn: { text: "text-warn-text", dot: "bg-warn-text" },
 	info: { text: "text-info-text", dot: "bg-info-text" },
 } as const;
@@ -438,7 +441,7 @@ const documentsLink = (event: EventItem) => (className: string, children: ReactN
 			{children}
 		</Link>
 	) : (
-		<Link to="/dashboard/automation" hash="status" className={className}>
+		<Link to="/dashboard/automation/discovery" hash="status" className={className}>
 			{children}
 		</Link>
 	);
@@ -648,7 +651,7 @@ function ComingUp({ data }: { data: Overview }) {
 function Prep({ ok, yes, no }: { ok: boolean; yes: string; no: string }) {
 	return (
 		<li className="flex items-center gap-2.5">
-			<Icon name={ok ? "check-circle" : "clock"} size={20} className={ok ? "text-accent-text" : "text-ink-3"} />
+			<Icon name={ok ? "check-circle" : "clock"} size={20} className={ok ? "text-ok-text" : "text-ink-3"} />
 			{ok ? yes : no}
 		</li>
 	);

@@ -27,7 +27,7 @@ export function getAuthRedirectOptions(value: unknown) {
 	const callbackURL = safeCallbackURL(value);
 	// OAuth callbacks are server endpoints; they must run through a document request.
 	const isServerCallback = callbackURL !== undefined && callbackURL.startsWith("/api/");
-	return { href: callbackURL ?? "/dashboard", reloadDocument: isServerCallback, replace: true } as const;
+	return { href: callbackURL ?? "/dashboard/overview", reloadDocument: isServerCallback, replace: true } as const;
 }
 
 export function getOAuthSignInOptions(callback: unknown) {

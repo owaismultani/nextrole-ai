@@ -7,7 +7,7 @@ import { cn } from "@reactive-resume/utils/style";
 import { getPdfFindingMessage } from "../messages";
 
 function scoreTone(score: number) {
-	if (score >= 80) return { text: "text-accent-text", bar: "bg-accent" };
+	if (score >= 80) return { text: "text-ok-text", bar: "bg-ok" };
 	if (score >= 60) return { text: "text-warn-text", bar: "bg-warn" };
 	return { text: "text-danger-text", bar: "bg-danger" };
 }

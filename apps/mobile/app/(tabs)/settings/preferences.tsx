@@ -126,7 +126,7 @@ export default function PreferencesScreen() {
 					onPress={() => openPicker("language")}
 				/>
 			</SettingsGroup>
-			<SettingsGroup title={t`Timezone`} note={t`Interview times, reminders and schedules in Career use it.`}>
+			<SettingsGroup title={t`Timezone`} note={t`Interview times, reminders and schedules use it.`}>
 				<ListRow
 					title={t`Timezone`}
 					subtitle={profile.data?.timezone ?? (profile.isPending ? t`Loading…` : t`Unavailable`)}

@@ -30,7 +30,6 @@ export function returnTarget(): { href: string; label: string } {
 	if (pathname.startsWith("/dashboard/overview")) return { href, label: t`Overview` };
 	if (pathname.startsWith("/dashboard/discover")) return { href, label: t`Discover` };
 	if (pathname.startsWith("/dashboard/applications")) return { href, label: t`Applications` };
-	if (pathname.startsWith("/dashboard/career")) return { href, label: t`Reminders` };
 	if (pathname.startsWith("/dashboard/automation")) return { href, label: t`Automation` };
 	return fallback;
 }

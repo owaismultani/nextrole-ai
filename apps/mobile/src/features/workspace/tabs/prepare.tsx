@@ -241,7 +241,7 @@ const LEADS = ["24h", "2h", "morning"] as const;
 
 type RefreshSwitchProps = { application: Application; interview: InterviewTimelineEntry };
 
-/** The prepare schedule for this interview: switching it here changes it in Career → Today too. */
+/** The prepare schedule for this interview: switching it here changes it in Automation too. */
 function RefreshSwitch({ application, interview }: RefreshSwitchProps) {
 	const { t, i18n } = useLingui();
 	const { space } = useTheme();

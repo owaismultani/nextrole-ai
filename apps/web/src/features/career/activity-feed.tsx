@@ -13,7 +13,7 @@ import { orpc } from "@/libs/orpc/client";
 const PAGE_SIZE = 20;
 
 /**
- * Career → Pipeline: a plain-language log of what the pipeline did, newest first, kept for 30 days. Filter to problems
+ * Automation and Discover: a plain-language log of what the pipeline did, newest first, kept for 30 days. Filter to problems
  * to see only what needs a look.
  */
 export function ActivityFeed({ className }: { className?: string }) {

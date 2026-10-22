@@ -141,11 +141,9 @@ export const checkFix = (check: Check) =>
 		? null
 		: check.key === "search" || check.key === "ai"
 			? ("/dashboard/settings/ai" as const)
-			: check.key === "baseline" || check.key === "limit"
+			: check.key === "baseline" || check.key === "limit" || check.key === "schedule"
 				? ("/dashboard/automation" as const)
-				: check.key === "schedule"
-					? ("/dashboard/career" as const)
-					: ("/dashboard/discover/activity" as const);
+				: ("/dashboard/discover/activity" as const);
 
 const kindName = (kind: unknown) => (kind === "letter" ? t`cover letter` : t`tailored resume`);
 const jobName = (event: ActivityEvent) =>

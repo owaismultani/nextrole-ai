@@ -23,7 +23,7 @@ export function useDocumentOrigins() {
 }
 
 /** How a document came to be, in a few words: the baseline it was made from, or that you made it. */
-export function originLine(origin: DocumentOrigin | undefined) {
+function originLine(origin: DocumentOrigin | undefined) {
 	if (!origin) return t`Made by you`;
 	if (!origin.baseline) return t`Prepared for this job · baseline not recorded`;
 	if (origin.baseline.name) return t`Prepared from “${origin.baseline.name}”`;

@@ -11,7 +11,7 @@ import { Button, Card, Text, useTheme } from "@/ui";
 
 const PAGE_SIZE = 20;
 
-/** Career → Pipeline: what the pipeline did, newest first, kept for 30 days. Filter to problems to see what needs a look. */
+/** Automation and Discover: what the pipeline did, newest first, kept for 30 days. Filter to problems to see what needs a look. */
 export function ActivityFeed() {
 	const { t } = useLingui();
 	const { space } = useTheme();

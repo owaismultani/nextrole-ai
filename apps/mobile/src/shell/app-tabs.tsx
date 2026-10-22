@@ -31,7 +31,7 @@ const appTabIcons: Record<string, IconName> = {
 };
 
 /** The destinations the phone bar leaves to its More tab; the tablet sidebar lists them itself. */
-const moreRoutes = new Set(["more", "profile", "coach", "automation", "settings", "reminders"]);
+const moreRoutes = new Set(["more", "profile", "coach", "automation", "settings"]);
 /** The tablet sidebar: the primary destinations, then the utilities below a divider. */
 const primaryRoutes = ["overview", "discover", "applications", "documents", "profile", "coach"];
 const utilityRoutes = ["automation", "settings"];
@@ -282,7 +282,7 @@ export function PhoneTabBar(props: BottomTabBarProps) {
 	const onPress = useTabPress(props);
 	const cells = props.state.routes.filter((route) => !isHidden(props, route));
 	const focusedName = props.state.routes[props.state.index]?.name ?? "";
-	// A hidden destination (Profile, Coach, Automation, Settings, Reminders) lights up More, which leads to it.
+	// A hidden destination (Profile, Coach, Automation, Settings) lights up More, which leads to it.
 	const focusedCell = cells.findIndex((route) =>
 		route.name === "more" ? moreRoutes.has(focusedName) : route.name === focusedName,
 	);

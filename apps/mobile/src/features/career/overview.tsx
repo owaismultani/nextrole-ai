@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 import { client, useCareerTime } from "./hooks";
+import { Notifications } from "./notifications";
 import { describeAction, interviewKindLabel, summarizeRecent } from "./overview-words";
 import { Section } from "./shared";
 import { orpc } from "@/api/client";
@@ -38,6 +39,7 @@ export function OverviewScreen() {
 					<DiscoveryBanner data={query.data} />
 					<Text color="ink2">{t`${query.data.needsYou.savedJobs} saved applications · ${query.data.needsYou.readyDocuments} with documents ready`}</Text>
 					<NextActions data={query.data} />
+					<Notifications />
 					<ComingUp data={query.data} />
 					<RecentActivity />
 					<AutomationCard data={query.data} />

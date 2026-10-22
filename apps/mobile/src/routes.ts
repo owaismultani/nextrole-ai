@@ -33,8 +33,6 @@ export const routes = {
 	profile: (section: ProfileSection = "details") => `/profile/${section}` as const,
 	coach: () => "/coach" as const,
 	automation: () => "/automation" as const,
-	/** Notifications and the next interview, until Overview shows them in place. */
-	reminders: () => "/reminders" as const,
 	/** The phone's overflow tab: Profile, Coach, Automation, Settings and Trash. */
 	more: () => "/more" as const,
 	offers: () => "/applications/offers" as const,

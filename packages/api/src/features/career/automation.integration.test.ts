@@ -766,6 +766,7 @@ describe.skipIf(!databaseUrl)("autonomous discovery and document preparation", (
 		expect(overview.checks.filter((check) => check.status !== "ok").map((check) => check.key)).toEqual(["limit"]);
 		expect(overview.discovery).toMatchObject({ enabled: true, failing: false, totals: { runs: 1, matches: 2 } });
 		expect(overview.discovery.runs).toHaveLength(1);
+		expect(overview.discovery.latestRunId).toEqual(expect.any(String));
 		// Two jobs with a resume and a letter each use the whole limit of four, and nothing is waiting.
 		expect(overview.automation).toMatchObject({ limit: 4, used: 4, deferred: 0, stale: 0 });
 
@@ -778,6 +779,11 @@ describe.skipIf(!databaseUrl)("autonomous discovery and document preparation", (
 		expect(overview.outcomes).toEqual({ submitted: 0, firstResponses: 0, interviews: 0, offers: 0 });
 		expect(overview.nextInterview).toBeNull();
 		expect(overview.automation.generating).toBe(0);
+
+		// A shorter history window never hides a task that is still pending.
+		const shortWindow = await careerOverview("alice", 7);
+		expect(shortWindow.actions.items).toEqual(overview.actions.items);
+		expect(shortWindow.actions.counts).toEqual(overview.actions.counts);
 
 		const bobs = await careerOverview("bob", 14);
 		expect(bobs.stages.find((item) => item.key === "schedule")?.state).toBe("off");
@@ -854,6 +860,15 @@ describe.skipIf(!databaseUrl)("autonomous discovery and document preparation", (
 				origins.every((origin) => origin.applicationId === applicationId && origin.baseline?.resumeId === base),
 			).toBe(true);
 			expect(await automation.documentOrigins("bob")).toEqual([]);
+
+			// The activity log links each job's events to its application.
+			const log = await careerActivity.list("alice", { limit: 50 });
+			const forJob = log.items.filter((event) => event.opportunityId === job?.id);
+			expect(forJob.length).toBeGreaterThan(0);
+			expect(forJob.every((event) => event.applicationId === applicationId)).toBe(true);
+			expect(
+				log.items.filter((event) => event.opportunityId === null).every((event) => event.applicationId === null),
+			).toBe(true);
 		});
 
 		it("logs retries, waits for the limit and failures, and filters the feed to problems", async () => {

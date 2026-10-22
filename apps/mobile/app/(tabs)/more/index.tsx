@@ -13,7 +13,6 @@ export default function MoreScreen() {
 			<SettingsGroup>
 				<ListRow title={t`Profile`} leading="user-circle" chevron onPress={() => router.push(routes.profile())} />
 				<ListRow title={t`Coach`} leading="sparkle" chevron onPress={() => router.push(routes.coach())} />
-				<ListRow title={t`Reminders`} leading="bell" chevron onPress={() => router.push(routes.reminders())} />
 			</SettingsGroup>
 			<SettingsGroup>
 				<ListRow

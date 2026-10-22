@@ -9,12 +9,17 @@ type SettingsSectionProps = {
 	action?: ReactNode;
 	children: ReactNode;
 	className?: string;
+	/** An anchor, so a link can open the page on this group. */
+	id?: string;
 };
 
 /** A settings group: a title and its rows, divided from the group above by a rule. No card around it. */
-export function SettingsSection({ title, description, action, children, className }: SettingsSectionProps) {
+export function SettingsSection({ title, description, action, children, className, id }: SettingsSectionProps) {
 	return (
-		<section className={cn("grid gap-3 border-t border-line pt-6 first:border-t-0 first:pt-0", className)}>
+		<section
+			id={id}
+			className={cn("grid scroll-mt-6 gap-3 border-t border-line pt-6 first:border-t-0 first:pt-0", className)}
+		>
 			<div className="flex items-center justify-between gap-3">
 				<div className="grid gap-0.5">
 					<h2 className="text-[17px] font-semibold">{title}</h2>

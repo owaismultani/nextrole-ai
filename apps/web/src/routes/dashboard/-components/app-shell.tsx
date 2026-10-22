@@ -75,14 +75,10 @@ function useNavItems() {
 	return { items, utilities, trash };
 }
 
-/** Whether the item is the current page: Documents is exact, the others match their section. Reminders belong to Overview. */
+/** Whether the item is the current page: Documents is exact, the others match their section. */
 function useIsCurrent() {
 	const matchRoute = useMatchRoute();
-	return (to: NavItem["to"]) =>
-		Boolean(
-			matchRoute({ to, fuzzy: to !== "/dashboard" }) ||
-			(to === "/dashboard/overview" && matchRoute({ to: "/dashboard/career", fuzzy: true })),
-		);
+	return (to: NavItem["to"]) => Boolean(matchRoute({ to, fuzzy: to !== "/dashboard" }));
 }
 
 /**

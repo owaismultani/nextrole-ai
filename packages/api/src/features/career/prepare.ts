@@ -1,4 +1,5 @@
 import type { PreparationError } from "@reactive-resume/schema/career";
+import type { CareerEventKind, CareerEventLevel } from "@reactive-resume/schema/career";
 import type { Locale } from "@reactive-resume/utils/locale";
 import { and, asc, eq, isNull, lte, or, sql } from "drizzle-orm";
 import { letterDraftSystemPrompt } from "@reactive-resume/ai/prompts";
@@ -13,6 +14,7 @@ import { applicationService } from "../applications/service";
 import { sanitizeCoverLetterHtml } from "../cover-letters/html";
 import { coverLetterService } from "../cover-letters/service";
 import { resumeService } from "../resume/service";
+import { jobLabel, recordEvent } from "./events";
 
 /** A step that fails this many times stops and asks for attention; waits double up to an hour in between. */
 const LEASE_MS = 5 * 60_000;
@@ -157,12 +159,35 @@ class Stop extends Error {
 	}
 }
 
+/** Records what happened to a step in the activity log, naming the job. Never throws. */
+async function emit(
+	row: Row,
+	kind: CareerEventKind,
+	level: CareerEventLevel,
+	data: Record<string, string | number | boolean | null>,
+) {
+	try {
+		const label = await jobLabel(row.opportunityId);
+		await recordEvent({
+			userId: row.userId,
+			kind,
+			level,
+			opportunityId: row.opportunityId,
+			data: { kind: row.kind, ...label, ...data },
+		});
+	} catch {
+		// Activity is a convenience view; the step's own state is the source of truth.
+	}
+}
+
 export async function runPreparation(row: Row) {
+	await emit(row, "prep.started", "info", { attempt: row.attempts });
 	try {
 		await work(row);
 	} catch (error) {
 		if (error instanceof Stop) {
 			await settle(row, { status: "failed", error: error.code });
+			await emit(row, "prep.failed", "error", { code: error.code });
 			return;
 		}
 		const { code, retryAt, final } = classifyFailure(error, row.attempts);
@@ -170,6 +195,8 @@ export async function runPreparation(row: Row) {
 			row,
 			final ? { status: "failed", error: code } : { status: "queued", error: code, nextAttemptAt: retryAt },
 		);
+		if (final) await emit(row, "prep.failed", "error", { code, attempts: row.attempts });
+		else await emit(row, "prep.retry", "warn", { code, attempt: row.attempts, retryAt: retryAt.toISOString() });
 	}
 }
 
@@ -182,6 +209,7 @@ async function work(row: Row) {
 	const allowed = row.manual || (row.kind === "resume" ? automation?.resumesEnabled : automation?.lettersEnabled);
 	if (!automation || !allowed) {
 		await settle(row, { status: "canceled", error: "setting-off" });
+		await emit(row, "prep.canceled", "info", { code: "setting-off" });
 		return;
 	}
 	if (!automation.baselineResumeId) throw new Stop("no-baseline");
@@ -220,6 +248,7 @@ async function work(row: Row) {
 				attempts: Math.max(0, row.attempts - 1),
 				nextAttemptAt: slot.resetsAt,
 			});
+			await emit(row, "prep.deferred", "info", { code: "daily-limit", until: slot.resetsAt.toISOString() });
 			return;
 		}
 	}
@@ -264,6 +293,7 @@ async function work(row: Row) {
 		jobHash: jobHash(description),
 		completedAt: new Date(),
 	});
+	await emit(row, "prep.done", "info", { gaps: outcome.issues.length });
 }
 
 type Step = {

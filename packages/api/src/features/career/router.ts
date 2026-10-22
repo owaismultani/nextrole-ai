@@ -14,7 +14,10 @@ import { protectedProcedure } from "../../context";
 import {
 	careerAutomationSchema,
 	careerFactSchema,
+	careerActivityListSchema,
 	careerBaselineReportSchema,
+	careerJourneySchema,
+	careerRunDetailSchema,
 	careerOverviewSchema,
 	careerSearchPreviewSchema,
 	careerSetupStateSchema,
@@ -29,6 +32,7 @@ import {
 } from "../../dto/career";
 import { aiRequestRateLimit } from "../../middleware/rate-limit";
 import { paginationShape } from "../../pagination";
+import { careerActivity } from "./activity";
 import { careerAutomation } from "./automation";
 import { generateCareer } from "./generate";
 import { careerJobs } from "./jobs";
@@ -205,11 +209,49 @@ export const careerRouter = {
 			operationId: "getCareerOverview",
 			summary: "Get the job-search overview",
 			description:
-				"One read for the dashboard: what needs attention, a funnel from discovered jobs to offers, discovery health over the window, automation use and upcoming interviews. `days` (7, 30 or 90) bounds the funnel and the discovery trend.",
+				"One read for the dashboard: what needs attention, where each pipeline step stands and why, a live checklist, discovery health over the window, automation use and upcoming interviews. `days` (7, 14 or 30) bounds the window totals.",
 		})
-		.input(z.object({ days: z.union([z.literal(7), z.literal(30), z.literal(90)]).default(30) }))
+		.input(z.object({ days: z.union([z.literal(7), z.literal(14), z.literal(30)]).default(7) }))
 		.output(careerOverviewSchema)
 		.handler(({ context, input }) => careerOverview(context.user.id, input.days)),
+	activity: protectedProcedure
+		.route({
+			method: "GET",
+			path: "/career/activity",
+			tags: ["Career"],
+			operationId: "listCareerActivity",
+			summary: "List what the pipeline did",
+			description:
+				"Recent events (runs, saved jobs, document steps, setting changes), newest first, kept for 30 days. `problems` keeps only warnings and errors. Paginated with limit (default 20) and offset.",
+		})
+		.input(z.object({ ...paginationShape, problems: z.boolean().optional() }))
+		.output(careerActivityListSchema)
+		.handler(({ context, input }) => careerActivity.list(context.user.id, input)),
+	runDetail: protectedProcedure
+		.route({
+			method: "GET",
+			path: "/career/runs/{id}",
+			tags: ["Career"],
+			operationId: "getCareerRun",
+			summary: "Get one discovery run's results",
+			description:
+				"Every search result of the run and what became of it: new, already known, rejected, unreadable or invalid.",
+		})
+		.input(id)
+		.output(careerRunDetailSchema)
+		.handler(({ context, input }) => careerActivity.runDetail(context.user.id, input.id)),
+	journey: protectedProcedure
+		.route({
+			method: "GET",
+			path: "/career/opportunities/{id}/journey",
+			tags: ["Career"],
+			operationId: "getCareerJobJourney",
+			summary: "Get a job's story",
+			description: "The run that found a job and every step taken for it since, oldest first.",
+		})
+		.input(id)
+		.output(careerJourneySchema)
+		.handler(({ context, input }) => careerActivity.journey(context.user.id, input.id)),
 	runs: protectedProcedure
 		.route({
 			method: "GET",

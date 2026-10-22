@@ -750,25 +750,147 @@ describe.skipIf(!databaseUrl)("autonomous discovery and document preparation", (
 		await run();
 		await settle(6);
 
-		const overview = await careerOverview("alice", 30);
-		expect(overview.funnel.find((step) => step.key === "discovered")?.count).toBe(2);
-		expect(overview.funnel.find((step) => step.key === "saved")?.count).toBe(2);
-		expect(overview.funnel.find((step) => step.key === "documents")?.count).toBe(2);
-		expect(overview.funnel.find((step) => step.key === "applied")?.count).toBe(0);
+		const overview = await careerOverview("alice", 14);
+		const stage = (key: string) => overview.stages.find((item) => item.key === key);
+		expect(stage("search")).toMatchObject({ state: "ok", count: 2 });
+		expect(stage("save")).toMatchObject({ state: "ok", count: 2 });
+		expect(stage("prepare")).toMatchObject({ state: "ok", count: 2 });
+		expect(stage("review")).toMatchObject({ state: "yours", count: 2 });
 		expect(overview.needsYou).toMatchObject({
 			readyDocuments: 2,
 			attentionDocuments: 0,
+			savedJobs: 2,
 			discoveryFailing: false,
 		});
+		// The limit of four is fully used, which the checklist flags; everything else passes.
+		expect(overview.checks.filter((check) => check.status !== "ok").map((check) => check.key)).toEqual(["limit"]);
 		expect(overview.discovery).toMatchObject({ enabled: true, failing: false, totals: { runs: 1, matches: 2 } });
 		expect(overview.discovery.runs).toHaveLength(1);
 		// Two jobs with a resume and a letter each use the whole limit of four, and nothing is waiting.
 		expect(overview.automation).toMatchObject({ limit: 4, used: 4, deferred: 0, stale: 0 });
 
-		const bobs = await careerOverview("bob", 30);
-		expect(bobs.funnel.every((step) => step.count === 0)).toBe(true);
+		// The action list names each job's documents, and the latest discovery points at its first new job.
+		expect(overview.actions.counts).toEqual({ ready: 2, followUps: 0, issues: 0 });
+		expect(overview.actions.items.map((item) => item.kind)).toEqual(["ready", "ready"]);
+		expect(overview.actions.items[0]).toMatchObject({ done: expect.arrayContaining(["resume", "letter"]) });
+		expect(overview.latestDiscovery).toMatchObject({ outcome: "success", matches: 2, found: 2 });
+		expect(overview.latestDiscovery?.job).toMatchObject({ company: expect.stringContaining("Company") });
+		expect(overview.outcomes).toEqual({ submitted: 0, firstResponses: 0, interviews: 0, offers: 0 });
+		expect(overview.nextInterview).toBeNull();
+		expect(overview.automation.generating).toBe(0);
+
+		const bobs = await careerOverview("bob", 14);
+		expect(bobs.stages.find((item) => item.key === "schedule")?.state).toBe("off");
+		expect(bobs.actions.items).toEqual([]);
+		expect(bobs.latestDiscovery).toBeNull();
 		expect(bobs.discovery.scheduleId).toBeNull();
 		expect(bobs.needsYou.readyDocuments).toBe(0);
+	});
+
+	describe("what happens under the hood", () => {
+		it("records every search result of a run with what became of it", async () => {
+			const { careerActivity } = await import("./activity");
+			await save("alice", settings());
+			fixture.search.mockResolvedValue([hit(1), hit(2), { title: "Odd", url: "not a url", description: "" }, hit(3)]);
+			fixture.read.mockImplementation(async (url) => {
+				const n = Number(url.split("/").pop());
+				if (n === 2) return null;
+				if (n === 3) throw new Error("blocked");
+				return posting(n);
+			});
+			await run();
+			const [first] = (await automation.runs("alice", {})).items;
+			const detail = await careerActivity.runDetail("alice", first?.id ?? "");
+			const byDecision = Object.fromEntries(detail.items.map((item) => [item.url.split("/").pop(), item.decision]));
+			expect(byDecision).toMatchObject({ "1": "new", "2": "rejected", "3": "unreadable", "not a url": "invalid" });
+			expect(detail.items.find((item) => item.decision === "new")?.host).toBe("jobs.example.test");
+			await expect(careerActivity.runDetail("bob", first?.id ?? "")).rejects.toMatchObject({ code: "NOT_FOUND" });
+		});
+
+		it("tells one job's story from discovery to its finished documents, and nobody else's", async () => {
+			const { careerActivity } = await import("./activity");
+			const base = await baseline();
+			await save("alice", settings({ resumesEnabled: true, lettersEnabled: true, baselineResumeId: base }));
+			await discoverOnly();
+			await settle(4);
+			const [job] = await getDb().select().from(tables.careerOpportunity);
+			const story = await careerActivity.journey("alice", job?.id ?? "");
+			const kinds = story.events.map((event) => event.kind);
+			expect(kinds[0]).toBe("job.saved");
+			expect(kinds.filter((kind) => kind === "prep.queued")).toHaveLength(2);
+			expect(kinds.filter((kind) => kind === "prep.done")).toHaveLength(2);
+			expect(kinds.indexOf("prep.started")).toBeGreaterThan(kinds.indexOf("prep.queued"));
+			expect(story.run).toMatchObject({
+				query: "Reliability engineering roles job posting".replace(
+					"Reliability engineering roles",
+					"Reliability engineer",
+				),
+			});
+			expect(story.events.every((event) => !JSON.stringify(event.data).includes("synthetic"))).toBe(true);
+			await expect(careerActivity.journey("bob", job?.id ?? "")).rejects.toMatchObject({ code: "NOT_FOUND" });
+		});
+
+		it("logs retries, waits for the limit and failures, and filters the feed to problems", async () => {
+			const { careerActivity } = await import("./activity");
+			const base = await baseline();
+			await save("alice", settings({ resumesEnabled: true, baselineResumeId: base, dailyLimit: 1 }));
+			fixture.search.mockResolvedValue([hit(1), hit(2)]);
+			await discoverOnly();
+			fixture.generate.mockRejectedValueOnce(Object.assign(new Error("secret-token busy"), { statusCode: 503 }));
+			await getDb()
+				.update(tables.careerPreparation)
+				.set({ nextAttemptAt: new Date(Date.now() - 1000) });
+			await runNow(1);
+			await getDb()
+				.update(tables.careerPreparation)
+				.set({ nextAttemptAt: new Date(Date.now() - 1000) });
+			await settle(4);
+			const all = await careerActivity.list("alice", { limit: 50 });
+			const kinds = all.items.map((event) => event.kind);
+			expect(kinds).toEqual(
+				expect.arrayContaining(["run.finished", "job.saved", "prep.retry", "prep.deferred", "prep.done"]),
+			);
+			expect(JSON.stringify(all.items)).not.toContain("secret-token");
+			const problems = await careerActivity.list("alice", { problems: true });
+			expect(problems.items.every((event) => event.level !== "info")).toBe(true);
+			expect(problems.items.some((event) => event.kind === "prep.retry")).toBe(true);
+			// Paginated, newest first.
+			const page = await careerActivity.list("alice", { limit: 2, offset: 1 });
+			expect(page.items).toHaveLength(2);
+			expect(page.total).toBe(all.total);
+			expect(await careerActivity.list("bob", {})).toEqual({ total: 0, items: [] });
+		});
+
+		it("records setting changes and failed runs, and forgets history past the retention window", async () => {
+			const { careerActivity } = await import("./activity");
+			const { purgeOldActivity } = await import("./events");
+			const base = await baseline();
+			await save("alice", settings({ resumesEnabled: true, baselineResumeId: base }));
+			await save("alice", settings({ resumesEnabled: false, baselineResumeId: base }));
+			fixture.search.mockRejectedValue(new Error("service down"));
+			await getDb()
+				.update(tables.careerSchedule)
+				.set({ nextRunAt: new Date(Date.now() - 1000), lastQueuedAt: null });
+			await run();
+			const feed = (await careerActivity.list("alice", { limit: 50 })).items;
+			expect(feed.filter((event) => event.kind === "setting.changed").map((event) => event.data)).toEqual(
+				expect.arrayContaining([
+					{ what: "resumes", on: true },
+					{ what: "resumes", on: false },
+				]),
+			);
+			expect(feed.find((event) => event.kind === "run.finished")).toMatchObject({
+				level: "error",
+				data: { outcome: "failed", failure: "search" },
+			});
+			const old = new Date(Date.now() - 40 * 86_400_000);
+			await getDb().update(tables.careerEvent).set({ createdAt: old });
+			await getDb().update(tables.careerRun).set({ createdAt: old });
+			await purgeOldActivity(Date.now() + 2 * 3_600_000);
+			expect((await careerActivity.list("alice", {})).total).toBe(0);
+			expect((await automation.runs("alice", {})).total).toBe(0);
+			expect(await getDb().select().from(tables.careerSchedule)).toHaveLength(1);
+		});
 	});
 
 	describe("first-run setup", () => {

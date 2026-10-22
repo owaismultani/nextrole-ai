@@ -8,6 +8,7 @@ import * as tables from "@reactive-resume/db/schema";
 import { DEFAULT_COVER_LETTER_PROMPT, DEFAULT_RESUME_PROMPT, RETRIEVAL_BUDGET } from "@reactive-resume/schema/career";
 import { summarizePreparation } from "@reactive-resume/schema/career-run";
 import { aiProvidersService } from "../ai-providers/service";
+import { recordEventIn } from "./events";
 import { dayKey, jobHash, nextDayStart } from "./prepare-logic";
 import { isCareerSchedulingEnabled } from "./runner";
 import { trackOpportunityTx } from "./service";
@@ -129,6 +130,11 @@ export const careerAutomation = {
 						);
 			}
 
+			for (const [what, was, now] of [
+				["resumes", automation.resumesEnabled, input.resumesEnabled],
+				["letters", automation.lettersEnabled, input.lettersEnabled],
+			] as const)
+				if (was !== now) await recordEventIn(tx, { userId, kind: "setting.changed", data: { what, on: now } });
 			await tx
 				.update(tables.careerAutomation)
 				.set({
@@ -483,7 +489,7 @@ export const careerAutomation = {
  * never touched here.
  */
 export async function enqueueAutomatedPreparation(tx: DbOrTx, userId: string, opportunityIds: string[]) {
-	if (!opportunityIds.length) return 0;
+	if (!opportunityIds.length) return [] as PreparationKind[];
 	const [automation] = await tx
 		.select()
 		.from(tables.careerAutomation)
@@ -492,7 +498,7 @@ export async function enqueueAutomatedPreparation(tx: DbOrTx, userId: string, op
 		...(automation?.resumesEnabled ? (["resume"] as const) : []),
 		...(automation?.lettersEnabled ? (["letter"] as const) : []),
 	];
-	if (!kinds.length) return 0;
+	if (!kinds.length) return [] as PreparationKind[];
 	for (const opportunityId of opportunityIds) {
 		const { applicationId } = await trackOpportunityTx(tx, userId, opportunityId);
 		await tx
@@ -500,7 +506,7 @@ export async function enqueueAutomatedPreparation(tx: DbOrTx, userId: string, op
 			.values(kinds.map((kind) => ({ userId, opportunityId, applicationId, kind })))
 			.onConflictDoNothing();
 	}
-	return opportunityIds.length;
+	return kinds;
 }
 
 /** What a scheduled run should ask the search provider for: the schedule's budget and a recent-results window. */

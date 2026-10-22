@@ -40789,7 +40789,7 @@
 			"get": {
 				"operationId": "getCareerOverview",
 				"summary": "Get the job-search overview",
-				"description": "One read for the dashboard: what needs attention, a funnel from discovered jobs to offers, discovery health over the window, automation use and upcoming interviews. `days` (7, 30 or 90) bounds the funnel and the discovery trend.",
+				"description": "One read for the dashboard: what needs attention, where each pipeline step stands and why, a live checklist, discovery health over the window, automation use and upcoming interviews. `days` (7, 14 or 30) bounds the window totals.",
 				"tags": [
 					"Career"
 				],
@@ -40803,13 +40803,13 @@
 									"const": 7
 								},
 								{
-									"const": 30
+									"const": 14
 								},
 								{
-									"const": 90
+									"const": 30
 								}
 							],
-							"default": 30
+							"default": 7
 						},
 						"allowEmptyValue": true,
 						"allowReserved": true
@@ -40844,6 +40844,9 @@
 												"newRoles": {
 													"type": "number"
 												},
+												"savedJobs": {
+													"type": "number"
+												},
 												"discoveryFailing": {
 													"type": "boolean"
 												}
@@ -40854,33 +40857,131 @@
 												"upcomingInterviews",
 												"unreadReminders",
 												"newRoles",
+												"savedJobs",
 												"discoveryFailing"
 											]
 										},
-										"funnel": {
+										"stages": {
 											"type": "array",
 											"items": {
 												"type": "object",
 												"properties": {
 													"key": {
 														"enum": [
-															"discovered",
-															"saved",
-															"documents",
-															"applied",
-															"screening",
-															"interview",
-															"offer"
+															"schedule",
+															"search",
+															"read",
+															"filter",
+															"save",
+															"prepare",
+															"review",
+															"apply"
 														],
 														"type": "string"
 													},
+													"state": {
+														"enum": [
+															"ok",
+															"running",
+															"waiting",
+															"warn",
+															"failed",
+															"off",
+															"idle",
+															"yours"
+														],
+														"type": "string"
+													},
+													"code": {
+														"type": "string"
+													},
 													"count": {
-														"type": "number"
+														"anyOf": [
+															{
+																"type": "number"
+															},
+															{
+																"type": "null"
+															}
+														]
+													},
+													"at": {
+														"anyOf": [
+															{
+																"type": "string",
+																"format": "date-time",
+																"x-native-type": "date"
+															},
+															{
+																"type": "null"
+															}
+														]
 													}
 												},
 												"required": [
 													"key",
-													"count"
+													"state",
+													"code",
+													"count",
+													"at"
+												]
+											}
+										},
+										"checks": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"key": {
+														"enum": [
+															"schedule",
+															"next-run",
+															"search",
+															"ai",
+															"baseline",
+															"limit",
+															"last-run",
+															"repeating"
+														],
+														"type": "string"
+													},
+													"status": {
+														"enum": [
+															"ok",
+															"warn",
+															"fail",
+															"info"
+														],
+														"type": "string"
+													},
+													"at": {
+														"anyOf": [
+															{
+																"type": "string",
+																"format": "date-time",
+																"x-native-type": "date"
+															},
+															{
+																"type": "null"
+															}
+														]
+													},
+													"value": {
+														"anyOf": [
+															{
+																"type": "number"
+															},
+															{
+																"type": "null"
+															}
+														]
+													}
+												},
+												"required": [
+													"key",
+													"status",
+													"at",
+													"value"
 												]
 											}
 										},
@@ -41055,6 +41156,9 @@
 													"format": "date-time",
 													"x-native-type": "date"
 												},
+												"generating": {
+													"type": "number"
+												},
 												"deferred": {
 													"type": "number"
 												},
@@ -41068,6 +41172,7 @@
 												"used",
 												"limit",
 												"resetsAt",
+												"generating",
 												"deferred",
 												"stale"
 											]
@@ -41103,15 +41208,293 @@
 													"kind"
 												]
 											}
+										},
+										"actions": {
+											"type": "object",
+											"properties": {
+												"counts": {
+													"type": "object",
+													"properties": {
+														"ready": {
+															"type": "number"
+														},
+														"followUps": {
+															"type": "number"
+														},
+														"issues": {
+															"type": "number"
+														}
+													},
+													"required": [
+														"ready",
+														"followUps",
+														"issues"
+													]
+												},
+												"items": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"kind": {
+																"enum": [
+																	"issue",
+																	"followup",
+																	"stale",
+																	"ready"
+																],
+																"type": "string"
+															},
+															"applicationId": {
+																"type": "string"
+															},
+															"company": {
+																"type": "string"
+															},
+															"role": {
+																"type": "string"
+															},
+															"location": {
+																"type": "string"
+															},
+															"code": {
+																"enum": [
+																	"failed",
+																	"overdue",
+																	"due",
+																	"stale",
+																	"ready"
+																],
+																"type": "string"
+															},
+															"done": {
+																"type": "array",
+																"items": {
+																	"enum": [
+																		"resume",
+																		"letter"
+																	],
+																	"type": "string"
+																}
+															},
+															"failed": {
+																"type": "array",
+																"items": {
+																	"enum": [
+																		"resume",
+																		"letter"
+																	],
+																	"type": "string"
+																}
+															},
+															"appliedDaysAgo": {
+																"anyOf": [
+																	{
+																		"type": "number"
+																	},
+																	{
+																		"type": "null"
+																	}
+																]
+															},
+															"followUpInDays": {
+																"anyOf": [
+																	{
+																		"type": "number"
+																	},
+																	{
+																		"type": "null"
+																	}
+																]
+															}
+														},
+														"required": [
+															"kind",
+															"applicationId",
+															"company",
+															"role",
+															"location",
+															"code",
+															"done",
+															"failed",
+															"appliedDaysAgo",
+															"followUpInDays"
+														]
+													}
+												}
+											},
+											"required": [
+												"counts",
+												"items"
+											]
+										},
+										"nextInterview": {
+											"anyOf": [
+												{
+													"type": "object",
+													"properties": {
+														"applicationId": {
+															"type": "string"
+														},
+														"interviewId": {
+															"anyOf": [
+																{
+																	"type": "string"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
+														"company": {
+															"type": "string"
+														},
+														"role": {
+															"type": "string"
+														},
+														"at": {
+															"type": "string",
+															"format": "date-time",
+															"x-native-type": "date"
+														},
+														"kind": {
+															"type": "string"
+														},
+														"durationMinutes": {
+															"type": "number"
+														},
+														"timezone": {
+															"type": "string"
+														},
+														"briefing": {
+															"type": "boolean"
+														},
+														"practice": {
+															"type": "boolean"
+														}
+													},
+													"required": [
+														"applicationId",
+														"interviewId",
+														"company",
+														"role",
+														"at",
+														"kind",
+														"durationMinutes",
+														"timezone",
+														"briefing",
+														"practice"
+													]
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"outcomes": {
+											"type": "object",
+											"properties": {
+												"submitted": {
+													"type": "number"
+												},
+												"firstResponses": {
+													"type": "number"
+												},
+												"interviews": {
+													"type": "number"
+												},
+												"offers": {
+													"type": "number"
+												}
+											},
+											"required": [
+												"submitted",
+												"firstResponses",
+												"interviews",
+												"offers"
+											]
+										},
+										"latestDiscovery": {
+											"anyOf": [
+												{
+													"type": "object",
+													"properties": {
+														"at": {
+															"type": "string",
+															"format": "date-time",
+															"x-native-type": "date"
+														},
+														"outcome": {
+															"enum": [
+																"success",
+																"partial",
+																"failed"
+															],
+															"type": "string"
+														},
+														"found": {
+															"type": "number"
+														},
+														"matches": {
+															"type": "number"
+														},
+														"readFailures": {
+															"type": "number"
+														},
+														"job": {
+															"anyOf": [
+																{
+																	"type": "object",
+																	"properties": {
+																		"role": {
+																			"type": "string"
+																		},
+																		"company": {
+																			"type": "string"
+																		},
+																		"location": {
+																			"type": "string"
+																		}
+																	},
+																	"required": [
+																		"role",
+																		"company",
+																		"location"
+																	]
+																},
+																{
+																	"type": "null"
+																}
+															]
+														}
+													},
+													"required": [
+														"at",
+														"outcome",
+														"found",
+														"matches",
+														"readFailures",
+														"job"
+													]
+												},
+												{
+													"type": "null"
+												}
+											]
 										}
 									},
 									"required": [
 										"windowDays",
 										"needsYou",
-										"funnel",
+										"stages",
+										"checks",
 										"discovery",
 										"automation",
-										"interviews"
+										"interviews",
+										"actions",
+										"nextInterview",
+										"outcomes",
+										"latestDiscovery"
 									]
 								}
 							}
@@ -41165,6 +41548,673 @@
 						"lang": "bash",
 						"label": "cURL",
 						"source": "curl \"https://rxresu.me/api/openapi/career/overview\" --header \"x-api-key: <api-key>\""
+					}
+				]
+			}
+		},
+		"/career/activity": {
+			"get": {
+				"operationId": "listCareerActivity",
+				"summary": "List what the pipeline did",
+				"description": "Recent events (runs, saved jobs, document steps, setting changes), newest first, kept for 30 days. `problems` keeps only warnings and errors. Paginated with limit (default 20) and offset.",
+				"tags": [
+					"Career"
+				],
+				"parameters": [
+					{
+						"name": "limit",
+						"in": "query",
+						"schema": {
+							"type": "integer",
+							"minimum": 1,
+							"maximum": 100,
+							"description": "Maximum results (1–100). Omit both pagination fields for the legacy complete list."
+						},
+						"allowEmptyValue": true,
+						"allowReserved": true
+					},
+					{
+						"name": "offset",
+						"in": "query",
+						"schema": {
+							"type": "integer",
+							"minimum": 0,
+							"maximum": 9007199254740991,
+							"description": "Zero-based offset. Defaults to 0; limit defaults to 20 when only offset is given."
+						},
+						"allowEmptyValue": true,
+						"allowReserved": true
+					},
+					{
+						"name": "problems",
+						"in": "query",
+						"schema": {
+							"type": "boolean"
+						},
+						"allowEmptyValue": true,
+						"allowReserved": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"total": {
+											"type": "number"
+										},
+										"items": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"id": {
+														"type": "string"
+													},
+													"at": {
+														"type": "string",
+														"format": "date-time",
+														"x-native-type": "date"
+													},
+													"kind": {
+														"enum": [
+															"run.finished",
+															"job.saved",
+															"prep.queued",
+															"prep.started",
+															"prep.done",
+															"prep.retry",
+															"prep.deferred",
+															"prep.failed",
+															"prep.canceled",
+															"setting.changed"
+														],
+														"type": "string"
+													},
+													"level": {
+														"enum": [
+															"info",
+															"warn",
+															"error"
+														],
+														"type": "string"
+													},
+													"runId": {
+														"anyOf": [
+															{
+																"type": "string"
+															},
+															{
+																"type": "null"
+															}
+														]
+													},
+													"opportunityId": {
+														"anyOf": [
+															{
+																"type": "string"
+															},
+															{
+																"type": "null"
+															}
+														]
+													},
+													"data": {
+														"type": "object",
+														"propertyNames": {
+															"type": "string"
+														},
+														"additionalProperties": {
+															"anyOf": [
+																{
+																	"type": "string"
+																},
+																{
+																	"type": "number"
+																},
+																{
+																	"type": "boolean"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														}
+													}
+												},
+												"required": [
+													"id",
+													"at",
+													"kind",
+													"level",
+													"runId",
+													"opportunityId",
+													"data"
+												]
+											}
+										}
+									},
+									"required": [
+										"total",
+										"items"
+									]
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Structured API error. See status and code; do not branch on message text.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": [
+										"defined",
+										"code",
+										"status",
+										"message"
+									],
+									"properties": {
+										"defined": {
+											"type": "boolean"
+										},
+										"code": {
+											"type": "string"
+										},
+										"status": {
+											"type": "integer"
+										},
+										"message": {
+											"type": "string"
+										},
+										"data": {}
+									}
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"apiKey": []
+					},
+					{
+						"bearerAuth": []
+					},
+					{
+						"cookieAuth": []
+					}
+				],
+				"x-codeSamples": [
+					{
+						"lang": "bash",
+						"label": "cURL",
+						"source": "curl \"https://rxresu.me/api/openapi/career/activity\" --header \"x-api-key: <api-key>\""
+					}
+				]
+			}
+		},
+		"/career/runs/{id}": {
+			"get": {
+				"operationId": "getCareerRun",
+				"summary": "Get one discovery run's results",
+				"description": "Every search result of the run and what became of it: new, already known, rejected, unreadable or invalid.",
+				"tags": [
+					"Career"
+				],
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"minLength": 1
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"id": {
+											"type": "string"
+										},
+										"createdAt": {
+											"type": "string",
+											"format": "date-time",
+											"x-native-type": "date"
+										},
+										"report": {
+											"type": "object",
+											"properties": {
+												"outcome": {
+													"enum": [
+														"success",
+														"partial",
+														"failed"
+													],
+													"type": "string"
+												},
+												"failure": {
+													"anyOf": [
+														{
+															"enum": [
+																"search",
+																"extraction",
+																"unknown"
+															],
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"trigger": {
+													"enum": [
+														"schedule",
+														"manual"
+													],
+													"type": "string"
+												},
+												"at": {
+													"type": "string"
+												},
+												"queries": {
+													"type": "array",
+													"items": {
+														"type": "string"
+													}
+												},
+												"provider": {
+													"type": "string"
+												},
+												"sources": {
+													"type": "array",
+													"items": {
+														"type": "string"
+													}
+												},
+												"found": {
+													"type": "integer",
+													"minimum": 0,
+													"maximum": 9007199254740991
+												},
+												"duplicates": {
+													"type": "integer",
+													"minimum": 0,
+													"maximum": 9007199254740991
+												},
+												"rejected": {
+													"type": "integer",
+													"minimum": 0,
+													"maximum": 9007199254740991
+												},
+												"matches": {
+													"type": "integer",
+													"minimum": 0,
+													"maximum": 9007199254740991
+												},
+												"readFailures": {
+													"type": "integer",
+													"minimum": 0,
+													"maximum": 9007199254740991
+												}
+											},
+											"required": [
+												"outcome",
+												"failure",
+												"trigger",
+												"at",
+												"queries",
+												"provider",
+												"sources",
+												"found",
+												"duplicates",
+												"rejected",
+												"matches",
+												"readFailures"
+											]
+										},
+										"items": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"url": {
+														"type": "string"
+													},
+													"host": {
+														"type": "string"
+													},
+													"title": {
+														"type": "string"
+													},
+													"decision": {
+														"enum": [
+															"new",
+															"known",
+															"rejected",
+															"unreadable",
+															"invalid"
+														],
+														"type": "string"
+													}
+												},
+												"required": [
+													"url",
+													"host",
+													"title",
+													"decision"
+												]
+											}
+										}
+									},
+									"required": [
+										"id",
+										"createdAt",
+										"report",
+										"items"
+									]
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Structured API error. See status and code; do not branch on message text.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": [
+										"defined",
+										"code",
+										"status",
+										"message"
+									],
+									"properties": {
+										"defined": {
+											"type": "boolean"
+										},
+										"code": {
+											"type": "string"
+										},
+										"status": {
+											"type": "integer"
+										},
+										"message": {
+											"type": "string"
+										},
+										"data": {}
+									}
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"apiKey": []
+					},
+					{
+						"bearerAuth": []
+					},
+					{
+						"cookieAuth": []
+					}
+				],
+				"x-codeSamples": [
+					{
+						"lang": "bash",
+						"label": "cURL",
+						"source": "curl \"https://rxresu.me/api/openapi/career/runs/<id>\" --header \"x-api-key: <api-key>\""
+					}
+				]
+			}
+		},
+		"/career/opportunities/{id}/journey": {
+			"get": {
+				"operationId": "getCareerJobJourney",
+				"summary": "Get a job's story",
+				"description": "The run that found a job and every step taken for it since, oldest first.",
+				"tags": [
+					"Career"
+				],
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"minLength": 1
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"opportunityId": {
+											"type": "string"
+										},
+										"role": {
+											"type": "string"
+										},
+										"company": {
+											"type": "string"
+										},
+										"url": {
+											"type": "string"
+										},
+										"applicationId": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"foundAt": {
+											"type": "string",
+											"format": "date-time",
+											"x-native-type": "date"
+										},
+										"run": {
+											"anyOf": [
+												{
+													"type": "object",
+													"properties": {
+														"id": {
+															"type": "string"
+														},
+														"at": {
+															"type": "string",
+															"format": "date-time",
+															"x-native-type": "date"
+														},
+														"query": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"id",
+														"at",
+														"query"
+													]
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"events": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"id": {
+														"type": "string"
+													},
+													"at": {
+														"type": "string",
+														"format": "date-time",
+														"x-native-type": "date"
+													},
+													"kind": {
+														"enum": [
+															"run.finished",
+															"job.saved",
+															"prep.queued",
+															"prep.started",
+															"prep.done",
+															"prep.retry",
+															"prep.deferred",
+															"prep.failed",
+															"prep.canceled",
+															"setting.changed"
+														],
+														"type": "string"
+													},
+													"level": {
+														"enum": [
+															"info",
+															"warn",
+															"error"
+														],
+														"type": "string"
+													},
+													"runId": {
+														"anyOf": [
+															{
+																"type": "string"
+															},
+															{
+																"type": "null"
+															}
+														]
+													},
+													"opportunityId": {
+														"anyOf": [
+															{
+																"type": "string"
+															},
+															{
+																"type": "null"
+															}
+														]
+													},
+													"data": {
+														"type": "object",
+														"propertyNames": {
+															"type": "string"
+														},
+														"additionalProperties": {
+															"anyOf": [
+																{
+																	"type": "string"
+																},
+																{
+																	"type": "number"
+																},
+																{
+																	"type": "boolean"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														}
+													}
+												},
+												"required": [
+													"id",
+													"at",
+													"kind",
+													"level",
+													"runId",
+													"opportunityId",
+													"data"
+												]
+											}
+										}
+									},
+									"required": [
+										"opportunityId",
+										"role",
+										"company",
+										"url",
+										"applicationId",
+										"foundAt",
+										"run",
+										"events"
+									]
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Structured API error. See status and code; do not branch on message text.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": [
+										"defined",
+										"code",
+										"status",
+										"message"
+									],
+									"properties": {
+										"defined": {
+											"type": "boolean"
+										},
+										"code": {
+											"type": "string"
+										},
+										"status": {
+											"type": "integer"
+										},
+										"message": {
+											"type": "string"
+										},
+										"data": {}
+									}
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"apiKey": []
+					},
+					{
+						"bearerAuth": []
+					},
+					{
+						"cookieAuth": []
+					}
+				],
+				"x-codeSamples": [
+					{
+						"lang": "bash",
+						"label": "cURL",
+						"source": "curl \"https://rxresu.me/api/openapi/career/opportunities/<id>/journey\" --header \"x-api-key: <api-key>\""
 					}
 				]
 			}

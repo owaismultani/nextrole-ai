@@ -9,6 +9,7 @@ import { cn } from "@reactive-resume/utils/style";
 import { diagnose } from "./discovery-run";
 import { DiscoveryStatus } from "./discovery-status";
 import { summaryLabel } from "./preparation";
+import { RunResults } from "./run-results";
 import { Eyebrow, useCareerTime } from "./shared";
 import { orpc } from "@/libs/orpc/client";
 
@@ -107,9 +108,11 @@ function RunRow({ run }: { run: Run }) {
 	const { when } = useCareerTime();
 	const { report } = run;
 	const diagnosis = diagnose(report);
+	// The per-result detail is fetched only once the run is opened.
+	const [open, setOpen] = useState(false);
 	return (
 		<li className="rounded-lg border border-line">
-			<details className="group">
+			<details className="group" onToggle={(event) => setOpen(event.currentTarget.open)}>
 				<summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5 text-[13px]">
 					<span className="font-medium">{when(run.createdAt)}</span>
 					<span className={cn("font-semibold", outcomeTone(report.outcome))}>{outcomeLabel(report.outcome)}</span>
@@ -138,6 +141,7 @@ function RunRow({ run }: { run: Run }) {
 							))}
 						</ul>
 					)}
+					{open && <RunResults runId={run.id} />}
 				</div>
 			</details>
 		</li>

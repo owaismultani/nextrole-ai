@@ -39,7 +39,15 @@ export function DiscoveryRuns() {
 		enabled: session.status === "signed-in" && Boolean(schedule),
 		queryKey: [...orpc.career.runs.key(), session.server, page],
 		placeholderData: (previous) => previous,
-		refetchInterval: schedule?.activeRun ? 5_000 : false,
+		refetchInterval: (query) =>
+			schedule?.activeRun ||
+			query.state.data?.items.some((run) =>
+				run.jobs.some((job) =>
+					[job.resume, job.letter].some((step) => step?.status === "queued" || step?.status === "running"),
+				),
+			)
+				? 10_000
+				: false,
 	});
 	if (!schedule) return null;
 	const total = runs.data?.total ?? 0;

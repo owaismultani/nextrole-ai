@@ -1,6 +1,6 @@
 import { eventIterator } from "@orpc/server";
 import z from "zod";
-import { workspaceTabSchema } from "@reactive-resume/schema/career";
+import { workspaceHintSchema } from "@reactive-resume/schema/career";
 import { protectedProcedure } from "../../context";
 import { uiMessageSchema } from "../../dto/agent";
 import { aiRequestRateLimit } from "../../middleware/rate-limit";
@@ -37,7 +37,7 @@ export const messagesRouter = {
 							.describe(
 								"Career coach: let the coach search public pages through the web search service (off by default).",
 							),
-						tab: workspaceTabSchema.optional().describe("Career coach: the workspace tab the user is on, as a hint."),
+						tab: workspaceHintSchema.optional().describe("Career coach: the workspace tab the user is on, as a hint."),
 						offerIds: z
 							.array(z.string().min(1))
 							.max(2)

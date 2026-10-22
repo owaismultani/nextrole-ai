@@ -2,12 +2,14 @@ import type { SavedItem } from "./hooks";
 import type { CareerProfileData, OfferTerms } from "@reactive-resume/schema/career";
 import { plural, t } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 import { useCareerQueries, useCareerTime, useNow, useOffers } from "./hooks";
 import { defaultPair, formatMoney, matchingPlace, meetsMinimum, moneyDifference, sameTerms } from "./offer-compare";
 import { Actions, LoadState } from "./shared";
+import { useApplications } from "@/features/applications/queries";
+import { OfferSheet } from "@/features/workspace/offer-sheet";
 import { routes } from "@/routes";
 import { Banner, Button, Card, EmptyState, Screen, SelectSheet, Text, useTheme } from "@/ui";
 
@@ -24,6 +26,9 @@ export function OffersScreen() {
 	const { profile } = useCareerQueries();
 	const offers = (query.data ?? []).filter((item): item is Offer => item.data.kind === "offer");
 	const [selected, setSelected] = useState<(string | undefined)[]>([]);
+	// The offer editor: an offer to correct, or null for a new one (the person chooses the application).
+	const [editor, setEditor] = useState<{ offer: Offer | null } | null>(null);
+	const applications = useApplications();
 	const defaults = defaultPair(offers);
 	const a = offers.find((row) => row.id === selected[0]) ?? offers.find((row) => row.id === defaults[0]);
 	const b =
@@ -31,13 +36,44 @@ export function OffersScreen() {
 		offers.find((row) => row.id === defaults[1] && row.id !== a?.id);
 	return (
 		<Screen onRefresh={() => Promise.allSettled([query.refetch(), profile.refetch()])}>
+			<Stack.Screen options={{ title: t`Offers` }} />
 			<Text color="ink3">{t`Compared in their original currency and pay period. Comparing doesn't share anything with the coach.`}</Text>
 			<LoadState query={query} />
 			<LoadState query={profile} />
 			{!query.isError && !query.isPending && !offers.length ? (
 				<EmptyState
-					title={t`No offers to compare yet`}
-					message={t`Paste an offer into an application's Messages tab.`}
+					title={t`No offers yet`}
+					message={t`Add an offer to an application when you receive one.`}
+					action={{ label: t`Choose application`, onPress: () => setEditor({ offer: null }) }}
+				/>
+			) : null}
+			{offers.length ? (
+				<Actions>
+					<Button variant="secondary" label={t`Add offer`} onPress={() => setEditor({ offer: null })} />
+					{[a, b].map((offer) =>
+						offer ? (
+							<Button
+								key={offer.id}
+								variant="ghost"
+								label={t`Edit ${offer.application?.company ?? t`offer`} terms`}
+								onPress={() => setEditor({ offer })}
+							/>
+						) : null,
+					)}
+				</Actions>
+			) : null}
+			{editor ? (
+				<OfferSheet
+					application={
+						editor.offer
+							? (applications.data?.find((application) => application.id === editor.offer?.applicationId) ?? null)
+							: null
+					}
+					offer={editor.offer}
+					onClose={() => setEditor(null)}
+					onSaved={(saved) => {
+						if (!editor.offer) setSelected([saved.id, a && a.id !== saved.id ? a.id : b?.id]);
+					}}
 				/>
 			) : null}
 			{offers.length ? (

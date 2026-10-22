@@ -335,7 +335,7 @@ describe.skipIf(!databaseUrl)("durable career scheduling", () => {
 			{
 				notice: { type: "briefing", company: "ACME" },
 				applicationId: "alice-app",
-				url: "/dashboard/applications/alice-app/prepare",
+				url: "/dashboard/applications/alice-app/interviews?section=prepare",
 			},
 		]);
 	});

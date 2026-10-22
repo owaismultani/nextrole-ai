@@ -17,11 +17,11 @@ export const summaryLabel = (summary: PreparationSummary) =>
 export function stepMessage(code: PreparationError | null) {
 	switch (code) {
 		case "setting-off":
-			return t`Canceled because this was turned off in Automation settings.`;
+			return t`Canceled because this was turned off in Automation.`;
 		case "daily-limit":
 			return t`Waiting for the daily limit to reset.`;
 		case "no-baseline":
-			return t`Choose a baseline resume in Settings → Automation.`;
+			return t`Choose a baseline resume in Automation.`;
 		case "no-description":
 			return t`This job has no description to work from.`;
 		case "no-ai":

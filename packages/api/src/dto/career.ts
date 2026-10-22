@@ -100,6 +100,8 @@ export const careerPreparationStepSchema = z.object({
 	outputId: z.string().nullable(),
 	eligibleAt: z.date().nullable(),
 	completedAt: z.date().nullable(),
+	/** The resume this document started from, or null when that was not recorded (older documents). */
+	baseline: z.object({ resumeId: z.string(), name: z.string().nullable() }).nullable(),
 	stale: z.boolean(),
 	edited: z.boolean(),
 });

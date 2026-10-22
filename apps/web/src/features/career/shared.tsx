@@ -169,13 +169,19 @@ export function Swap({ id, children, className }: { id: string; children: ReactN
 
 export const tabLabel = (tab: WorkspaceTab) =>
 	({
-		fit: t({ message: "Fit", context: "Application workspace tab: how well a job fits your experience" }),
-		apply: t`Apply`,
-		prepare: t`Prepare`,
-		practise: t`Practise`,
-		debrief: t`Debrief`,
+		summary: t({ message: "Summary", context: "Application workspace tab: the job, its fit and what to do next" }),
+		documents: t({
+			message: "Documents",
+			context: "Application workspace tab: the resume and cover letter for this job",
+		}),
+		answers: t({ message: "Answers", context: "Application workspace tab: answers to the application form" }),
+		interviews: t({
+			message: "Interviews",
+			context: "Application workspace tab: rounds, preparation, practice and debriefs",
+		}),
 		messages: t`Messages`,
-		saved: t({ message: "Saved", context: "Application workspace tab: earlier results kept for this job" }),
+		saved: t({ message: "Saved work", context: "Application workspace tab: earlier results kept for this job" }),
+		activity: t({ message: "Activity", context: "Application workspace tab: the history of this application" }),
 	})[tab];
 
 // ---- Long AI work: what the coach is doing, one phrase at a time ----

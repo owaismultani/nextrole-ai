@@ -121,7 +121,14 @@ export function PreparationList({ className }: PreparationListProps) {
 	);
 }
 
-function PreparationRow({ job }: { job: PreparationJob }) {
+type PreparationRowProps = {
+	job: PreparationJob;
+	/** On an application's own page the job's name, its link and its history are already there. */
+	scope?: "all" | "application";
+};
+
+/** One job's resume and cover letter: status, what to open, retry or regenerate, gaps, freshness and source baseline. */
+export function PreparationRow({ job, scope = "all" }: PreparationRowProps) {
 	const { when } = useCareerTime();
 	const [journeyOpen, setJourneyOpen] = useState(false);
 	const queryClient = useQueryClient();
@@ -145,10 +152,14 @@ function PreparationRow({ job }: { job: PreparationJob }) {
 		<li className="grid gap-2 rounded-lg border border-line p-3">
 			<div className="flex flex-wrap items-center gap-2">
 				<div className="grid min-w-0 flex-1 gap-0.5">
-					<span className="truncate text-sm font-semibold">{[job.company, job.role].filter(Boolean).join(" · ")}</span>
+					{scope === "all" && (
+						<span className="truncate text-sm font-semibold">
+							{[job.company, job.role].filter(Boolean).join(" · ")}
+						</span>
+					)}
 					<span className={`text-xs font-medium ${tone}`}>{summaryLabel(job.summary)}</span>
 				</div>
-				{job.applicationId && (
+				{scope === "all" && job.applicationId && (
 					<Link
 						to="/dashboard/applications/$applicationId"
 						params={{ applicationId: job.applicationId }}
@@ -213,6 +224,19 @@ function PreparationRow({ job }: { job: PreparationJob }) {
 							)}
 						</div>
 						{message && <p className="text-ink-3">{message}</p>}
+						{step.status === "done" && (
+							<p className="text-ink-3">
+								{step.baseline ? (
+									step.baseline.name ? (
+										<Trans>Made from your baseline “{step.baseline.name}”.</Trans>
+									) : (
+										<Trans>Made from a baseline resume that has since been removed.</Trans>
+									)
+								) : (
+									<Trans>The baseline it was made from was not recorded.</Trans>
+								)}
+							</p>
+						)}
 						{step.eligibleAt && (
 							<p className="text-ink-3">
 								<Trans>Eligible again {when(step.eligibleAt)}.</Trans>
@@ -243,15 +267,17 @@ function PreparationRow({ job }: { job: PreparationJob }) {
 					</div>
 				);
 			})}
-			<details
-				className="border-t border-line pt-2 text-[13px]"
-				onToggle={(event) => setJourneyOpen(event.currentTarget.open)}
-			>
-				<summary className="cursor-pointer text-ink-3">
-					<Trans>What happened for this job</Trans>
-				</summary>
-				<div className="mt-2">{journeyOpen && <JobJourney opportunityId={job.opportunityId} />}</div>
-			</details>
+			{scope === "all" && (
+				<details
+					className="border-t border-line pt-2 text-[13px]"
+					onToggle={(event) => setJourneyOpen(event.currentTarget.open)}
+				>
+					<summary className="cursor-pointer text-ink-3">
+						<Trans>What happened for this job</Trans>
+					</summary>
+					<div className="mt-2">{journeyOpen && <JobJourney opportunityId={job.opportunityId} />}</div>
+				</details>
+			)}
 		</li>
 	);
 }

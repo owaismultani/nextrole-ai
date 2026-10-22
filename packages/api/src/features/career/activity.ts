@@ -113,4 +113,30 @@ export const careerActivity = {
 			events: events.map(toEvent),
 		};
 	},
+
+	/** The journey of the job an application was made from, or null when it was added by hand. */
+	applicationJourney: async (userId: string, applicationId: string) => {
+		const [tracked] = await db
+			.select({ id: tables.careerOpportunity.id })
+			.from(tables.careerOpportunity)
+			.where(
+				and(
+					eq(tables.careerOpportunity.userId, userId),
+					eq(tables.careerOpportunity.trackedApplicationId, applicationId),
+				),
+			)
+			.limit(1);
+		// Documents made before the role was linked still point back at it.
+		const [prepared] = tracked
+			? []
+			: await db
+					.select({ id: tables.careerPreparation.opportunityId })
+					.from(tables.careerPreparation)
+					.where(
+						and(eq(tables.careerPreparation.userId, userId), eq(tables.careerPreparation.applicationId, applicationId)),
+					)
+					.limit(1);
+		const opportunityId = tracked?.id ?? prepared?.id;
+		return opportunityId ? careerActivity.journey(userId, opportunityId) : null;
+	},
 };

@@ -93,7 +93,14 @@ export function TodayScreen() {
 									<Button
 										variant="secondary"
 										label={t`Open workspace`}
-										onPress={() => router.push(routes.application(next.application.id, "prepare"))}
+										onPress={() =>
+											router.push(
+												routes.application(next.application.id, "interviews", {
+													section: "prepare",
+													round: next.interview.id,
+												}),
+											)
+										}
 									/>
 								</Card>
 							) : !applications.isPending && !applications.isError ? (
@@ -127,7 +134,8 @@ export function TodayScreen() {
 														router.push(
 															routes.application(
 																row.applicationId ?? "",
-																row.notice.type === "briefing" ? "prepare" : "messages",
+																row.notice.type === "briefing" ? "interviews" : "messages",
+																row.notice.type === "briefing" ? { section: "prepare" } : {},
 															),
 														)
 													}

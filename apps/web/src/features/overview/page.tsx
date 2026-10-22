@@ -233,7 +233,6 @@ function describeAction(action: Action) {
 			tone: "warn" as const,
 			line: done ? `${t`${done} ready`} · ${failure}` : failure,
 			button: t`Resolve`,
-			to: "pipeline" as const,
 		};
 	}
 	if (action.kind === "followup") {
@@ -255,7 +254,6 @@ function describeAction(action: Action) {
 			tone: "warn" as const,
 			line: applied === null ? due : `${t`Applied ${applied} days ago`} · ${due}`,
 			button: t`Follow up`,
-			to: "application" as const,
 		};
 	}
 	if (action.kind === "stale")
@@ -264,14 +262,12 @@ function describeAction(action: Action) {
 			tone: "info" as const,
 			line: t`Your resume or the posting changed since generation`,
 			button: t`Review changes`,
-			to: "application" as const,
 		};
 	return {
 		chip: t`Documents ready`,
 		tone: "good" as const,
 		line: action.done.length === 2 ? t`Resume and cover letter prepared` : t`${done} prepared`,
 		button: t`Review`,
-		to: "application" as const,
 	};
 }
 
@@ -365,12 +361,13 @@ function ActionRow({ action }: { action: Action }) {
 	const info = describeAction(action);
 	const chip = CHIP[info.tone];
 	const place = [action.company, action.location].filter(Boolean).join(" · ");
-	const target =
-		info.to === "pipeline" ? (
-			<Link to="/dashboard/automation" />
-		) : (
-			<Link to="/dashboard/applications/$applicationId/{-$tab}" params={{ applicationId: action.applicationId }} />
-		);
+	// Documents to resolve, review or refresh open that application's Documents; a follow-up opens its Messages.
+	const target = (
+		<Link
+			to="/dashboard/applications/$applicationId/{-$tab}"
+			params={{ applicationId: action.applicationId, tab: action.kind === "followup" ? "messages" : "documents" }}
+		/>
+	);
 	return (
 		<li className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 border-t border-line py-3.5 first:border-t-0 max-sm:grid-cols-[auto_minmax(0,1fr)]">
 			<Avatar name={action.company || action.role} />
@@ -600,7 +597,8 @@ function ComingUp({ data }: { data: Overview }) {
 							render={
 								<Link
 									to="/dashboard/applications/$applicationId/{-$tab}"
-									params={{ applicationId: next.applicationId, tab: "prepare" }}
+									params={{ applicationId: next.applicationId, tab: "interviews" }}
+									search={{ section: "prepare", ...(next.interviewId ? { round: next.interviewId } : {}) }}
 								/>
 							}
 						>

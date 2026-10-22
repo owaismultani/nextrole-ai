@@ -151,7 +151,9 @@ function NextActions({ data }: { data: Overview }) {
 							variant="secondary"
 							label={info.button}
 							onPress={() =>
-								router.push(info.to === "automation" ? routes.automation() : routes.application(action.applicationId))
+								router.push(
+									routes.application(action.applicationId, action.kind === "followup" ? "messages" : "documents"),
+								)
 							}
 						/>
 					</Card>
@@ -187,7 +189,14 @@ function ComingUp({ data }: { data: Overview }) {
 					</Text>
 					<Button
 						label={t`Prepare interview`}
-						onPress={() => router.push(routes.application(next.applicationId, "prepare"))}
+						onPress={() =>
+							router.push(
+								routes.application(next.applicationId, "interviews", {
+									section: "prepare",
+									...(next.interviewId ? { round: next.interviewId } : {}),
+								}),
+							)
+						}
 					/>
 				</Card>
 			)}

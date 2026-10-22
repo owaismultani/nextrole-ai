@@ -23,7 +23,6 @@ import {
 } from "../hooks";
 import { minutesUntil, preparePhase } from "../logic";
 import { Actions, AiNotice, Block, CheckRow, EmptyNotice, Pill, PrivacyLine, useWorking, workingSteps } from "../parts";
-import { WorkspaceScreen } from "../shell";
 import { orpc } from "@/api/client";
 import { useHasAIProvider } from "@/features/ai/providers";
 import { interviewTypeLabel, useUserTime } from "@/features/application-detail/hooks";
@@ -34,11 +33,7 @@ type Briefing = SavedItem & { data: SavedData<"briefing"> };
 
 const isBriefing = (item: SavedItem | undefined): item is Briefing => item?.data.kind === "briefing";
 
-export function PrepareTab() {
-	return <WorkspaceScreen tab="prepare">{(props) => <Prepare {...props} />}</WorkspaceScreen>;
-}
-
-function Prepare({ application, version, interview, now, go, addInterview }: WorkspaceTabProps) {
+export function Prepare({ application, version, interview, now, go, addInterview }: WorkspaceTabProps) {
 	const { t } = useLingui();
 	const { space } = useTheme();
 	const saved = useSavedItems(application.id);

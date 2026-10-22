@@ -1,6 +1,15 @@
 import type { CareerRunReport } from "./career";
 import { describe, expect, it } from "vitest";
-import { cadenceOf, diagnoseRun, EVERY_VALUES, everyOf, rollForwardMinutes, runStateOf } from "./career-run";
+import {
+	cadenceOf,
+	diagnoseRun,
+	EVERY_VALUES,
+	everyOf,
+	rollForwardMinutes,
+	runStateOf,
+	workspaceAction,
+	type WorkspaceActionInput,
+} from "./career-run";
 
 const report = (patch: Partial<CareerRunReport> = {}): CareerRunReport => ({
 	outcome: "success",
@@ -84,5 +93,46 @@ describe("run state", () => {
 		expect(runStateOf(row({ lastRun: report() }))).toBe("succeeded");
 		expect(runStateOf(row({ lastRun: report({ outcome: "partial" }) }))).toBe("partial");
 		expect(runStateOf(row({ lastRun: report({ outcome: "failed", failure: "search" }) }))).toBe("failed");
+	});
+});
+
+describe("the one thing an application needs", () => {
+	const base: WorkspaceActionInput = {
+		status: "saved",
+		preparation: "none",
+		interviewUpcoming: false,
+		followUpDue: false,
+		hasOffer: false,
+		hasFit: true,
+	};
+	const action = (patch: Partial<WorkspaceActionInput>) => workspaceAction({ ...base, ...patch });
+
+	it("fixes documents that stopped before anything else", () => {
+		expect(action({ preparation: "attention", interviewUpcoming: true, status: "interview" })).toEqual({
+			kind: "resolve-missing",
+			tab: "documents",
+		});
+	});
+
+	it("keeps document preparation separate from the stage", () => {
+		expect(action({ preparation: "ready" })).toEqual({ kind: "review-documents", tab: "documents" });
+		// Once applied, ready documents are history, not the next thing to do.
+		expect(action({ preparation: "ready", status: "applied" }).kind).toBe("none");
+	});
+
+	it("follows the situation: interview, follow-up, offer, fit", () => {
+		expect(action({ status: "interview", interviewUpcoming: true })).toEqual({
+			kind: "prepare-interview",
+			tab: "interviews",
+			section: "prepare",
+		});
+		expect(action({ status: "applied", followUpDue: true })).toEqual({ kind: "follow-up", tab: "messages" });
+		expect(action({ status: "offer" }).kind).toBe("add-offer");
+		expect(action({ status: "offer", hasOffer: true }).kind).toBe("review-offer");
+		expect(action({ hasFit: false }).kind).toBe("check-fit");
+	});
+
+	it("asks nothing of a closed application", () => {
+		expect(action({ status: "closed", preparation: "attention", followUpDue: true }).kind).toBe("none");
 	});
 });

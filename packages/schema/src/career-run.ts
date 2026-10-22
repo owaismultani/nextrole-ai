@@ -87,3 +87,51 @@ export function summarizePreparation(steps: PreparationStep[]): PreparationSumma
 			: "queued";
 	return "ready";
 }
+
+/** A job's documents as the application sees them: a summary, or `none` when nothing was ever prepared for it. */
+export type ApplicationPreparation = PreparationSummary | "none";
+
+export type WorkspaceActionInput = {
+	status: "saved" | "applied" | "screening" | "interview" | "offer" | "closed";
+	preparation: ApplicationPreparation;
+	/** A round is still to come. */
+	interviewUpcoming: boolean;
+	/** A follow-up is due or overdue. */
+	followUpDue: boolean;
+	/** At least one offer was saved for this application. */
+	hasOffer: boolean;
+	/** A fit check has been run. */
+	hasFit: boolean;
+};
+
+export type WorkspaceAction = {
+	kind:
+		| "resolve-missing"
+		| "add-offer"
+		| "review-offer"
+		| "prepare-interview"
+		| "follow-up"
+		| "review-documents"
+		| "check-fit"
+		| "none";
+	/** Where the one primary action goes. */
+	tab: "summary" | "documents" | "interviews" | "messages";
+	section?: "prepare";
+};
+
+/**
+ * The one thing an application most needs from you, by situation, so every screen offers the same primary action: fix
+ * documents that stopped, prepare for the next round, answer a follow-up, review what was made, or review an offer.
+ * Closed applications need nothing. Document preparation is separate from the stage: a Saved application can have
+ * documents ready, and neither means submitted.
+ */
+export function workspaceAction(input: WorkspaceActionInput): WorkspaceAction {
+	if (input.status === "closed") return { kind: "none", tab: "summary" };
+	if (input.preparation === "attention") return { kind: "resolve-missing", tab: "documents" };
+	if (input.status === "offer") return { kind: input.hasOffer ? "review-offer" : "add-offer", tab: "summary" };
+	if (input.interviewUpcoming) return { kind: "prepare-interview", tab: "interviews", section: "prepare" };
+	if (input.followUpDue) return { kind: "follow-up", tab: "messages" };
+	if (input.preparation === "ready" && input.status === "saved") return { kind: "review-documents", tab: "documents" };
+	if (input.status === "saved" && !input.hasFit) return { kind: "check-fit", tab: "summary" };
+	return { kind: "none", tab: "summary" };
+}

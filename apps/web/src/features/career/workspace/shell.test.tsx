@@ -33,6 +33,8 @@ vi.mock("@/libs/orpc/client", () => {
 				workspace: endpoint("workspace", api.workspace),
 				savedItems: endpoint("saved", api.saved),
 				facts: endpoint("facts"),
+				preparations: endpoint("preparations"),
+				applicationJourney: endpoint("journey", async () => null),
 				saveWorkspace: endpoint("save", undefined, api.save),
 				submitApplication: endpoint("submit"),
 				generate: endpoint("generate"),
@@ -43,7 +45,7 @@ vi.mock("@/libs/orpc/client", () => {
 vi.mock("@tanstack/react-router", () => ({
 	useNavigate: () => api.navigate,
 	useRouteContext: () => ({ session: { user: { id: "shell-user", timezone: "UTC" } } }),
-	useRouter: () => ({ state: { location: { state: { __TSR_index: 0 } } } }),
+	useRouter: () => ({ state: { location: { state: { __TSR_index: 0 } } }, history: { push: vi.fn() } }),
 	Link: ({ children }: { children: ReactNode }) => <a href="#test-link">{children}</a>,
 }));
 vi.mock("@reactive-resume/ui/hooks/use-breakpoint", () => ({ useBreakpoint: () => "desktop" }));
@@ -59,6 +61,11 @@ vi.mock("./prepare", () => ({ PrepareTab: () => null }));
 vi.mock("./practise", () => ({ PractiseTab: () => null }));
 vi.mock("./debrief", () => ({ DebriefTab: () => null }));
 vi.mock("./messages", () => ({ MessagesTab: () => null }));
+vi.mock("./summary", () => ({ SummaryTab: () => null }));
+vi.mock("./documents", () => ({ DocumentsTab: () => null }));
+vi.mock("./interviews", () => ({ InterviewsTab: () => null }));
+vi.mock("./activity", () => ({ ActivityTab: () => null }));
+vi.mock("./offer-dialog", () => ({ OfferDialog: () => null }));
 vi.mock("./saved", () => ({ SavedTab: () => null }));
 vi.mock("@reactive-resume/ui/components/toast", () => ({ toast: { add: vi.fn() } }));
 
@@ -127,7 +134,7 @@ function mount(version?: string, options: { workspace?: boolean; resumeId?: stri
 	const view = render(
 		<QueryClientProvider client={client}>
 			<I18nProvider i18n={i18n}>
-				<Workspace applicationId={application.id} tab="apply" search={version ? { version } : {}} />
+				<Workspace applicationId={application.id} tab="answers" search={version ? { version } : {}} />
 			</I18nProvider>
 		</QueryClientProvider>,
 	);

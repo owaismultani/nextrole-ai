@@ -1,5 +1,6 @@
 // The assistant's chat transport, ported from apps/web/src/features/assistant/chat.ts. It has no React Native imports,
 // so the Node scenarios in reports/M6-T3 drive it with mocked event iterators.
+import type { WorkspaceHint } from "@reactive-resume/schema/career";
 import type { ChatTransport, UIMessage, UIMessageChunk } from "ai";
 import { eventIteratorToUnproxiedDataStream } from "@orpc/client";
 import { parseJsonEventStream, uiMessageChunkSchema } from "ai";
@@ -12,7 +13,7 @@ export type MessageContext = {
 	application?: boolean;
 	memory?: boolean;
 	web?: boolean;
-	tab?: "fit" | "apply" | "prepare" | "practise" | "debrief" | "messages" | "saved";
+	tab?: WorkspaceHint;
 	offerIds?: string[];
 };
 

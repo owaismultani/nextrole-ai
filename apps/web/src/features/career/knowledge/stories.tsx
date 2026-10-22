@@ -368,8 +368,8 @@ function PractiseButton({ storyId }: PractiseButtonProps) {
 			onClick={() =>
 				void navigate({
 					to: "/dashboard/applications/$applicationId/{-$tab}",
-					params: { applicationId: next.application.id, tab: "practise" },
-					search: { speak: true, story: storyId },
+					params: { applicationId: next.application.id, tab: "interviews" },
+					search: { section: "practise", speak: true, story: storyId },
 				})
 			}
 		>

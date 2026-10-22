@@ -387,7 +387,14 @@ function Schedules({
 									label={row.kind === "prepare" ? t`Open interview` : t`Open application`}
 									variant="ghost"
 									onPress={() =>
-										router.push(routes.application(row.applicationId ?? "", row.kind === "prepare" ? "prepare" : "fit"))
+										router.push(
+											row.kind === "prepare"
+												? routes.application(row.applicationId ?? "", "interviews", {
+														section: "prepare",
+														...(row.interviewId ? { round: row.interviewId } : {}),
+													})
+												: routes.application(row.applicationId ?? ""),
+										)
 									}
 								/>
 							) : null}

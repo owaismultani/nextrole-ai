@@ -2,7 +2,7 @@ import type { getModel } from "../ai/service";
 import type { WebAccessConnection } from "../web-access/contracts";
 import type { AssistantDocument } from "./document";
 import type { ProposeEditsInput, ProposeEditsOutput } from "@reactive-resume/ai/tools/agent-tool-contracts";
-import type { WorkspaceTab } from "@reactive-resume/schema/career";
+import type { WorkspaceHint } from "@reactive-resume/schema/career";
 import type { FilePart, ImagePart, ModelMessage, TextPart, UIMessage, UIMessageChunk } from "ai";
 import { ORPCError } from "@orpc/client";
 import { streamToEventIterator } from "@orpc/server";
@@ -101,7 +101,7 @@ type MessageContext = {
 	application?: boolean | undefined;
 	memory?: boolean | undefined;
 	web?: boolean | undefined;
-	tab?: WorkspaceTab | undefined;
+	tab?: WorkspaceHint | undefined;
 	offerIds?: string[] | undefined;
 	document?: boolean | undefined;
 	posting?: boolean | undefined;
@@ -742,7 +742,7 @@ function createAgent(input: {
 		shareApplication: boolean;
 		shareMemory: boolean;
 		web: boolean;
-		tab: WorkspaceTab | undefined;
+		tab: WorkspaceHint | undefined;
 		offers: Awaited<ReturnType<typeof careerService.savedItems>>;
 		sourceMessageId: string | undefined;
 		allowedSources: Set<string>;

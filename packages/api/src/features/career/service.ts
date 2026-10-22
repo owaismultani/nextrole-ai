@@ -1,5 +1,5 @@
 import type { DbOrTx } from "@reactive-resume/db/client";
-import type { CareerSource } from "@reactive-resume/schema/career";
+import type { CareerSource, OfferTerms } from "@reactive-resume/schema/career";
 import type z from "zod";
 import { createHash } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
@@ -731,6 +731,45 @@ export const careerService = {
 					message: "Career knowledge changed while generating this result. Please generate it again.",
 				});
 		}),
+	/**
+	 * Saves the terms of an offer the person was given, for one application, so it can be compared. Without `id` it adds
+	 * an offer; with one it corrects that offer's terms. Nothing here changes the application's stage.
+	 */
+	saveOffer: async (input: { userId: string; applicationId: string; id?: string | undefined; terms: OfferTerms }) => {
+		const application = await requireCareerApplication(input);
+		if (!application) throw new ORPCError("NOT_FOUND");
+		const context = await careerService.context({ userId: input.userId, applicationId: input.applicationId });
+		const values = {
+			title: `${application.company} · ${input.terms.version === "verbal" ? "Verbal offer" : "Written offer"}`,
+			data: { kind: "offer" as const, ...input.terms },
+			inputVersion: context.version,
+		};
+		const [row] = input.id
+			? await db
+					.update(tables.careerArtifact)
+					.set(values)
+					.where(
+						and(
+							eq(tables.careerArtifact.id, input.id),
+							eq(tables.careerArtifact.userId, input.userId),
+							eq(tables.careerArtifact.applicationId, input.applicationId),
+							sql`${tables.careerArtifact.data}->>'kind' = 'offer'`,
+						),
+					)
+					.returning()
+			: await db
+					.insert(tables.careerArtifact)
+					.values({
+						userId: input.userId,
+						applicationId: input.applicationId,
+						interviewId: null,
+						evidence: { factIds: [], storyIds: [] },
+						...values,
+					})
+					.returning();
+		if (!row) throw new ORPCError("NOT_FOUND");
+		return { ...row, application: { company: application.company, role: application.role }, outdated: false };
+	},
 	deleteSavedItem: async (userId: string, id: string) => {
 		await db
 			.delete(tables.careerArtifact)

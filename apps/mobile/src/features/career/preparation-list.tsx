@@ -14,13 +14,12 @@ import { Banner, Button, Card, SelectSheet, Text, useTheme } from "@/ui";
 
 const PAGE_SIZE = 5;
 
-/** Career → Today: each job's tailored resume and cover letter, to open, retry or regenerate. */
+/** Automation: each job's tailored resume and cover letter, to open, retry or regenerate. */
 export function PreparationList() {
 	const { t } = useLingui();
 	const { space } = useTheme();
 	const router = useRouter();
 	const session = useSession();
-	const time = useCareerTime();
 	const action = useCareerAction();
 	const jobs = useQuery({
 		...orpc.career.preparations.queryOptions({ input: {} }),
@@ -58,74 +57,7 @@ export function PreparationList() {
 			/>
 			<View style={{ padding: space.s3, gap: space.s3 }}>
 				{shown.map((job) => (
-					<Card key={job.opportunityId} style={{ gap: space.s2 }}>
-						<Text variant="title">{[job.company, job.role].filter(Boolean).join(" · ")}</Text>
-						<Text
-							color={job.summary === "attention" ? "dangerText" : job.summary === "ready" ? "accentText" : "infoText"}
-						>
-							{summaryLabel(job.summary)}
-						</Text>
-						{job.steps.map((step) => {
-							const message = stepMessage(step.error);
-							return (
-								<View key={step.id} style={{ gap: space.s1 }}>
-									<Text>
-										{step.kind === "resume" ? t`Tailored resume` : t`Cover letter`} ·{" "}
-										{step.status === "done"
-											? t`Done`
-											: step.status === "running"
-												? t`Generating`
-												: step.status === "queued"
-													? t`Queued`
-													: step.status === "failed"
-														? t`Needs attention`
-														: t`Canceled`}
-									</Text>
-									{message ? <Text color="ink3">{message}</Text> : null}
-									{step.eligibleAt ? (
-										<Text color="ink3">{t`Eligible again ${time.when(step.eligibleAt)}.`}</Text>
-									) : null}
-									{step.stale ? (
-										<Text color="warnText">{t`Your baseline resume or the posting changed since this was made. Regenerate for a fresh copy.`}</Text>
-									) : null}
-									{step.edited ? (
-										<Text color="ink3">{t`You edited this document. Regenerating makes a new copy and leaves yours untouched.`}</Text>
-									) : null}
-									<Gaps issues={step.issues} />
-									{step.outputId ? (
-										<Button
-											variant="secondary"
-											label={t`Open`}
-											onPress={() =>
-												router.push(
-													step.kind === "resume"
-														? routes.builder(step.outputId ?? "")
-														: routes.letter(step.outputId ?? ""),
-												)
-											}
-										/>
-									) : null}
-									{step.status === "failed" || step.status === "canceled" ? (
-										<Button
-											variant="secondary"
-											label={t`Retry`}
-											disabled={action.pending}
-											onPress={() => void action.run(() => client.career.retryPreparation({ id: step.id }))}
-										/>
-									) : null}
-									{step.status !== "running" && step.status !== "queued" ? (
-										<Button
-											variant="ghost"
-											label={t`Regenerate`}
-											disabled={action.pending}
-											onPress={() => void action.run(() => client.career.regeneratePreparation({ id: step.id }))}
-										/>
-									) : null}
-								</View>
-							);
-						})}
-						<JobJourney opportunityId={job.opportunityId} />
-					</Card>
+					<PreparationCard key={job.opportunityId} job={job} />
 				))}
 				{matching.length > PAGE_SIZE ? (
 					<View style={{ gap: space.s2 }}>
@@ -148,6 +80,98 @@ export function PreparationList() {
 				<Button variant="ghost" label={t`Automation settings`} onPress={() => router.push(routes.automation())} />
 			</View>
 		</Section>
+	);
+}
+
+type PreparationJob = NonNullable<
+	ReturnType<typeof useQuery<Awaited<ReturnType<typeof client.career.preparations>>>>["data"]
+>[number];
+
+type PreparationCardProps = {
+	job: PreparationJob;
+	/** On an application's own page the job's name and history are already there. */
+	scope?: "all" | "application";
+};
+
+/** One job's resume and cover letter: status, what to open, retry or regenerate, gaps, freshness and source baseline. */
+export function PreparationCard({ job, scope = "all" }: PreparationCardProps) {
+	const { t } = useLingui();
+	const { space } = useTheme();
+	const router = useRouter();
+	const time = useCareerTime();
+	const action = useCareerAction();
+	return (
+		<Card style={{ gap: space.s2 }}>
+			{scope === "all" ? <Text variant="title">{[job.company, job.role].filter(Boolean).join(" · ")}</Text> : null}
+			<Text color={job.summary === "attention" ? "dangerText" : job.summary === "ready" ? "accentText" : "infoText"}>
+				{summaryLabel(job.summary)}
+			</Text>
+			{job.steps.map((step) => {
+				const message = stepMessage(step.error);
+				return (
+					<View key={step.id} style={{ gap: space.s1 }}>
+						<Text>
+							{step.kind === "resume" ? t`Tailored resume` : t`Cover letter`} ·{" "}
+							{step.status === "done"
+								? t`Done`
+								: step.status === "running"
+									? t`Generating`
+									: step.status === "queued"
+										? t`Queued`
+										: step.status === "failed"
+											? t`Needs attention`
+											: t`Canceled`}
+						</Text>
+						{message ? <Text color="ink3">{message}</Text> : null}
+						{step.status === "done" ? (
+							<Text color="ink3">
+								{step.baseline
+									? step.baseline.name
+										? t`Made from your baseline “${step.baseline.name}”.`
+										: t`Made from a baseline resume that has since been removed.`
+									: t`The baseline it was made from was not recorded.`}
+							</Text>
+						) : null}
+						{step.eligibleAt ? <Text color="ink3">{t`Eligible again ${time.when(step.eligibleAt)}.`}</Text> : null}
+						{step.stale ? (
+							<Text color="warnText">{t`Your baseline resume or the posting changed since this was made. Regenerate for a fresh copy.`}</Text>
+						) : null}
+						{step.edited ? (
+							<Text color="ink3">{t`You edited this document. Regenerating makes a new copy and leaves yours untouched.`}</Text>
+						) : null}
+						<Gaps issues={step.issues} />
+						{step.outputId ? (
+							<Button
+								variant="secondary"
+								label={t`Open`}
+								onPress={() =>
+									router.push(
+										step.kind === "resume" ? routes.builder(step.outputId ?? "") : routes.letter(step.outputId ?? ""),
+									)
+								}
+							/>
+						) : null}
+						{step.status === "failed" || step.status === "canceled" ? (
+							<Button
+								variant="secondary"
+								label={t`Retry`}
+								disabled={action.pending}
+								onPress={() => void action.run(() => client.career.retryPreparation({ id: step.id }))}
+							/>
+						) : null}
+						{step.status !== "running" && step.status !== "queued" ? (
+							<Button
+								variant="ghost"
+								label={t`Regenerate`}
+								disabled={action.pending}
+								onPress={() => void action.run(() => client.career.regeneratePreparation({ id: step.id }))}
+							/>
+						) : null}
+					</View>
+				);
+			})}
+			{scope === "all" ? <JobJourney opportunityId={job.opportunityId} /> : null}
+		</Card>
 	);
 }
 

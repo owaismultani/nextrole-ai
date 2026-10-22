@@ -41,6 +41,7 @@ import {
 } from "./coach-thread";
 import { CareerLoadError } from "./load-state";
 import { ContextChip, Eyebrow, PrivacyLine } from "./shared";
+import { applicationsListQueryOptions } from "@/features/applications/queries";
 import { transcriptOf, useConversationConnection } from "@/features/assistant/chat";
 import { ProviderSetup } from "@/features/assistant/provider-setup";
 import { AiProviderLoadState } from "@/features/settings/integrations/ai-provider-load-state";
@@ -349,9 +350,13 @@ export function CoachPage({ conversationId, offerIds: routeOfferIds }: CoachPage
 	const notSetUp = threads.error instanceof ORPCError && threads.error.code === "PRECONDITION_FAILED";
 	const noProvider = !providers.isUnavailable && !providers.hasUsableProvider;
 
+	const jobConversations = (threads.data ?? [])
+		.filter((thread) => thread.scope === "application" && thread.applicationId && !hidden.has(thread.id))
+		.slice(0, 8);
 	const rail = (
 		<ConversationRail
 			threads={conversations}
+			jobThreads={jobConversations}
 			currentId={threadId}
 			onNavigate={() => setRailOpen(false)}
 			onRename={(thread, title) => void rename(thread, title)}
@@ -543,14 +548,17 @@ function ModelChip({ open, onOpenChange, providers, current, label, onChoose }: 
 
 type ConversationRailProps = {
 	threads: ThreadSummary[];
+	/** Conversations about one job, which live in that job's workspace. */
+	jobThreads: ThreadSummary[];
 	currentId: string | null;
 	onNavigate: () => void;
 	onRename: (thread: ThreadSummary, title: string) => void;
 	onDelete: (thread: ThreadSummary) => void;
 };
 
-function ConversationRail({ threads, currentId, onNavigate, onRename, onDelete }: ConversationRailProps) {
+function ConversationRail({ threads, jobThreads, currentId, onNavigate, onRename, onDelete }: ConversationRailProps) {
 	const when = useConversationDate();
+	const applications = useQuery(applicationsListQueryOptions());
 	const [renaming, setRenaming] = useState<string | null>(null);
 
 	return (
@@ -599,8 +607,36 @@ function ConversationRail({ threads, currentId, onNavigate, onRename, onDelete }
 				</ul>
 			</div>
 
+			{jobThreads.length > 0 && (
+				<div className="flex flex-col gap-1.5">
+					<Eyebrow className="px-2.5">
+						<Trans>About a job</Trans>
+					</Eyebrow>
+					<ul className="grid gap-0.5">
+						{jobThreads.map((thread) => {
+							const application = applications.data?.find((item) => item.id === thread.applicationId);
+							return (
+								<li key={thread.id}>
+									<Link
+										to="/dashboard/applications/$applicationId/{-$tab}"
+										params={{ applicationId: thread.applicationId ?? "", tab: undefined }}
+										search={{ coach: thread.id }}
+										onClick={onNavigate}
+										className="grid gap-0.5 rounded-lg px-2.5 py-2 transition-colors duration-quick hover:bg-hover"
+									>
+										<span className="truncate text-[13px] leading-[18px] font-medium">{titleFor(thread)}</span>
+										<span className="truncate text-xs text-ink-3">
+											{application ? `${application.company} · ${application.role}` : t`Open the application`}
+										</span>
+									</Link>
+								</li>
+							);
+						})}
+					</ul>
+				</div>
+			)}
 			<p className="px-2.5 text-xs leading-[17px] text-ink-3">
-				<Trans>Conversations about one job live in its workspace.</Trans>
+				<Trans>Conversations about one job live in its workspace; open them from here or from the job.</Trans>
 			</p>
 		</nav>
 	);

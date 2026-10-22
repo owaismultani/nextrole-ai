@@ -10,6 +10,7 @@ import { WORKSPACE_TABS } from "@reactive-resume/schema/career";
 import { createSlot } from "./slot";
 import { TopBar } from "./top-bar";
 import { useIsTablet } from "./use-is-tablet";
+import { tabLabel } from "@/features/workspace/parts";
 import { routes } from "@/routes";
 import { IconButton, Text, useTheme } from "@/ui";
 
@@ -84,13 +85,13 @@ function Frame({ children }: { children: ReactNode }) {
 	if (!isWorkspaceTab(tab)) return <View style={{ flex: 1 }}>{children}</View>;
 
 	const labels: Record<ApplicationTab, string> = {
-		fit: t({ message: "Fit", context: "Application workspace tab: how well a job fits your experience" }),
-		apply: t`Apply`,
-		prepare: t`Prepare`,
-		practise: t`Practise`,
-		debrief: t`Debrief`,
-		messages: t`Messages`,
-		saved: t({ message: "Saved", context: "Application workspace tab: earlier results kept for this job" }),
+		summary: tabLabel("summary"),
+		documents: tabLabel("documents"),
+		answers: tabLabel("answers"),
+		interviews: tabLabel("interviews"),
+		messages: tabLabel("messages"),
+		saved: tabLabel("saved"),
+		activity: tabLabel("activity"),
 	};
 
 	return (

@@ -152,7 +152,8 @@ export const careerAutomation = {
 	},
 
 	/** Each discovered job with its document steps, whether the documents may be out of date, and what was edited. */
-	preparations: async (userId: string) => {
+	/** Document steps for every job, or for one application's when `applicationId` is given. */
+	preparations: async (userId: string, applicationId?: string) => {
 		const rows = await db
 			.select({
 				step: tables.careerPreparation,
@@ -162,7 +163,12 @@ export const careerAutomation = {
 			})
 			.from(tables.careerPreparation)
 			.leftJoin(tables.application, eq(tables.application.id, tables.careerPreparation.applicationId))
-			.where(eq(tables.careerPreparation.userId, userId))
+			.where(
+				and(
+					eq(tables.careerPreparation.userId, userId),
+					applicationId ? eq(tables.careerPreparation.applicationId, applicationId) : undefined,
+				),
+			)
 			.orderBy(desc(tables.careerPreparation.createdAt))
 			.limit(200);
 		const baselineIds = [
@@ -173,7 +179,7 @@ export const careerAutomation = {
 		const [baselines, resumes, letters] = await Promise.all([
 			baselineIds.length
 				? db
-						.select({ id: tables.resume.id, updatedAt: tables.resume.updatedAt })
+						.select({ id: tables.resume.id, name: tables.resume.name, updatedAt: tables.resume.updatedAt })
 						.from(tables.resume)
 						.where(and(eq(tables.resume.userId, userId), inArray(tables.resume.id, baselineIds)))
 				: [],
@@ -195,6 +201,7 @@ export const careerAutomation = {
 				: [],
 		]);
 		const baselineAt = new Map(baselines.map((row) => [row.id, row.updatedAt.toISOString()]));
+		const baselineName = new Map(baselines.map((row) => [row.id, row.name]));
 		const outputs = new Map([...resumes, ...letters].map((row) => [row.id, row]));
 
 		const jobs = new Map<
@@ -223,6 +230,10 @@ export const careerAutomation = {
 				/** When a waiting step may start again (a daily limit or a retry delay). */
 				eligibleAt: step.status === "queued" && step.nextAttemptAt > new Date() ? step.nextAttemptAt : null,
 				completedAt: step.completedAt,
+				/** The resume this document started from; null for documents made before that was recorded. */
+				baseline: step.baselineResumeId
+					? { resumeId: step.baselineResumeId, name: baselineName.get(step.baselineResumeId) ?? null }
+					: null,
 				/** The baseline resume or the posting changed after this document was made. */
 				stale:
 					Boolean(done) &&

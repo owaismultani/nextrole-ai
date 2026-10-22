@@ -6,7 +6,7 @@ import { plural, t } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@reactive-resume/ui/components/button";
 import {
 	DropdownMenu,
@@ -23,6 +23,8 @@ import { cn } from "@reactive-resume/utils/style";
 import { CareerLoadError } from "./load-state";
 import { defaultPair, formatMoney, matchingPlace, meetsMinimum, moneyDifference, sameTerms } from "./offer-compare";
 import { useCareerTime, useNow } from "./shared";
+import { OfferDialog } from "./workspace/offer-dialog";
+import { applicationsListQueryOptions } from "@/features/applications/queries";
 import { orpc } from "@/libs/orpc/client";
 
 type Offer = SavedItem & { data: SavedData<"offer"> };
@@ -56,6 +58,13 @@ export function OffersPage({ a, b }: OffersPageProps) {
 	const navigate = useNavigate();
 	const query = useQuery(orpc.career.savedItems.queryOptions({ input: { kind: "offer" } }));
 	const profileQuery = useQuery(orpc.career.profile.queryOptions());
+	const applications = useQuery(applicationsListQueryOptions());
+	const [dialogOpen, setDialogOpen] = useState(false);
+	const [editing, setEditing] = useState<Offer | null>(null);
+	// An offer being corrected belongs to its own application; a new one lets the person choose.
+	const dialogApplication = editing
+		? (applications.data?.find((application) => application.id === editing.applicationId) ?? null)
+		: null;
 	const offers = query.data?.filter((item): item is Offer => item.data.kind === "offer");
 
 	const setPair = (next: { a: string | undefined; b: string | undefined }) =>
@@ -97,15 +106,34 @@ export function OffersPage({ a, b }: OffersPageProps) {
 			</div>
 		);
 
+	const dialog = (
+		<OfferDialog
+			application={dialogApplication}
+			offer={editing}
+			open={dialogOpen}
+			onOpenChange={(open) => {
+				setDialogOpen(open);
+				if (!open) setEditing(null);
+			}}
+			onSaved={(saved) => {
+				// Show the offer just added next to the one already on the left.
+				if (!editing) setPair({ a: saved.id, b: a === saved.id ? b : a });
+			}}
+		/>
+	);
 	if (!offers?.length)
 		return (
-			<div className="grid justify-items-center gap-2 rounded-xl border border-dashed border-line-2 p-7 text-center">
+			<div className="grid justify-items-center gap-3 rounded-xl border border-dashed border-line-2 p-7 text-center">
 				<h2 className="font-display text-[22px] leading-7 font-medium">
-					<Trans>No offers to compare yet</Trans>
+					<Trans>No offers yet</Trans>
 				</h2>
 				<p className="max-w-[340px] text-sm text-ink-2">
-					<Trans>Paste an offer into an application's Messages tab.</Trans>
+					<Trans>Add an offer to an application when you receive one.</Trans>
 				</p>
+				<Button onClick={() => setDialogOpen(true)}>
+					<Trans>Choose application</Trans>
+				</Button>
+				{dialog}
 			</div>
 		);
 
@@ -121,7 +149,11 @@ export function OffersPage({ a, b }: OffersPageProps) {
 						Compared in their original currency and pay period. Comparing doesn't share anything with the coach.
 					</Trans>
 				</p>
-				<div className="flex gap-2">
+				<div className="flex flex-wrap gap-2">
+					<Button variant="secondary" onClick={() => setDialogOpen(true)}>
+						<Icon name="plus" size={18} />
+						<Trans>Add offer</Trans>
+					</Button>
 					<Button variant="secondary" disabled={!left || !right} onClick={() => setPair({ a: b, b: a })}>
 						<Icon name="arrows-left-right" size={18} />
 						<Trans>Swap</Trans>
@@ -141,6 +173,24 @@ export function OffersPage({ a, b }: OffersPageProps) {
 				</div>
 			</div>
 
+			{pair.length > 0 && (
+				<div className="flex flex-wrap gap-x-4 gap-y-1">
+					{pair.map((offer) => (
+						<Button
+							key={offer.id}
+							variant="ghost"
+							size="sm"
+							className="text-ink-2"
+							onClick={() => {
+								setEditing(offer);
+								setDialogOpen(true);
+							}}
+						>
+							{t`Edit ${companyOf(offer)} terms`}
+						</Button>
+					))}
+				</div>
+			)}
 			<ComparisonTable
 				offers={offers}
 				left={left}
@@ -161,6 +211,7 @@ export function OffersPage({ a, b }: OffersPageProps) {
 					</span>
 				</p>
 			</div>
+			{dialog}
 		</div>
 	);
 }

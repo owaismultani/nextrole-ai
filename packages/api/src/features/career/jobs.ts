@@ -25,8 +25,10 @@ import { careerService, requireCareerApplication } from "./service";
 const DISCOVER_URL = "/dashboard/discover";
 const AUTOMATION_URL = "/dashboard/automation";
 const OVERVIEW_URL = "/dashboard/overview";
-const workspaceUrl = (applicationId: string | null, tab?: string) =>
-	applicationId ? `/dashboard/applications/${encodeURIComponent(applicationId)}${tab ? `/${tab}` : ""}` : DISCOVER_URL;
+const workspaceUrl = (applicationId: string | null, tab?: string, search?: string) =>
+	applicationId
+		? `/dashboard/applications/${encodeURIComponent(applicationId)}${tab ? `/${tab}` : ""}${search ? `?${search}` : ""}`
+		: DISCOVER_URL;
 
 function assertRunner() {
 	if (!isCareerSchedulingEnabled())
@@ -675,7 +677,10 @@ async function execute(job: typeof tables.careerJob.$inferSelect) {
 									company: application?.company ?? "",
 									role: application?.role ?? "",
 								},
-					url: workspaceUrl(schedule.applicationId, schedule.kind === "prepare" ? "prepare" : undefined),
+					url:
+						schedule.kind === "prepare"
+							? workspaceUrl(schedule.applicationId, "interviews", "section=prepare")
+							: workspaceUrl(schedule.applicationId),
 				})
 				.onConflictDoNothing();
 		// New roles become applications with their requested documents queued, in this same transaction; the documents

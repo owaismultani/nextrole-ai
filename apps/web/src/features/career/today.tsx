@@ -274,7 +274,8 @@ function ComingUp({ now, className }: ComingUpProps) {
 				render={
 					<Link
 						to="/dashboard/applications/$applicationId/{-$tab}"
-						params={{ applicationId: application.id, tab: "prepare" }}
+						params={{ applicationId: application.id, tab: "interviews" }}
+						search={{ section: "prepare", round: interview.id }}
 					/>
 				}
 			>

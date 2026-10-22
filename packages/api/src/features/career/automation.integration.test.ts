@@ -833,6 +833,19 @@ describe.skipIf(!databaseUrl)("autonomous discovery and document preparation", (
 			});
 			expect(story.events.every((event) => !JSON.stringify(event.data).includes("synthetic"))).toBe(true);
 			await expect(careerActivity.journey("bob", job?.id ?? "")).rejects.toMatchObject({ code: "NOT_FOUND" });
+
+			// The application finds the same story, and only its owner can; one added by hand has none.
+			const applicationId = job?.trackedApplicationId ?? "";
+			expect(applicationId).not.toBe("");
+			expect((await careerActivity.applicationJourney("alice", applicationId))?.opportunityId).toBe(job?.id);
+			expect(await careerActivity.applicationJourney("bob", applicationId)).toBeNull();
+			expect(await careerActivity.applicationJourney("alice", "added-by-hand")).toBeNull();
+
+			// Its documents list on their own, with the baseline they started from.
+			const jobs = await automation.preparations("alice", applicationId);
+			expect(jobs).toHaveLength(1);
+			expect(jobs[0]?.steps.every((step) => step.baseline?.resumeId === base)).toBe(true);
+			expect(await automation.preparations("alice", "added-by-hand")).toEqual([]);
 		});
 
 		it("logs retries, waits for the limit and failures, and filters the feed to problems", async () => {

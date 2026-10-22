@@ -1,6 +1,7 @@
 // Typed hrefs for every screen under app/. Navigate with these instead of writing paths by hand, so a route move
 // is one change here. Ids and slugs are URL-encoded.
-import type { WorkspaceTab } from "@reactive-resume/schema/career";
+import type { InterviewSection, WorkspaceTab } from "@reactive-resume/schema/career";
+import { resolveWorkspaceTab } from "@reactive-resume/schema/career";
 
 export type BuilderPane = "write" | "page" | "design" | "check";
 export type LetterPane = "write" | "page" | "design";
@@ -8,6 +9,9 @@ export type DiscoverView = "jobs" | "activity";
 export type ProfileSection = "details" | "preferences" | "facts" | "stories" | "baseline";
 export type SettingsPane = "account" | "preferences" | "ai";
 export type ApplicationTab = WorkspaceTab;
+/** A workspace tab, or a former tab name that now means a tab and an interview section. */
+export type ApplicationTarget = WorkspaceTab | "fit" | "apply" | "prepare" | "practise" | "debrief";
+export type ApplicationSearch = { section?: InterviewSection | undefined; round?: string | undefined };
 /** The Applications tab's views; List is the tab's index. */
 export type ApplicationsView = "list" | "board" | "calendar" | "insights";
 
@@ -41,7 +45,14 @@ export const routes = {
 	search: () => "/search" as const,
 	setup: () => "/setup" as const,
 	atsChecker: () => "/ats-checker" as const,
-	application: (id: string, tab: ApplicationTab = "fit") => `/applications/${segment(id)}/${tab}` as const,
+	application: (id: string, target: ApplicationTarget = "summary", search: ApplicationSearch = {}) => {
+		const { tab, section } = resolveWorkspaceTab(target) ?? { tab: "summary" as const, section: undefined };
+		const query = [
+			(search.section ?? section) ? `section=${search.section ?? section}` : "",
+			search.round ? `round=${encodeURIComponent(search.round)}` : "",
+		].filter(Boolean);
+		return `/applications/${segment(id)}/${tab}${query.length > 0 ? `?${query.join("&")}` : ""}` as const;
+	},
 	/** The application detail; it shares the dynamic `[tab]` route with the workspace tabs. */
 	applicationDetails: (id: string) => `/applications/${segment(id)}/details` as const,
 	publicResume: (username: string, slug: string) => `/r/${segment(username)}/${segment(slug)}` as const,

@@ -2,16 +2,16 @@ import type { SavedItem } from "../hooks";
 import type { CoachConversation } from "./coach-sheet";
 import type { Application } from "@/features/applications/types";
 import type { InterviewTimelineEntry } from "@reactive-resume/schema/applications/data";
-import type { WorkspaceTab } from "@reactive-resume/schema/career";
-import type { ReactNode } from "react";
+import type { InterviewSection, WorkspaceTab } from "@reactive-resume/schema/career";
+import type { ComponentProps, ReactNode } from "react";
 import { t } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
 import { Trans } from "@lingui/react/macro";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { m } from "motion/react";
 import { useState } from "react";
-import { WORKSPACE_TABS } from "@reactive-resume/schema/career";
+import { resolveWorkspaceTab, WORKSPACE_TABS } from "@reactive-resume/schema/career";
 import { Button, buttonVariants } from "@reactive-resume/ui/components/button";
 import { Icon } from "@reactive-resume/ui/components/icon";
 import { Spinner } from "@reactive-resume/ui/components/spinner";
@@ -20,16 +20,19 @@ import { useBreakpoint } from "@reactive-resume/ui/hooks/use-breakpoint";
 import { downloadWithAnchor } from "@reactive-resume/utils/file";
 import { getInitials } from "@reactive-resume/utils/string";
 import { cn } from "@reactive-resume/utils/style";
-import { useOverlayHistory, useSavedItems } from "../hooks";
+import { useApplicationJourney, useOverlayHistory, useSavedItems } from "../hooks";
 import { CountdownChip, Eyebrow, minutesUntil, tabLabel, useCareerTime, useNow } from "../shared";
+import { ActivityTab } from "./activity";
 import { ApplyTab } from "./apply";
 import { CoachSheet } from "./coach-sheet";
-import { DebriefTab } from "./debrief";
-import { FitTab } from "./fit";
+import { DocumentsTab } from "./documents";
+import { InterviewsTab } from "./interviews";
 import { MessagesTab } from "./messages";
-import { PractiseTab } from "./practise";
-import { PrepareTab } from "./prepare";
+import { OfferDialog } from "./offer-dialog";
+import { returnTarget } from "./origin";
 import { SavedTab } from "./saved";
+import { actionLabel, preparationLabel, useWorkspaceState } from "./state";
+import { SummaryTab } from "./summary";
 import { ApplicationNotes } from "@/features/applications/components/application-notes";
 import { InterviewDialog } from "@/features/applications/components/interview-dialog";
 import { buildIcs } from "@/features/applications/ics";
@@ -41,11 +44,21 @@ import { orpc } from "@/libs/orpc/client";
 
 export type WorkspaceSearch = {
 	coach?: CoachConversation | undefined;
-	edit?: "interview" | undefined;
+	/** `interview`: edit the selected round; `new-interview`: schedule another. */
+	edit?: "interview" | "new-interview" | undefined;
 	version?: string | undefined;
 	speak?: boolean | undefined;
 	story?: string | undefined;
+	/** Interviews: which part of the round is open. */
+	section?: InterviewSection | undefined;
+	/** Interviews: the round being worked on. */
+	round?: string | undefined;
+	/** The offer dialog: `new`, or the id of an offer whose terms are being corrected. */
+	offer?: string | undefined;
 };
+
+/** Where a tool can send the person: a tab, or a former tab name that now means a tab and an interview section. */
+export type GoTarget = WorkspaceTab | "fit" | "apply" | "prepare" | "practise" | "debrief";
 
 /** What every tab receives: the application, and a saved version to show read-only ("Open in Prepare"). */
 export type WorkspaceTabProps = {
@@ -58,19 +71,25 @@ export type WorkspaceTabProps = {
 	speak: boolean;
 	story?: string | undefined;
 	now: Date;
-	go: (tab: WorkspaceTab, search?: WorkspaceSearch) => void;
+	go: (tab: GoTarget, search?: WorkspaceSearch) => void;
 };
 
 const DAY = 86_400_000;
-const archiveKinds = {
-	fit: "fit",
-	apply: "answers",
-	prepare: "briefing",
-	practise: "practice",
-	debrief: "debrief",
-	messages: "reply",
-	saved: null,
-} satisfies Record<WorkspaceTab, SavedItem["data"]["kind"] | null>;
+/** The kind of saved item each tab (and interview section) shows read-only when one is opened from Saved. */
+function archiveKind(tab: WorkspaceTab, section: InterviewSection | undefined): SavedItem["data"]["kind"] | null {
+	switch (tab) {
+		case "summary":
+			return "fit";
+		case "answers":
+			return "answers";
+		case "messages":
+			return "reply";
+		case "interviews":
+			return section === "practise" ? "practice" : section === "debrief" ? "debrief" : "briefing";
+		default:
+			return null;
+	}
+}
 
 /** The interview a workspace is about: the next one to come, else the latest one if it ended in the last day. */
 function currentInterview(application: Application, now: Date) {
@@ -82,22 +101,22 @@ function currentInterview(application: Application, now: Date) {
 	);
 }
 
-/** Rule 7: the tab a stage opens on. Offers are compared in Career, so an offer opens on its messages. */
-function defaultTab(application: Application, now: Date): WorkspaceTab {
+/** Rule 7: the tab a stage opens on. Offers are compared in Applications, so an offer opens on its messages. */
+function defaultTab(application: Application, now: Date): { tab: WorkspaceTab; section?: InterviewSection } {
 	const interview = currentInterview(application, now);
 	const ended = interview && +new Date(interview.at) + interview.durationMinutes * 60_000 < +now;
 	switch (application.status) {
 		case "saved":
-			return "fit";
+			return { tab: "summary" };
 		case "applied":
-			return "apply";
+			return { tab: "answers" };
 		case "screening":
 		case "interview":
-			return ended ? "debrief" : "prepare";
+			return { tab: "interviews", section: ended ? "debrief" : "prepare" };
 		case "offer":
-			return "messages";
+			return { tab: "messages" };
 		case "closed":
-			return "saved";
+			return { tab: "saved" };
 	}
 }
 
@@ -137,24 +156,38 @@ export function Workspace({ applicationId, tab: requested, search }: WorkspacePr
 			</div>
 		);
 
-	const tab = requested ?? defaultTab(application, now);
-	const interview = currentInterview(application, now);
+	const fallback = defaultTab(application, now);
+	const tab = requested ?? fallback.tab;
+	const rounds = application.activity.filter(isInterview);
+	// The round the Interviews tab works on: the one chosen, else the next or latest.
+	const interview = rounds.find((entry) => entry.id === search.round) ?? currentInterview(application, now);
+	const section: InterviewSection | undefined = tab === "interviews" ? (search.section ?? fallback.section) : undefined;
 	const version = search.version ? saved.data?.find((item) => item.id === search.version) : undefined;
 	const archived = search.version !== undefined;
-	const archiveUnavailable = archived && (!version || version.data.kind !== archiveKinds[tab]);
-	const waiting = saved.isPending || (!archived && tab !== "saved" && workspace.isPending);
+	const archiveUnavailable = archived && (!version || version.data.kind !== archiveKind(tab, section));
+	const needsWorkspace = tab === "answers" || tab === "interviews" || tab === "messages" || tab === "summary";
+	const waiting = saved.isPending || (!archived && needsWorkspace && workspace.isPending);
 	const failed =
 		(saved.isError && saved.data === undefined) ||
-		(!archived && tab !== "saved" && workspace.isError && workspace.data === undefined);
+		(!archived && needsWorkspace && workspace.isError && workspace.data === undefined);
 	const blocked = waiting || failed || archiveUnavailable;
 	// Tabs fade their own panel in (120ms), so the page-wide view transition would only add a second fade.
-	const go = (next: WorkspaceTab, nextSearch: WorkspaceSearch = {}) =>
+	const go = (target: GoTarget, nextSearch: WorkspaceSearch = {}) => {
+		const resolved = resolveWorkspaceTab(target);
+		if (!resolved) return;
 		void navigate({
 			to: "/dashboard/applications/$applicationId/{-$tab}",
-			params: { applicationId, tab: next },
-			search: nextSearch,
+			params: { applicationId, tab: resolved.tab },
+			search: {
+				...nextSearch,
+				// A former tab name opens its part of Interviews, on the round already being worked on.
+				...(resolved.tab === "interviews"
+					? { section: nextSearch.section ?? resolved.section, round: nextSearch.round ?? search.round }
+					: {}),
+			},
 			viewTransition: false,
 		});
+	};
 	const setSearch = (patch: WorkspaceSearch, push = false) =>
 		void navigate({
 			to: "/dashboard/applications/$applicationId/{-$tab}",
@@ -176,21 +209,48 @@ export function Workspace({ applicationId, tab: requested, search }: WorkspacePr
 		speak: search.speak === true,
 		story: search.story,
 	};
+	const interviewsProps = {
+		...props,
+		section,
+		round: interview,
+		onSection: (next: InterviewSection) => setSearch({ section: next }),
+		onRound: (id: string) => setSearch({ round: id }),
+		onEditRound: (id: string | null) => {
+			openSearch(id === null ? { edit: "new-interview" } : { edit: "interview", round: id });
+		},
+	};
+	const summaryProps = {
+		...props,
+		onAddOffer: () => openSearch({ offer: "new" }),
+		onEditOffer: (id: string) => openSearch({ offer: id }),
+	};
 	// Messages shows the newest read message: it waits for a decision while its changes aren't applied.
 	const newestReply = saved.data?.find((item) => item.data.kind === "reply");
 	const unreadMessages =
 		newestReply?.data.kind === "reply" && newestReply.data.changes.length > 0 && !newestReply.data.applied ? 1 : 0;
-	const editOpen = search.edit === "interview";
-	if (editOpen && !editing) setEditing({ id: interview?.id ?? null });
+	const editOpen = search.edit === "interview" || search.edit === "new-interview";
+	if (editOpen && !editing) setEditing({ id: search.edit === "new-interview" ? null : (interview?.id ?? null) });
 	if (!editOpen && editing) setEditing(null);
 	const editingId = editing ? editing.id : (interview?.id ?? null);
 	const editingInterview = application.activity.filter(isInterview).find((entry) => entry.id === editingId);
-	const minutes = interview ? minutesUntil(new Date(interview.at), now) : null;
+	const nextRound = currentInterview(application, now);
+	const minutes = nextRound ? minutesUntil(new Date(nextRound.at), now) : null;
+	const offerOpen = search.offer !== undefined;
+	const editingOffer =
+		search.offer && search.offer !== "new"
+			? (saved.data?.find((item) => item.id === search.offer && item.data.kind === "offer") ?? null)
+			: null;
 	const wide = breakpoint === "desktop" || breakpoint === "wide";
 
 	return (
 		<div className="flex min-h-svh flex-col">
-			<WorkspaceHeader application={application} onAskCoach={() => openSearch({ coach: true })} />
+			<WorkspaceHeader
+				application={application}
+				now={now}
+				go={go}
+				onAddOffer={() => openSearch({ offer: "new" })}
+				onAskCoach={() => openSearch({ coach: true })}
+			/>
 			<div
 				className={cn(
 					"grid min-h-0 flex-1",
@@ -235,7 +295,7 @@ export function Workspace({ applicationId, tab: requested, search }: WorkspacePr
 						{WORKSPACE_TABS.map((value) => (
 							<TabsTrigger key={value} value={value} className="gap-1.5 px-3 data-active:font-semibold">
 								{tabLabel(value)}
-								{value === "prepare" && minutes !== null && minutes > 0 && minutes < 7 * 24 * 60 && (
+								{value === "interviews" && minutes !== null && minutes > 0 && minutes < 7 * 24 * 60 && (
 									<TabBadge tone={minutes <= 60 ? "warn" : "accent"}>
 										{minutes <= 60 ? t`${minutes} min` : t`${Math.round(minutes / 60)} h`}
 									</TabBadge>
@@ -310,7 +370,7 @@ export function Workspace({ applicationId, tab: requested, search }: WorkspacePr
 													</Button>
 												</div>
 											)}
-											<TabBody tab={value} {...props} />
+											<TabBody tab={value} {...props} interviewsProps={interviewsProps} summaryProps={summaryProps} />
 										</>
 									)}
 								</m.div>
@@ -322,6 +382,7 @@ export function Workspace({ applicationId, tab: requested, search }: WorkspacePr
 			<CoachSheet
 				application={application}
 				tab={tab}
+				hint={tab === "interviews" && section && section !== "overview" ? section : tab}
 				conversation={search.coach}
 				onConversationChange={(coach) =>
 					coach === undefined
@@ -334,29 +395,41 @@ export function Workspace({ applicationId, tab: requested, search }: WorkspacePr
 			<InterviewDialog
 				application={application}
 				interview={editOpen ? (editingInterview ?? null) : null}
-				open={search.edit === "interview"}
+				open={editOpen}
 				onOpenChange={(open) => (open ? openSearch({ edit: "interview" }) : closeSearch({ edit: undefined }))}
+			/>
+			<OfferDialog
+				application={application}
+				offer={editingOffer}
+				open={offerOpen}
+				onOpenChange={(open) => (open ? openSearch({ offer: "new" }) : closeSearch({ offer: undefined }))}
 			/>
 		</div>
 	);
 }
 
-function TabBody({ tab, ...props }: WorkspaceTabProps & { tab: WorkspaceTab }) {
+type TabBodyProps = WorkspaceTabProps & {
+	tab: WorkspaceTab;
+	interviewsProps: Omit<ComponentProps<typeof InterviewsTab>, never>;
+	summaryProps: Omit<ComponentProps<typeof SummaryTab>, never>;
+};
+
+function TabBody({ tab, interviewsProps, summaryProps, ...props }: TabBodyProps) {
 	switch (tab) {
-		case "fit":
-			return <FitTab {...props} />;
-		case "apply":
+		case "summary":
+			return <SummaryTab {...summaryProps} />;
+		case "documents":
+			return <DocumentsTab {...props} />;
+		case "answers":
 			return <ApplyTab {...props} />;
-		case "prepare":
-			return <PrepareTab {...props} />;
-		case "practise":
-			return <PractiseTab {...props} />;
-		case "debrief":
-			return <DebriefTab {...props} />;
+		case "interviews":
+			return <InterviewsTab {...interviewsProps} />;
 		case "messages":
 			return <MessagesTab {...props} />;
 		case "saved":
 			return <SavedTab {...props} />;
+		case "activity":
+			return <ActivityTab {...props} />;
 	}
 }
 
@@ -385,20 +458,42 @@ const stageDot = {
 	closed: "bg-stage-closed",
 } as const;
 
-type WorkspaceHeaderProps = { application: Application; onAskCoach: () => void };
+type WorkspaceHeaderProps = {
+	application: Application;
+	now: Date;
+	go: WorkspaceTabProps["go"];
+	onAddOffer: () => void;
+	onAskCoach: () => void;
+};
 
-function WorkspaceHeader({ application, onAskCoach }: WorkspaceHeaderProps) {
+/**
+ * The persistent header: who and where, the stage, the state of the documents (apart from the stage), where the job came
+ * from, the one thing to do next, and a way back to the list it was opened from.
+ */
+function WorkspaceHeader({ application, now, go, onAddOffer, onAskCoach }: WorkspaceHeaderProps) {
 	const { date } = useCareerTime();
+	const router = useRouter();
+	const state = useWorkspaceState(application, now);
+	const journey = useApplicationJourney(application.id);
 	const reached = PIPELINE.indexOf(application.status);
 	const sent = application.status !== "saved";
+	const back = returnTarget();
+	const label = actionLabel(state.action);
+	const documents = preparationLabel(state.preparation);
+	const found = journey.data;
 	return (
 		<header className="grid gap-3 border-b border-line px-4 pt-[22px] pb-4 md:px-8">
 			<Link
-				to="/dashboard/applications"
+				to={back.href}
+				onClick={(event) => {
+					// The list it came from, with its filters and view.
+					event.preventDefault();
+					router.history.push(back.href);
+				}}
 				className="flex w-fit items-center gap-1 text-[13px] text-ink-3 transition-colors duration-quick hover:text-ink-2"
 			>
 				<Icon name="caret-left" size={16} />
-				<Trans>Applications</Trans>
+				{back.label}
 			</Link>
 			<div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
 				<div className="grid min-w-0 gap-1.5">
@@ -412,6 +507,31 @@ function WorkspaceHeader({ application, onAskCoach }: WorkspaceHeaderProps) {
 						</span>
 						{application.location && <span>· {application.location}</span>}
 						{sent && <span>· {t`Applied ${date(application.appliedAt)}`}</span>}
+						{documents && (
+							<button
+								type="button"
+								onClick={() => go("documents")}
+								className={cn(
+									"rounded-full border px-2 py-px text-xs font-medium transition-colors duration-quick hover:bg-hover",
+									state.preparation === "attention"
+										? "border-danger text-danger-text"
+										: state.preparation === "ready"
+											? "border-accent text-accent-text"
+											: "border-line-2 text-ink-2",
+								)}
+							>
+								{documents}
+							</button>
+						)}
+					</p>
+					<p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-3">
+						{found ? (
+							<span>
+								<Trans>Found by discovery</Trans>
+							</span>
+						) : (
+							application.source && <span>{t`Source: ${application.source}`}</span>
+						)}
 						{application.sourceUrl && (
 							<a
 								href={application.sourceUrl}
@@ -419,14 +539,14 @@ function WorkspaceHeader({ application, onAskCoach }: WorkspaceHeaderProps) {
 								rel="noreferrer"
 								className="underline underline-offset-3 hover:text-ink"
 							>
-								<Trans>View posting</Trans>
+								<Trans>Original posting</Trans>
 							</a>
 						)}
 					</p>
 				</div>
-				<div className="flex items-center gap-4">
+				<div className="flex flex-wrap items-center gap-3">
 					{application.status !== "closed" && (
-						<div aria-hidden="true" className="hidden gap-1 lg:flex">
+						<div aria-hidden="true" className="hidden gap-1 xl:flex">
 							{PIPELINE.map((stage, index) => (
 								<span
 									key={stage}
@@ -443,11 +563,23 @@ function WorkspaceHeader({ application, onAskCoach }: WorkspaceHeaderProps) {
 					)}
 					<Button
 						className="bg-accent-soft text-accent-text hover:bg-accent-soft hover:brightness-95"
+						variant="ghost"
 						onClick={onAskCoach}
 					>
 						<Icon name="sparkle" size={18} />
 						<Trans>Ask the coach</Trans>
 					</Button>
+					{label && (
+						<Button
+							onClick={() =>
+								state.action.kind === "add-offer"
+									? onAddOffer()
+									: go(state.action.tab, state.action.section ? { section: state.action.section } : {})
+							}
+						>
+							{label}
+						</Button>
+					)}
 				</div>
 			</div>
 		</header>

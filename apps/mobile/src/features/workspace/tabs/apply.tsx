@@ -40,7 +40,7 @@ type Answer = CareerWorkspace["answers"][number];
 type CountUnit = "words" | "characters";
 
 export function ApplyTab() {
-	return <WorkspaceScreen tab="apply">{(props) => <Apply {...props} />}</WorkspaceScreen>;
+	return <WorkspaceScreen tab="answers">{(props) => <Apply {...props} />}</WorkspaceScreen>;
 }
 
 function Apply({ application, version }: WorkspaceTabProps) {

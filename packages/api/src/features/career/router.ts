@@ -7,6 +7,7 @@ import {
 	careerSetupLaunchSchema,
 	careerScopeSchema,
 	careerStoryInputSchema,
+	offerTermsSchema,
 	careerWorkspaceSchema,
 	generateTaskSchema,
 } from "@reactive-resume/schema/career";
@@ -253,6 +254,19 @@ export const careerRouter = {
 		.input(id)
 		.output(careerJourneySchema)
 		.handler(({ context, input }) => careerActivity.journey(context.user.id, input.id)),
+	applicationJourney: protectedProcedure
+		.route({
+			method: "GET",
+			path: "/career/applications/{id}/journey",
+			tags: ["Career"],
+			operationId: "getCareerApplicationJourney",
+			summary: "Get how an application came to be, and what was prepared for it",
+			description:
+				"The discovery run that found the application's job and every step taken for it since. Null for an application added by hand.",
+		})
+		.input(id)
+		.output(careerJourneySchema.nullable())
+		.handler(({ context, input }) => careerActivity.applicationJourney(context.user.id, input.id)),
 	runs: protectedProcedure
 		.route({
 			method: "GET",
@@ -274,9 +288,9 @@ export const careerRouter = {
 			operationId: "listCareerPreparations",
 			summary: "List document preparation",
 		})
-		.input(z.object({}))
+		.input(z.object({ applicationId: z.string().min(1).optional() }))
 		.output(z.array(careerPreparationJobSchema))
-		.handler(({ context }) => careerAutomation.preparations(context.user.id)),
+		.handler(({ context, input }) => careerAutomation.preparations(context.user.id, input.applicationId)),
 	prepareDocuments: protectedProcedure
 		.route({
 			method: "POST",
@@ -532,6 +546,19 @@ export const careerRouter = {
 		)
 		.output(z.array(savedItemOutput))
 		.handler(({ context, input }) => careerService.savedItems({ userId: context.user.id, ...input })),
+	saveOffer: protectedProcedure
+		.route({
+			method: "POST",
+			path: "/career/offers",
+			tags: ["Career"],
+			operationId: "saveCareerOffer",
+			summary: "Add or correct an offer",
+			description:
+				"Saves the terms of an offer for an application so it can be compared. Pass id to correct an offer already saved. Does not change the application's stage.",
+		})
+		.input(applicationInput.extend({ id: z.string().min(1).optional(), terms: offerTermsSchema }))
+		.output(savedItemOutput)
+		.handler(({ context, input }) => careerService.saveOffer({ userId: context.user.id, ...input })),
 	deleteSavedItem: protectedProcedure
 		.route({
 			method: "DELETE",

@@ -13617,13 +13617,18 @@
 											},
 											"tab": {
 												"enum": [
+													"summary",
+													"documents",
+													"answers",
+													"interviews",
+													"messages",
+													"saved",
+													"activity",
 													"fit",
 													"apply",
 													"prepare",
 													"practise",
-													"debrief",
-													"messages",
-													"saved"
+													"debrief"
 												],
 												"type": "string",
 												"description": "Career coach: the workspace tab the user is on, as a hint."
@@ -42241,6 +42246,252 @@
 				]
 			}
 		},
+		"/career/applications/{id}/journey": {
+			"get": {
+				"operationId": "getCareerApplicationJourney",
+				"summary": "Get how an application came to be, and what was prepared for it",
+				"description": "The discovery run that found the application's job and every step taken for it since. Null for an application added by hand.",
+				"tags": [
+					"Career"
+				],
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"minLength": 1
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"content": {
+							"application/json": {
+								"schema": {
+									"anyOf": [
+										{
+											"type": "object",
+											"properties": {
+												"opportunityId": {
+													"type": "string"
+												},
+												"role": {
+													"type": "string"
+												},
+												"company": {
+													"type": "string"
+												},
+												"url": {
+													"type": "string"
+												},
+												"applicationId": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"foundAt": {
+													"type": "string",
+													"format": "date-time",
+													"x-native-type": "date"
+												},
+												"run": {
+													"anyOf": [
+														{
+															"type": "object",
+															"properties": {
+																"id": {
+																	"type": "string"
+																},
+																"at": {
+																	"type": "string",
+																	"format": "date-time",
+																	"x-native-type": "date"
+																},
+																"query": {
+																	"type": "string"
+																}
+															},
+															"required": [
+																"id",
+																"at",
+																"query"
+															]
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"events": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"id": {
+																"type": "string"
+															},
+															"at": {
+																"type": "string",
+																"format": "date-time",
+																"x-native-type": "date"
+															},
+															"kind": {
+																"enum": [
+																	"run.finished",
+																	"job.saved",
+																	"prep.queued",
+																	"prep.started",
+																	"prep.done",
+																	"prep.retry",
+																	"prep.deferred",
+																	"prep.failed",
+																	"prep.canceled",
+																	"setting.changed"
+																],
+																"type": "string"
+															},
+															"level": {
+																"enum": [
+																	"info",
+																	"warn",
+																	"error"
+																],
+																"type": "string"
+															},
+															"runId": {
+																"anyOf": [
+																	{
+																		"type": "string"
+																	},
+																	{
+																		"type": "null"
+																	}
+																]
+															},
+															"opportunityId": {
+																"anyOf": [
+																	{
+																		"type": "string"
+																	},
+																	{
+																		"type": "null"
+																	}
+																]
+															},
+															"data": {
+																"type": "object",
+																"propertyNames": {
+																	"type": "string"
+																},
+																"additionalProperties": {
+																	"anyOf": [
+																		{
+																			"type": "string"
+																		},
+																		{
+																			"type": "number"
+																		},
+																		{
+																			"type": "boolean"
+																		},
+																		{
+																			"type": "null"
+																		}
+																	]
+																}
+															}
+														},
+														"required": [
+															"id",
+															"at",
+															"kind",
+															"level",
+															"runId",
+															"opportunityId",
+															"data"
+														]
+													}
+												}
+											},
+											"required": [
+												"opportunityId",
+												"role",
+												"company",
+												"url",
+												"applicationId",
+												"foundAt",
+												"run",
+												"events"
+											]
+										},
+										{
+											"type": "null"
+										}
+									]
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Structured API error. See status and code; do not branch on message text.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": [
+										"defined",
+										"code",
+										"status",
+										"message"
+									],
+									"properties": {
+										"defined": {
+											"type": "boolean"
+										},
+										"code": {
+											"type": "string"
+										},
+										"status": {
+											"type": "integer"
+										},
+										"message": {
+											"type": "string"
+										},
+										"data": {}
+									}
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"apiKey": []
+					},
+					{
+						"bearerAuth": []
+					},
+					{
+						"cookieAuth": []
+					}
+				],
+				"x-codeSamples": [
+					{
+						"lang": "bash",
+						"label": "cURL",
+						"source": "curl \"https://rxresu.me/api/openapi/career/applications/<id>/journey\" --header \"x-api-key: <api-key>\""
+					}
+				]
+			}
+		},
 		"/career/runs": {
 			"get": {
 				"operationId": "listCareerRuns",
@@ -42599,7 +42850,18 @@
 				"tags": [
 					"Career"
 				],
-				"parameters": [],
+				"parameters": [
+					{
+						"name": "applicationId",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"minLength": 1
+						},
+						"allowEmptyValue": true,
+						"allowReserved": true
+					}
+				],
 				"responses": {
 					"200": {
 						"description": "OK",
@@ -42721,6 +42983,35 @@
 																}
 															]
 														},
+														"baseline": {
+															"anyOf": [
+																{
+																	"type": "object",
+																	"properties": {
+																		"resumeId": {
+																			"type": "string"
+																		},
+																		"name": {
+																			"anyOf": [
+																				{
+																					"type": "string"
+																				},
+																				{
+																					"type": "null"
+																				}
+																			]
+																		}
+																	},
+																	"required": [
+																		"resumeId",
+																		"name"
+																	]
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
 														"stale": {
 															"type": "boolean"
 														},
@@ -42739,6 +43030,7 @@
 														"outputId",
 														"eligibleAt",
 														"completedAt",
+														"baseline",
 														"stale",
 														"edited"
 													]
@@ -46805,6 +47097,1209 @@
 						"lang": "bash",
 						"label": "cURL",
 						"source": "curl \"https://rxresu.me/api/openapi/career/saved\" --header \"x-api-key: <api-key>\""
+					}
+				]
+			}
+		},
+		"/career/offers": {
+			"post": {
+				"operationId": "saveCareerOffer",
+				"summary": "Add or correct an offer",
+				"description": "Saves the terms of an offer for an application so it can be compared. Pass id to correct an offer already saved. Does not change the application's stage.",
+				"tags": [
+					"Career"
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"applicationId": {
+										"type": "string",
+										"minLength": 1
+									},
+									"id": {
+										"type": "string",
+										"minLength": 1
+									},
+									"terms": {
+										"type": "object",
+										"properties": {
+											"version": {
+												"enum": [
+													"written",
+													"verbal"
+												],
+												"type": "string",
+												"default": "written"
+											},
+											"currency": {
+												"type": "string",
+												"pattern": "^[A-Z]{3}$"
+											},
+											"period": {
+												"enum": [
+													"hour",
+													"month",
+													"year"
+												],
+												"type": "string"
+											},
+											"base": {
+												"anyOf": [
+													{
+														"type": "number",
+														"minimum": 0
+													},
+													{
+														"type": "null"
+													}
+												]
+											},
+											"variable": {
+												"anyOf": [
+													{
+														"type": "number",
+														"minimum": 0
+													},
+													{
+														"type": "null"
+													}
+												]
+											},
+											"variableConditions": {
+												"type": "string",
+												"maxLength": 1000,
+												"default": ""
+											},
+											"equity": {
+												"type": "string",
+												"maxLength": 1000,
+												"default": ""
+											},
+											"location": {
+												"type": "string",
+												"maxLength": 500,
+												"default": ""
+											},
+											"officeDays": {
+												"anyOf": [
+													{
+														"type": "integer",
+														"minimum": 0,
+														"maximum": 5
+													},
+													{
+														"type": "null"
+													}
+												],
+												"default": null
+											},
+											"leave": {
+												"type": "string",
+												"maxLength": 500,
+												"default": ""
+											},
+											"learning": {
+												"anyOf": [
+													{
+														"type": "number",
+														"minimum": 0
+													},
+													{
+														"type": "null"
+													}
+												],
+												"default": null
+											},
+											"other": {
+												"type": "string",
+												"maxLength": 1000,
+												"default": ""
+											},
+											"respondBy": {
+												"anyOf": [
+													{
+														"type": "string",
+														"format": "date-time"
+													},
+													{
+														"type": "null"
+													}
+												],
+												"default": null
+											}
+										},
+										"required": [
+											"currency",
+											"period",
+											"base",
+											"variable"
+										]
+									}
+								},
+								"required": [
+									"applicationId",
+									"terms"
+								]
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "OK",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"id": {
+											"type": "string"
+										},
+										"userId": {
+											"type": "string"
+										},
+										"createdAt": {
+											"type": "string",
+											"format": "date-time",
+											"x-native-type": "date"
+										},
+										"updatedAt": {
+											"type": "string",
+											"format": "date-time",
+											"x-native-type": "date"
+										},
+										"applicationId": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"interviewId": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"title": {
+											"type": "string"
+										},
+										"data": {
+											"anyOf": [
+												{
+													"type": "object",
+													"properties": {
+														"kind": {
+															"const": "fit"
+														},
+														"headline": {
+															"type": "string",
+															"maxLength": 200
+														},
+														"summary": {
+															"type": "string",
+															"maxLength": 600
+														},
+														"requirements": {
+															"type": "array",
+															"maxItems": 20,
+															"items": {
+																"type": "object",
+																"properties": {
+																	"text": {
+																		"type": "string",
+																		"maxLength": 300
+																	},
+																	"origin": {
+																		"enum": [
+																			"posting",
+																			"inferred"
+																		],
+																		"type": "string"
+																	},
+																	"status": {
+																		"enum": [
+																			"supported",
+																			"partial",
+																			"missing"
+																		],
+																		"type": "string"
+																	},
+																	"evidence": {
+																		"type": "string",
+																		"maxLength": 600
+																	},
+																	"factIds": {
+																		"type": "array",
+																		"maxItems": 10,
+																		"items": {
+																			"type": "string"
+																		},
+																		"default": []
+																	}
+																},
+																"required": [
+																	"text",
+																	"origin",
+																	"status",
+																	"evidence"
+																]
+															}
+														},
+														"checks": {
+															"type": "array",
+															"maxItems": 5,
+															"items": {
+																"type": "object",
+																"properties": {
+																	"label": {
+																		"type": "string",
+																		"maxLength": 60
+																	},
+																	"met": {
+																		"anyOf": [
+																			{
+																				"type": "boolean"
+																			},
+																			{
+																				"type": "null"
+																			}
+																		]
+																	},
+																	"text": {
+																		"type": "string",
+																		"maxLength": 300
+																	}
+																},
+																"required": [
+																	"label",
+																	"met",
+																	"text"
+																]
+															}
+														},
+														"ask": {
+															"anyOf": [
+																{
+																	"type": "object",
+																	"properties": {
+																		"person": {
+																			"type": "string",
+																			"maxLength": 100
+																		},
+																		"text": {
+																			"type": "string",
+																			"maxLength": 400
+																		}
+																	},
+																	"required": [
+																		"person",
+																		"text"
+																	]
+																},
+																{
+																	"type": "null"
+																}
+															]
+														}
+													},
+													"required": [
+														"kind",
+														"headline",
+														"summary",
+														"requirements",
+														"checks",
+														"ask"
+													]
+												},
+												{
+													"type": "object",
+													"properties": {
+														"kind": {
+															"const": "briefing"
+														},
+														"headline": {
+															"type": "string",
+															"maxLength": 200
+														},
+														"summary": {
+															"type": "string",
+															"maxLength": 300
+														},
+														"plan": {
+															"type": "array",
+															"maxItems": 8,
+															"items": {
+																"type": "object",
+																"properties": {
+																	"minutes": {
+																		"type": "integer",
+																		"minimum": 1,
+																		"maximum": 60
+																	},
+																	"title": {
+																		"type": "string",
+																		"maxLength": 120
+																	},
+																	"detail": {
+																		"type": "string",
+																		"maxLength": 400
+																	},
+																	"action": {
+																		"enum": [
+																			"story",
+																			"draft-story",
+																			"questions",
+																			"practise",
+																			"none"
+																		],
+																		"type": "string"
+																	},
+																	"storyId": {
+																		"anyOf": [
+																			{
+																				"type": "string"
+																			},
+																			{
+																				"type": "null"
+																			}
+																		],
+																		"default": null
+																	}
+																},
+																"required": [
+																	"minutes",
+																	"title",
+																	"detail",
+																	"action"
+																]
+															}
+														},
+														"questions": {
+															"type": "array",
+															"maxItems": 8,
+															"items": {
+																"type": "object",
+																"properties": {
+																	"text": {
+																		"type": "string",
+																		"maxLength": 400
+																	},
+																	"origin": {
+																		"type": "string",
+																		"maxLength": 60
+																	}
+																},
+																"required": [
+																	"text",
+																	"origin"
+																]
+															}
+														},
+														"focus": {
+															"type": "string",
+															"maxLength": 500
+														},
+														"opening": {
+															"type": "string",
+															"maxLength": 600
+														},
+														"stories": {
+															"type": "array",
+															"maxItems": 3,
+															"items": {
+																"type": "string",
+																"maxLength": 300
+															}
+														},
+														"honesty": {
+															"type": "string",
+															"maxLength": 400
+														},
+														"storyIds": {
+															"type": "array",
+															"maxItems": 5,
+															"items": {
+																"type": "string"
+															},
+															"default": []
+														},
+														"missingStory": {
+															"anyOf": [
+																{
+																	"type": "string",
+																	"maxLength": 300
+																},
+																{
+																	"type": "null"
+																}
+															],
+															"default": null
+														},
+														"practiceQuestions": {
+															"type": "array",
+															"maxItems": 5,
+															"items": {
+																"type": "string",
+																"maxLength": 300
+															},
+															"default": []
+														}
+													},
+													"required": [
+														"kind",
+														"headline",
+														"summary",
+														"plan",
+														"questions",
+														"focus",
+														"opening",
+														"stories",
+														"honesty"
+													]
+												},
+												{
+													"type": "object",
+													"properties": {
+														"kind": {
+															"const": "practice"
+														},
+														"question": {
+															"type": "string",
+															"maxLength": 500
+														},
+														"origin": {
+															"enum": [
+																"simulated",
+																"recalled"
+															],
+															"type": "string"
+														},
+														"mode": {
+															"enum": [
+																"typed",
+																"spoken"
+															],
+															"type": "string"
+														},
+														"answer": {
+															"type": "string",
+															"maxLength": 6000
+														},
+														"title": {
+															"type": "string",
+															"maxLength": 200
+														},
+														"works": {
+															"type": "string",
+															"maxLength": 500
+														},
+														"strengthen": {
+															"type": "string",
+															"maxLength": 500
+														},
+														"opening": {
+															"type": "string",
+															"maxLength": 800
+														},
+														"note": {
+															"type": "string",
+															"maxLength": 60
+														}
+													},
+													"required": [
+														"kind",
+														"question",
+														"origin",
+														"mode",
+														"answer",
+														"title",
+														"works",
+														"strengthen",
+														"opening",
+														"note"
+													]
+												},
+												{
+													"type": "object",
+													"properties": {
+														"kind": {
+															"const": "debrief"
+														},
+														"round": {
+															"type": "string",
+															"maxLength": 100
+														},
+														"question": {
+															"type": "string",
+															"maxLength": 500
+														},
+														"answer": {
+															"type": "string",
+															"maxLength": 6000
+														},
+														"landed": {
+															"enum": [
+																"well",
+																"mixed",
+																"not"
+															],
+															"type": "string"
+														},
+														"title": {
+															"type": "string",
+															"maxLength": 200
+														},
+														"verdicts": {
+															"type": "array",
+															"maxItems": 6,
+															"items": {
+																"type": "object",
+																"properties": {
+																	"tag": {
+																		"enum": [
+																			"supported",
+																			"observation"
+																		],
+																		"type": "string"
+																	},
+																	"text": {
+																		"type": "string",
+																		"maxLength": 400
+																	}
+																},
+																"required": [
+																	"tag",
+																	"text"
+																]
+															}
+														},
+														"nextRound": {
+															"type": "string",
+															"maxLength": 600
+														},
+														"priority": {
+															"type": "string",
+															"maxLength": 400
+														},
+														"remember": {
+															"anyOf": [
+																{
+																	"type": "string",
+																	"maxLength": 400
+																},
+																{
+																	"type": "null"
+																}
+															],
+															"default": null
+														},
+														"plan": {
+															"type": "array",
+															"maxItems": 5,
+															"items": {
+																"type": "object",
+																"properties": {
+																	"day": {
+																		"enum": [
+																			"mon",
+																			"tue",
+																			"wed",
+																			"thu",
+																			"fri",
+																			"sat",
+																			"sun"
+																		],
+																		"type": "string"
+																	},
+																	"minutes": {
+																		"type": "integer",
+																		"minimum": 5,
+																		"maximum": 120
+																	},
+																	"task": {
+																		"type": "string",
+																		"maxLength": 300
+																	}
+																},
+																"required": [
+																	"day",
+																	"minutes",
+																	"task"
+																]
+															}
+														}
+													},
+													"required": [
+														"kind",
+														"round",
+														"question",
+														"answer",
+														"landed",
+														"title",
+														"verdicts",
+														"nextRound",
+														"priority",
+														"plan"
+													]
+												},
+												{
+													"type": "object",
+													"properties": {
+														"kind": {
+															"const": "answers"
+														},
+														"answers": {
+															"type": "array",
+															"maxItems": 30,
+															"items": {
+																"type": "object",
+																"properties": {
+																	"question": {
+																		"type": "string",
+																		"maxLength": 2000
+																	},
+																	"answer": {
+																		"type": "string",
+																		"maxLength": 6000
+																	}
+																},
+																"required": [
+																	"question",
+																	"answer"
+																]
+															}
+														}
+													},
+													"required": [
+														"kind",
+														"answers"
+													]
+												},
+												{
+													"type": "object",
+													"properties": {
+														"kind": {
+															"const": "reply"
+														},
+														"message": {
+															"type": "string",
+															"maxLength": 20000
+														},
+														"title": {
+															"type": "string",
+															"maxLength": 200
+														},
+														"asks": {
+															"type": "array",
+															"maxItems": 5,
+															"items": {
+																"type": "string",
+																"maxLength": 300
+															}
+														},
+														"unconfirmed": {
+															"type": "array",
+															"maxItems": 5,
+															"items": {
+																"type": "string",
+																"maxLength": 300
+															}
+														},
+														"reply": {
+															"type": "string",
+															"maxLength": 4000
+														},
+														"changes": {
+															"type": "array",
+															"maxItems": 4,
+															"items": {
+																"anyOf": [
+																	{
+																		"type": "object",
+																		"properties": {
+																			"type": {
+																				"const": "stage"
+																			},
+																			"stage": {
+																				"enum": [
+																					"screening",
+																					"interview",
+																					"offer",
+																					"closed"
+																				],
+																				"type": "string"
+																			}
+																		},
+																		"required": [
+																			"type",
+																			"stage"
+																		]
+																	},
+																	{
+																		"type": "object",
+																		"properties": {
+																			"type": {
+																				"const": "follow-up"
+																			},
+																			"at": {
+																				"anyOf": [
+																					{
+																						"type": "string",
+																						"format": "date-time"
+																					},
+																					{
+																						"type": "null"
+																					}
+																				]
+																			},
+																			"note": {
+																				"type": "string",
+																				"maxLength": 300
+																			}
+																		},
+																		"required": [
+																			"type",
+																			"at",
+																			"note"
+																		]
+																	},
+																	{
+																		"type": "object",
+																		"properties": {
+																			"type": {
+																				"const": "offer"
+																			}
+																		},
+																		"required": [
+																			"type"
+																		]
+																	}
+																]
+															}
+														},
+														"offer": {
+															"anyOf": [
+																{
+																	"type": "object",
+																	"properties": {
+																		"version": {
+																			"enum": [
+																				"written",
+																				"verbal"
+																			],
+																			"type": "string",
+																			"default": "written"
+																		},
+																		"currency": {
+																			"type": "string",
+																			"pattern": "^[A-Z]{3}$"
+																		},
+																		"period": {
+																			"enum": [
+																				"hour",
+																				"month",
+																				"year"
+																			],
+																			"type": "string"
+																		},
+																		"base": {
+																			"anyOf": [
+																				{
+																					"type": "number",
+																					"minimum": 0
+																				},
+																				{
+																					"type": "null"
+																				}
+																			]
+																		},
+																		"variable": {
+																			"anyOf": [
+																				{
+																					"type": "number",
+																					"minimum": 0
+																				},
+																				{
+																					"type": "null"
+																				}
+																			]
+																		},
+																		"variableConditions": {
+																			"type": "string",
+																			"maxLength": 1000,
+																			"default": ""
+																		},
+																		"equity": {
+																			"type": "string",
+																			"maxLength": 1000,
+																			"default": ""
+																		},
+																		"location": {
+																			"type": "string",
+																			"maxLength": 500,
+																			"default": ""
+																		},
+																		"officeDays": {
+																			"anyOf": [
+																				{
+																					"type": "integer",
+																					"minimum": 0,
+																					"maximum": 5
+																				},
+																				{
+																					"type": "null"
+																				}
+																			],
+																			"default": null
+																		},
+																		"leave": {
+																			"type": "string",
+																			"maxLength": 500,
+																			"default": ""
+																		},
+																		"learning": {
+																			"anyOf": [
+																				{
+																					"type": "number",
+																					"minimum": 0
+																				},
+																				{
+																					"type": "null"
+																				}
+																			],
+																			"default": null
+																		},
+																		"other": {
+																			"type": "string",
+																			"maxLength": 1000,
+																			"default": ""
+																		},
+																		"respondBy": {
+																			"anyOf": [
+																				{
+																					"type": "string",
+																					"format": "date-time"
+																				},
+																				{
+																					"type": "null"
+																				}
+																			],
+																			"default": null
+																		}
+																	},
+																	"required": [
+																		"currency",
+																		"period",
+																		"base",
+																		"variable"
+																	]
+																},
+																{
+																	"type": "null"
+																}
+															],
+															"default": null
+														},
+														"applied": {
+															"anyOf": [
+																{
+																	"type": "object",
+																	"properties": {
+																		"at": {
+																			"type": "string",
+																			"format": "date-time"
+																		},
+																		"changes": {
+																			"type": "array",
+																			"items": {
+																				"type": "integer",
+																				"minimum": -9007199254740991,
+																				"maximum": 9007199254740991
+																			}
+																		}
+																	},
+																	"required": [
+																		"at",
+																		"changes"
+																	]
+																},
+																{
+																	"type": "null"
+																}
+															],
+															"default": null
+														}
+													},
+													"required": [
+														"kind",
+														"message",
+														"title",
+														"asks",
+														"unconfirmed",
+														"reply",
+														"changes"
+													]
+												},
+												{
+													"type": "object",
+													"properties": {
+														"kind": {
+															"const": "offer"
+														},
+														"version": {
+															"enum": [
+																"written",
+																"verbal"
+															],
+															"type": "string",
+															"default": "written"
+														},
+														"currency": {
+															"type": "string",
+															"pattern": "^[A-Z]{3}$"
+														},
+														"period": {
+															"enum": [
+																"hour",
+																"month",
+																"year"
+															],
+															"type": "string"
+														},
+														"base": {
+															"anyOf": [
+																{
+																	"type": "number",
+																	"minimum": 0
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
+														"variable": {
+															"anyOf": [
+																{
+																	"type": "number",
+																	"minimum": 0
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
+														"variableConditions": {
+															"type": "string",
+															"maxLength": 1000,
+															"default": ""
+														},
+														"equity": {
+															"type": "string",
+															"maxLength": 1000,
+															"default": ""
+														},
+														"location": {
+															"type": "string",
+															"maxLength": 500,
+															"default": ""
+														},
+														"officeDays": {
+															"anyOf": [
+																{
+																	"type": "integer",
+																	"minimum": 0,
+																	"maximum": 5
+																},
+																{
+																	"type": "null"
+																}
+															],
+															"default": null
+														},
+														"leave": {
+															"type": "string",
+															"maxLength": 500,
+															"default": ""
+														},
+														"learning": {
+															"anyOf": [
+																{
+																	"type": "number",
+																	"minimum": 0
+																},
+																{
+																	"type": "null"
+																}
+															],
+															"default": null
+														},
+														"other": {
+															"type": "string",
+															"maxLength": 1000,
+															"default": ""
+														},
+														"respondBy": {
+															"anyOf": [
+																{
+																	"type": "string",
+																	"format": "date-time"
+																},
+																{
+																	"type": "null"
+																}
+															],
+															"default": null
+														}
+													},
+													"required": [
+														"kind",
+														"currency",
+														"period",
+														"base",
+														"variable"
+													]
+												}
+											]
+										},
+										"evidence": {
+											"type": "object",
+											"properties": {
+												"factIds": {
+													"type": "array",
+													"items": {
+														"type": "string"
+													}
+												},
+												"storyIds": {
+													"type": "array",
+													"items": {
+														"type": "string"
+													}
+												}
+											},
+											"required": [
+												"factIds",
+												"storyIds"
+											]
+										},
+										"jobId": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"inputVersion": {
+											"type": "string"
+										},
+										"application": {
+											"anyOf": [
+												{
+													"type": "object",
+													"properties": {
+														"company": {
+															"type": "string"
+														},
+														"role": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"company",
+														"role"
+													]
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"outdated": {
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"id",
+										"userId",
+										"createdAt",
+										"updatedAt",
+										"applicationId",
+										"interviewId",
+										"title",
+										"data",
+										"evidence",
+										"jobId",
+										"inputVersion",
+										"application",
+										"outdated"
+									]
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Structured API error. See status and code; do not branch on message text.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": [
+										"defined",
+										"code",
+										"status",
+										"message"
+									],
+									"properties": {
+										"defined": {
+											"type": "boolean"
+										},
+										"code": {
+											"type": "string"
+										},
+										"status": {
+											"type": "integer"
+										},
+										"message": {
+											"type": "string"
+										},
+										"data": {}
+									}
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"apiKey": []
+					},
+					{
+						"bearerAuth": []
+					},
+					{
+						"cookieAuth": []
+					}
+				],
+				"x-codeSamples": [
+					{
+						"lang": "bash",
+						"label": "cURL",
+						"source": "curl --request POST \"https://rxresu.me/api/openapi/career/offers\" --header \"x-api-key: <api-key>\" --header \"Content-Type: application/json\" --data '{\n  \"applicationId\": \"<string>\",\n  \"terms\": {\n    \"currency\": \"<string>\",\n    \"period\": \"hour\",\n    \"base\": 123,\n    \"variable\": 123\n  }\n}'"
 					}
 				]
 			}
@@ -110015,13 +111510,18 @@
 											},
 											"tab": {
 												"enum": [
+													"summary",
+													"documents",
+													"answers",
+													"interviews",
+													"messages",
+													"saved",
+													"activity",
 													"fit",
 													"apply",
 													"prepare",
 													"practise",
-													"debrief",
-													"messages",
-													"saved"
+													"debrief"
 												],
 												"type": "string",
 												"description": "Career coach: the workspace tab the user is on, as a hint."

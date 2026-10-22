@@ -290,8 +290,8 @@ it("hands the selected story to Practise for the next interview", async () => {
 	fireEvent.click(button);
 	expect(api.navigate).toHaveBeenCalledWith(
 		expect.objectContaining({
-			params: { applicationId: "next-application", tab: "practise" },
-			search: { speak: true, story: "chosen-story" },
+			params: { applicationId: "next-application", tab: "interviews" },
+			search: { section: "practise", speak: true, story: "chosen-story" },
 		}),
 	);
 });

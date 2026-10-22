@@ -2,9 +2,50 @@ import z from "zod";
 import { timezoneSchema } from "@reactive-resume/utils/timezone";
 
 /** The workspace tabs of one application, in the order a search happens. */
-export const WORKSPACE_TABS = ["fit", "apply", "prepare", "practise", "debrief", "messages", "saved"] as const;
+/** The application workspace's tabs, by purpose: what the job is, its documents, its answers, its interviews and its history. */
+export const WORKSPACE_TABS = [
+	"summary",
+	"documents",
+	"answers",
+	"interviews",
+	"messages",
+	"saved",
+	"activity",
+] as const;
 export const workspaceTabSchema = z.enum(WORKSPACE_TABS);
 export type WorkspaceTab = z.infer<typeof workspaceTabSchema>;
+
+/** Inside Interviews: the round's overview, then preparing for it, practising for it and writing it up. */
+export const INTERVIEW_SECTIONS = ["overview", "prepare", "practise", "debrief"] as const;
+export const interviewSectionSchema = z.enum(INTERVIEW_SECTIONS);
+export type InterviewSection = z.infer<typeof interviewSectionSchema>;
+
+/** The tab names used before the workspace was reorganized, and where each one goes now. */
+const LEGACY_WORKSPACE_TABS = {
+	fit: { tab: "summary" },
+	apply: { tab: "answers" },
+	prepare: { tab: "interviews", section: "prepare" },
+	practise: { tab: "interviews", section: "practise" },
+	debrief: { tab: "interviews", section: "debrief" },
+} as const satisfies Record<string, { tab: WorkspaceTab; section?: InterviewSection }>;
+
+/** A current or former tab name resolved to the tab (and interview section) it opens, or null when it is neither. */
+export function resolveWorkspaceTab(
+	name: string | undefined,
+): { tab: WorkspaceTab; section?: InterviewSection } | null {
+	if (!name) return null;
+	const current = workspaceTabSchema.safeParse(name);
+	if (current.success) return { tab: current.data };
+	const legacy = (LEGACY_WORKSPACE_TABS as Record<string, { tab: WorkspaceTab; section?: InterviewSection }>)[name];
+	return legacy ?? null;
+}
+
+/**
+ * What the coach is told the user is looking at: a workspace tab, or the section within Interviews. Older apps still send
+ * the former tab names, so those are accepted too.
+ */
+export const workspaceHintSchema = z.enum([...WORKSPACE_TABS, "fit", "apply", "prepare", "practise", "debrief"]);
+export type WorkspaceHint = z.infer<typeof workspaceHintSchema>;
 
 export const careerScopeSchema = z.object({ applicationId: z.string().min(1).nullable().default(null) });
 

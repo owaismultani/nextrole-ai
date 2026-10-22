@@ -1,5 +1,5 @@
 import type { AgentUIMessage } from "@reactive-resume/ai/tools/agent-tool-contracts";
-import type { WorkspaceTab } from "@reactive-resume/schema/career";
+import type { WorkspaceHint } from "@reactive-resume/schema/career";
 import type { ChatTransport, FileUIPart, UIMessage } from "ai";
 import { useChat } from "@ai-sdk/react";
 import { eventIteratorToUnproxiedDataStream } from "@orpc/client";
@@ -17,7 +17,7 @@ export type MessageContext = {
 	application?: boolean;
 	memory?: boolean;
 	web?: boolean;
-	tab?: WorkspaceTab;
+	tab?: WorkspaceHint;
 	offerIds?: string[];
 };
 

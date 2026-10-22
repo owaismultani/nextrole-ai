@@ -27,12 +27,17 @@ import { DocumentCard, DocumentRow } from "./document-card";
 import { collectTags, filterDocuments } from "./filter";
 import { LibraryError } from "./library-error";
 import { useStartDocument } from "./new-document-dialog";
+import { ApplicationGroups, BaselineSummary, useDocumentOrigins } from "./scopes";
 import { PageHeader } from "@/components/layout/page-header";
 import { useDialogStore } from "@/dialogs/store";
 import { isEditableElementFocused } from "@/features/resume/builder/draft";
 import { orpc } from "@/libs/orpc/client";
 
+export type DocumentsScope = "all" | "baseline" | "applications";
+
 export type DocumentsSearch = {
+	/** Which documents the library shows: baseline and reusable ones, those made for a job, or all. */
+	scope: DocumentsScope;
 	type: DocumentTypeFilter;
 	q: string;
 	tags: string[];
@@ -89,10 +94,21 @@ export function DocumentsPage({ search, onSearchChange }: DocumentsPageProps) {
 		searchRef.current?.focus();
 	});
 
+	const origins = useDocumentOrigins();
+	const setup = useQuery(orpc.career.setup.queryOptions({ input: {} }));
+	const baselineId = setup.data?.baseline?.resumeId;
 	const all = documents ?? [];
 	const failed = isError && !documents;
 	const firstRun = !isPending && all.length === 0;
-	const shown = filterDocuments(all, search);
+	// Baseline and reusable: documents not made for a job (the baseline itself is pinned above them).
+	// By application: documents that belong to one. Everything else in every view works the same.
+	const inScope = (document: DocumentSummary) =>
+		search.scope === "baseline"
+			? !document.application && !origins.byDocument.has(document.id) && document.id !== baselineId
+			: search.scope === "applications"
+				? Boolean(document.application)
+				: true;
+	const shown = filterDocuments(all.filter(inScope), search);
 	const tags = collectTags(all);
 	const counts = {
 		all: all.length,
@@ -131,6 +147,23 @@ export function DocumentsPage({ search, onSearchChange }: DocumentsPageProps) {
 			<PageHeader title={<Trans>Documents</Trans>}>
 				{!failed && !firstRun && (
 					<>
+						<Tabs
+							value={search.scope}
+							onValueChange={(scope) => onSearchChange({ scope: scope as DocumentsScope })}
+							className="max-sm:w-full"
+						>
+							<TabsList variant="default" aria-label={t`Documents shown`}>
+								<TabsTrigger value="all">
+									<Trans>All documents</Trans>
+								</TabsTrigger>
+								<TabsTrigger value="applications">
+									<Trans>By application</Trans>
+								</TabsTrigger>
+								<TabsTrigger value="baseline">
+									<Trans>Baseline &amp; reusable</Trans>
+								</TabsTrigger>
+							</TabsList>
+						</Tabs>
 						<Tabs value={search.type} onValueChange={(type) => onSearchChange({ type: type as DocumentTypeFilter })}>
 							<TabsList variant="line" aria-label={t`Document type`}>
 								<TabsTrigger value="all">
@@ -210,8 +243,11 @@ export function DocumentsPage({ search, onSearchChange }: DocumentsPageProps) {
 						/>
 					)}
 
+					{search.scope === "baseline" && <BaselineSummary documents={all} />}
 					{isPending ? (
 						<LibrarySkeleton view={view} />
+					) : search.scope === "applications" ? (
+						<ApplicationGroups documents={shown} origins={origins.byDocument} />
 					) : shown.length === 0 ? (
 						<div className="grid justify-items-center gap-2 py-16 text-center">
 							<Icon name="magnifying-glass" size={28} className="text-ink-3" />

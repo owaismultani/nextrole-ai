@@ -2,6 +2,7 @@ import { createRouter } from "@tanstack/react-router";
 import { ErrorScreen } from "./components/layout/error-screen";
 import { LoadingScreen } from "./components/layout/loading-screen";
 import { NotFoundScreen } from "./components/layout/not-found-screen";
+import { rememberOrigin } from "./libs/origin";
 import { orpc } from "./libs/orpc/client";
 import { getQueryClient } from "./libs/query/client";
 import { loadRootContext } from "./libs/root-context";
@@ -34,6 +35,9 @@ export const getRouter = async () => {
 		defaultNotFoundComponent: NotFoundScreen,
 		context: { orpc, queryClient, theme, locale, session, flags },
 	});
+
+	// An application's "back" returns to the page (and filters) it was opened from; so does an editor's.
+	router.subscribe("onResolved", ({ fromLocation, toLocation }) => rememberOrigin(fromLocation, toLocation));
 
 	return router;
 };

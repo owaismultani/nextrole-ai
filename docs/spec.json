@@ -43222,6 +43222,171 @@
 				]
 			}
 		},
+		"/career/document-origins": {
+			"get": {
+				"operationId": "listCareerDocumentOrigins",
+				"summary": "List where prepared documents came from",
+				"description": "For each document made by document preparation: its application, the baseline resume it started from, and whether it is out of date. Other documents are not listed.",
+				"tags": [
+					"Career"
+				],
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"type": "object",
+										"properties": {
+											"documentId": {
+												"type": "string"
+											},
+											"kind": {
+												"enum": [
+													"resume",
+													"letter"
+												],
+												"type": "string"
+											},
+											"applicationId": {
+												"anyOf": [
+													{
+														"type": "string"
+													},
+													{
+														"type": "null"
+													}
+												]
+											},
+											"summary": {
+												"enum": [
+													"skipped",
+													"attention",
+													"generating",
+													"deferred",
+													"queued",
+													"ready"
+												],
+												"type": "string"
+											},
+											"baseline": {
+												"anyOf": [
+													{
+														"type": "object",
+														"properties": {
+															"resumeId": {
+																"type": "string"
+															},
+															"name": {
+																"anyOf": [
+																	{
+																		"type": "string"
+																	},
+																	{
+																		"type": "null"
+																	}
+																]
+															}
+														},
+														"required": [
+															"resumeId",
+															"name"
+														]
+													},
+													{
+														"type": "null"
+													}
+												]
+											},
+											"stale": {
+												"type": "boolean"
+											},
+											"edited": {
+												"type": "boolean"
+											},
+											"madeAt": {
+												"anyOf": [
+													{
+														"type": "string",
+														"format": "date-time",
+														"x-native-type": "date"
+													},
+													{
+														"type": "null"
+													}
+												]
+											}
+										},
+										"required": [
+											"documentId",
+											"kind",
+											"applicationId",
+											"summary",
+											"baseline",
+											"stale",
+											"edited",
+											"madeAt"
+										]
+									}
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Structured API error. See status and code; do not branch on message text.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": [
+										"defined",
+										"code",
+										"status",
+										"message"
+									],
+									"properties": {
+										"defined": {
+											"type": "boolean"
+										},
+										"code": {
+											"type": "string"
+										},
+										"status": {
+											"type": "integer"
+										},
+										"message": {
+											"type": "string"
+										},
+										"data": {}
+									}
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"apiKey": []
+					},
+					{
+						"bearerAuth": []
+					},
+					{
+						"cookieAuth": []
+					}
+				],
+				"x-codeSamples": [
+					{
+						"lang": "bash",
+						"label": "cURL",
+						"source": "curl \"https://rxresu.me/api/openapi/career/document-origins\" --header \"x-api-key: <api-key>\""
+					}
+				]
+			}
+		},
 		"/career/preparations/{id}/retry": {
 			"post": {
 				"operationId": "retryCareerPreparation",

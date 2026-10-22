@@ -846,6 +846,14 @@ describe.skipIf(!databaseUrl)("autonomous discovery and document preparation", (
 			expect(jobs).toHaveLength(1);
 			expect(jobs[0]?.steps.every((step) => step.baseline?.resumeId === base)).toBe(true);
 			expect(await automation.preparations("alice", "added-by-hand")).toEqual([]);
+
+			// Each finished document points back at its application and baseline; nobody else sees them.
+			const origins = await automation.documentOrigins("alice");
+			expect(origins.map((origin) => origin.kind).sort()).toEqual(["letter", "resume"]);
+			expect(
+				origins.every((origin) => origin.applicationId === applicationId && origin.baseline?.resumeId === base),
+			).toBe(true);
+			expect(await automation.documentOrigins("bob")).toEqual([]);
 		});
 
 		it("logs retries, waits for the limit and failures, and filters the feed to problems", async () => {

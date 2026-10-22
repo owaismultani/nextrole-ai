@@ -3,10 +3,19 @@ import { createFileRoute, redirect, stripSearchParams } from "@tanstack/react-ro
 import z from "zod";
 import { DocumentsPage } from "@/features/documents/documents-page";
 
-const defaults = { type: "all", q: "", tags: [], public: false, sort: "edited" } satisfies DocumentsSearch;
+const defaults = {
+	scope: "all",
+	type: "all",
+	q: "",
+	tags: [],
+	public: false,
+	sort: "edited",
+} satisfies DocumentsSearch;
 
 export const Route = createFileRoute("/dashboard/")({
 	validateSearch: z.object({
+		// Baseline and reusable, by application, or every document.
+		scope: z.enum(["all", "baseline", "applications"]).default("all").catch("all"),
 		type: z.enum(["all", "resume", "letter"]).default("all").catch("all"),
 		q: z.string().default("").catch(""),
 		tags: z.array(z.string()).default([]).catch([]),

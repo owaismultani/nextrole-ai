@@ -303,7 +303,7 @@ function RailTip({
 	);
 }
 
-/** Phones: Documents · Applications · New · Career · Settings, with New as an accent pill in the middle. */
+/** Phones: Overview · Documents · Applications · New · Career · Settings, with New as an accent pill. */
 function MobileTabs() {
 	const isCurrent = useIsCurrent();
 	const openDialog = useDialogStore((state) => state.openDialog);
@@ -312,15 +312,25 @@ function MobileTabs() {
 		<>
 			{current && <MobileTabIndicator />}
 			<Icon name={icon} size={24} filled={current} />
-			<span className={cn("text-[11px]", current ? "font-semibold text-ink" : "text-ink-2")}>{label}</span>
+			<span className={cn("max-w-full truncate px-0.5 text-[11px]", current ? "font-semibold text-ink" : "text-ink-2")}>
+				{label}
+			</span>
 		</>
 	);
 
 	return (
 		<nav
 			aria-label={t`App`}
-			className="sticky bottom-0 z-30 grid grid-cols-5 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] [view-transition-name:app-nav]"
+			className="sticky bottom-0 z-30 grid grid-cols-6 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] [view-transition-name:app-nav]"
 		>
+			<Link
+				to="/dashboard/overview"
+				aria-current={isCurrent("/dashboard/overview") ? "page" : undefined}
+				viewTransition={false}
+				className="relative flex min-h-[52px] flex-col items-center justify-center gap-0.5 transition-[scale] duration-quick ease-enter active:scale-[0.97]"
+			>
+				{tab("squares-four", t`Overview`, isCurrent("/dashboard/overview"))}
+			</Link>
 			<Link
 				to="/dashboard"
 				aria-current={isCurrent("/dashboard") ? "page" : undefined}

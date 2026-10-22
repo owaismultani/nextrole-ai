@@ -1,3 +1,4 @@
+import type { DbOrTx } from "@reactive-resume/db/client";
 import type { PreparationError } from "@reactive-resume/schema/career";
 import type { CareerEventKind, CareerEventLevel } from "@reactive-resume/schema/career";
 import type { Locale } from "@reactive-resume/utils/locale";
@@ -102,6 +103,8 @@ export async function claimPreparation() {
 					),
 					// A person with a step in progress waits, so the next claim goes to someone else.
 					sql`not exists (select 1 from career_preparation busy where busy.user_id = ${tables.careerPreparation.userId} and busy.status = 'running' and busy.lease_until > ${now} and busy.id <> ${tables.careerPreparation.id})`,
+					// A letter waits for its job's tailored resume, so it is written from that copy rather than the baseline.
+					sql`(${tables.careerPreparation.kind} <> 'letter' or not exists (select 1 from career_preparation tailoring where tailoring.application_id = ${tables.careerPreparation.applicationId} and tailoring.kind = 'resume' and tailoring.status in ('queued', 'running')))`,
 				),
 			)
 			.orderBy(asc(tables.careerPreparation.nextAttemptAt))
@@ -229,9 +232,12 @@ async function work(row: Row) {
 	const description = application?.jobDescription?.trim() ?? "";
 	if (!application || !description) throw new Stop("no-description");
 
-	const provider = automation.aiProviderId
+	// The chosen connection while it's usable; once it's switched off or removed (or AI stops being managed by the
+	// server), the default, as everywhere else.
+	const chosen = automation.aiProviderId
 		? await aiProvidersService.getRunnableById({ id: automation.aiProviderId, userId: row.userId }).catch(() => null)
-		: await aiProvidersService.getDefaultRunnable({ userId: row.userId }).catch(() => null);
+		: null;
+	const provider = chosen ?? (await aiProvidersService.getDefaultRunnable({ userId: row.userId }).catch(() => null));
 	if (!provider) throw new Stop("no-ai");
 
 	if (!row.counted) {
@@ -278,6 +284,7 @@ async function work(row: Row) {
 					model,
 					signal,
 					baseline,
+					resume: await letterResume(row.userId, application.resumeId, baseline),
 					job,
 					applicationId: application.id,
 					instruction: automation.coverLetterPrompt,
@@ -287,6 +294,7 @@ async function work(row: Row) {
 		status: "done",
 		error: null,
 		outputId: outcome.outputId,
+		outputGeneration: row.generation,
 		issues: outcome.issues,
 		baselineResumeId: baseline.id,
 		baselineVersion: baseline.updatedAt.toISOString(),
@@ -306,13 +314,72 @@ type Step = {
 	instruction: string;
 };
 
-/** A separate tailored copy, linked to the application. The baseline is only read. */
+/**
+ * Whether the step's document already holds this generation (a retry after it was saved). Null means the document,
+ * if any, was being made for this generation.
+ */
+const madeThisGeneration = (row: Row) => row.outputGeneration === null || row.outputGeneration === row.generation;
+
+/** History's name for a generation; a copy someone changed after it was made is marked as theirs. */
+const generationName = (generation: number, edited = false) =>
+	edited ? `Generation ${generation} · your edits` : `Generation ${generation}`;
+
+/** The step's document as it stands. A regenerate writes over it unless it was trashed or locked. */
+type Output = { updatedAt: Date; trashedAt: Date | null; isLocked: boolean };
+const replaceable = (output: Output | undefined): output is Output =>
+	Boolean(output && !output.trashedAt && !output.isLocked);
+
+/**
+ * Records the generation, and where the one it replaced is kept, in the same transaction as the document. A claim that
+ * was lost to another worker rolls the document back too, so a generation is written once.
+ */
+const markGeneration = (row: Row) => async (tx: DbOrTx, replaced: { id: string }) => {
+	const [marked] = await tx
+		.update(tables.careerPreparation)
+		.set({ outputGeneration: row.generation, replacedVersionId: replaced.id })
+		.where(and(eq(tables.careerPreparation.id, row.id), eq(tables.careerPreparation.lease, row.lease ?? "")))
+		.returning({ id: tables.careerPreparation.id });
+	if (!marked) throw new Error("The preparation was claimed by another worker.");
+};
+
+/** The names History gives the generation being replaced and the new one. */
+const replacementNames = (row: Row, output: Output) => ({
+	replaced: generationName(
+		row.outputGeneration ?? row.generation - 1,
+		// Changed after it was made (the same allowance as the step's `edited` flag).
+		Boolean(row.completedAt && output.updatedAt.getTime() - row.completedAt.getTime() > 5_000),
+	),
+	name: generationName(row.generation),
+});
+
+/** A new document is needed for this generation: forget an earlier generation's output so a retry finds this one. */
+async function startNewOutput(row: Row, outputId: string | null) {
+	if (outputId === row.outputId && row.outputGeneration === null && row.replacedVersionId === null) return;
+	await db
+		.update(tables.careerPreparation)
+		.set({ outputId, outputGeneration: null, replacedVersionId: null })
+		.where(eq(tables.careerPreparation.id, row.id));
+}
+
+/**
+ * A separate tailored copy, linked to the application. The baseline is only read. A regenerate writes the next
+ * generation over the same resume, keeping the one it replaces in History.
+ */
 async function prepareResume({ row, model, signal, baseline, job, applicationId, instruction }: Step) {
-	const outputId = row.outputId ?? generateId();
-	if (!row.outputId)
-		await db.update(tables.careerPreparation).set({ outputId }).where(eq(tables.careerPreparation.id, row.id));
-	const existing = await resumeService.getById({ id: outputId, userId: row.userId }).catch(() => null);
-	if (existing) return { outputId, issues: row.issues };
+	const [current] = row.outputId
+		? await db
+				.select({
+					updatedAt: tables.resume.updatedAt,
+					trashedAt: tables.resume.trashedAt,
+					isLocked: tables.resume.isLocked,
+				})
+				.from(tables.resume)
+				.where(and(eq(tables.resume.id, row.outputId), eq(tables.resume.userId, row.userId)))
+		: [];
+	if (row.outputId && current && madeThisGeneration(row)) return { outputId: row.outputId, issues: row.issues };
+	const replacing = row.outputId && !madeThisGeneration(row) && replaceable(current) ? row.outputId : null;
+	const outputId = replacing ?? (madeThisGeneration(row) && row.outputId ? row.outputId : generateId());
+	if (!replacing) await startNewOutput(row, outputId);
 
 	const proposal = await generateJson(
 		model,
@@ -321,6 +388,17 @@ async function prepareResume({ row, model, signal, baseline, job, applicationId,
 		signal,
 	);
 	const { data, issues } = applyTailoring(baseline.data, proposal);
+	if (replacing && current) {
+		await resumeService.replaceGeneration({
+			id: replacing,
+			userId: row.userId,
+			data,
+			...replacementNames(row, current),
+			alongside: markGeneration(row),
+		});
+		return { outputId: replacing, issues };
+	}
+
 	const name = `Tailored — ${job.company} · ${job.role}`.slice(0, 60);
 	await resumeService.create({
 		id: outputId,
@@ -341,33 +419,65 @@ async function prepareResume({ row, model, signal, baseline, job, applicationId,
 	return { outputId, issues };
 }
 
-/** A letter written from the baseline, the posting and the person's own facts; it does not need the tailored resume. */
-async function prepareLetter({ row, model, signal, baseline, job, applicationId, instruction }: Step) {
+/** The resume a letter is written from: the one linked to the application (usually its tailored copy), else the baseline. */
+async function letterResume(userId: string, resumeId: string | null, baseline: Step["baseline"]) {
+	if (!resumeId || resumeId === baseline.id) return baseline;
+	const [linked] = await db
+		.select()
+		.from(tables.resume)
+		.where(and(eq(tables.resume.id, resumeId), eq(tables.resume.userId, userId), isNull(tables.resume.trashedAt)));
+	return linked ?? baseline;
+}
+
+/**
+ * A letter written from the application's resume, the posting and the person's own facts. A regenerate writes the next
+ * generation's body over the same letter, keeping the one it replaces in History.
+ */
+async function prepareLetter({
+	row,
+	model,
+	signal,
+	resume,
+	job,
+	applicationId,
+	instruction,
+}: Step & { resume: Step["baseline"] }) {
 	const name = `Cover letter — ${job.company} · ${job.role}`.slice(0, 60);
-	if (row.outputId) {
-		const [kept] = await db
+	const [current] = row.outputId
+		? await db
+				.select({
+					updatedAt: tables.coverLetter.updatedAt,
+					trashedAt: tables.coverLetter.trashedAt,
+					isLocked: tables.coverLetter.isLocked,
+				})
+				.from(tables.coverLetter)
+				.where(and(eq(tables.coverLetter.id, row.outputId), eq(tables.coverLetter.userId, row.userId)))
+		: [];
+	if (row.outputId && current && madeThisGeneration(row)) return { outputId: row.outputId, issues: row.issues };
+	const replacing = row.outputId && !madeThisGeneration(row) && replaceable(current) ? row.outputId : null;
+	if (!replacing) {
+		await startNewOutput(row, null);
+		// A crash after creating the letter but before recording it: find the letter this claim made.
+		const [made] = await db
 			.select({ id: tables.coverLetter.id })
 			.from(tables.coverLetter)
-			.where(and(eq(tables.coverLetter.id, row.outputId), eq(tables.coverLetter.userId, row.userId)));
-		if (kept) return { outputId: kept.id, issues: row.issues };
-	}
-	// A crash after creating the letter but before recording it: find the letter this claim made.
-	const [made] = await db
-		.select({ id: tables.coverLetter.id })
-		.from(tables.coverLetter)
-		.where(
-			and(
-				eq(tables.coverLetter.userId, row.userId),
-				eq(tables.coverLetter.sourceApplicationId, applicationId),
-				eq(tables.coverLetter.name, name),
-				row.startedAt ? sql`${tables.coverLetter.createdAt} >= ${row.startedAt}` : sql`false`,
-				isNull(tables.coverLetter.trashedAt),
-			),
-		)
-		.limit(1);
-	if (made) {
-		await db.update(tables.careerPreparation).set({ outputId: made.id }).where(eq(tables.careerPreparation.id, row.id));
-		return { outputId: made.id, issues: row.issues };
+			.where(
+				and(
+					eq(tables.coverLetter.userId, row.userId),
+					eq(tables.coverLetter.sourceApplicationId, applicationId),
+					eq(tables.coverLetter.name, name),
+					row.startedAt ? sql`${tables.coverLetter.createdAt} >= ${row.startedAt}` : sql`false`,
+					isNull(tables.coverLetter.trashedAt),
+				),
+			)
+			.limit(1);
+		if (made) {
+			await db
+				.update(tables.careerPreparation)
+				.set({ outputId: made.id })
+				.where(eq(tables.careerPreparation.id, row.id));
+			return { outputId: made.id, issues: row.issues };
+		}
 	}
 
 	const facts = await db
@@ -386,7 +496,7 @@ async function prepareLetter({ row, model, signal, baseline, job, applicationId,
 		"Use only the resume and the facts below for anything personal. Do not invent motivations, achievements, numbers or knowledge about the employer beyond the posting. When something is missing, leave it out and list it in `missing`.",
 		`## The job\n${job.role} at ${job.company}`,
 		`<<<POSTING_START>>>\n${job.description.slice(0, MAX_POSTING_CHARS)}\n<<<POSTING_END>>>`,
-		`<<<RESUME_START>>>\n${buildMarkdown(baseline.data)}\n<<<RESUME_END>>>`,
+		`<<<RESUME_START>>>\n${buildMarkdown(resume.data)}\n<<<RESUME_END>>>`,
 		facts.length
 			? `<<<FACTS_START>>>\n${facts.map((fact) => `- ${fact.text.slice(0, 300)}`).join("\n")}\n<<<FACTS_END>>>`
 			: "",
@@ -395,18 +505,29 @@ async function prepareLetter({ row, model, signal, baseline, job, applicationId,
 		.filter(Boolean)
 		.join("\n\n");
 	const letter = await generateJson(model, { system: letterDraftSystemPrompt, prompt }, letterOutputSchema, signal);
+	const issues = letter.missing.map((item) => `Not in your resume or facts: ${item}`);
+	if (replacing && current) {
+		await coverLetterService.replaceGeneration({
+			id: replacing,
+			userId: row.userId,
+			content: paragraphsToHtml(letter.body),
+			...replacementNames(row, current),
+			alongside: markGeneration(row),
+		});
+		return { outputId: replacing, issues };
+	}
 	const created = await coverLetterService.create({
 		userId: row.userId,
 		name,
 		applicationId,
-		resumeId: baseline.id,
+		resumeId: resume.id,
 		content: sanitizeCoverLetterHtml(paragraphsToHtml(letter.body)),
 	});
 	await db
 		.update(tables.careerPreparation)
 		.set({ outputId: created.id })
 		.where(eq(tables.careerPreparation.id, row.id));
-	return { outputId: created.id, issues: letter.missing.map((item) => `Not in your resume or facts: ${item}`) };
+	return { outputId: created.id, issues };
 }
 
 /** One tick's worth: a bounded number of steps, each for a different person, run side by side. */

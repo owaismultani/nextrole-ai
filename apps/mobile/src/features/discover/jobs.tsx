@@ -3,7 +3,7 @@ import { useLingui } from "@lingui/react/macro";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { openBrowserAsync } from "expo-web-browser";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 import Animated from "react-native-reanimated";
 import { client, useCareerAction, useCareerTime, useTodayQueries, useUndoRows } from "../career/hooks";
@@ -13,6 +13,7 @@ import { orpc } from "@/api/client";
 import { useSession } from "@/auth/session";
 import { routes } from "@/routes";
 import {
+	Badge,
 	Banner,
 	Button,
 	Card,
@@ -20,7 +21,6 @@ import {
 	EmptyState,
 	Screen,
 	SelectSheet,
-	Segmented,
 	Text,
 	TextField,
 	listItemMotion,
@@ -31,7 +31,8 @@ import {
 } from "@/ui";
 
 type Opportunity = RouterOutput["career"]["opportunities"][number];
-type Status = "new" | "tracked" | "dismissed";
+/** `open`: roles still in Discover, new and tracked together. `dismissed`: roles you chose not to track. */
+type Mode = "open" | "dismissed";
 
 const hostOf = (url: string) => {
 	try {
@@ -46,10 +47,11 @@ const hostOf = (url: string) => {
  * application (never a second one); a dismissed one can be restored. Selecting a role shows its posting and where it
  * came from.
  */
-export function JobsScreen({ job }: { job?: string | undefined }) {
+export function JobsScreen({ mode, job }: { mode: Mode; job?: string | undefined }) {
 	const { t } = useLingui();
 	const { space } = useTheme();
 	const session = useSession();
+	const router = useRouter();
 	const action = useCareerAction();
 	const undo = useUndoRows();
 	const { edit, hidden: hiddenSchedules } = useDiscover();
@@ -60,7 +62,6 @@ export function JobsScreen({ job }: { job?: string | undefined }) {
 		retry: false,
 		queryKey: [...orpc.career.opportunities.key(), session.server, "dismissed"],
 	});
-	const [picked, setPicked] = useState<Status | null>(null);
 	const [text, setText] = useState("");
 	const [source, setSource] = useState("");
 	const [match, setMatch] = useState(false);
@@ -68,24 +69,21 @@ export function JobsScreen({ job }: { job?: string | undefined }) {
 	const [expanded, setExpanded] = useState(false);
 	const firstAppearance = useFirstAppearance(!opportunities.isPending);
 
-	// A role linked from a run opens in the list it belongs to, until a list is picked.
-	const linked = job
-		? [...(opportunities.data ?? []), ...(dismissed.data ?? [])].find((row) => row.id === job)
-		: undefined;
-	const status: Status =
-		picked ?? (linked ? (linked.dismissedAt ? "dismissed" : linked.trackedApplicationId ? "tracked" : "new") : "new");
+	// A dismissed role linked from a run opens in the Dismissed list, where it is.
+	const linkedDismissed = Boolean(job && (dismissed.data ?? []).some((row) => row.id === job));
+	useEffect(() => {
+		if (mode === "open" && linkedDismissed) router.replace({ pathname: routes.discover("dismissed"), params: { job } });
+	}, [mode, linkedDismissed, job, router]);
 
-	const open_ = (opportunities.data ?? []).filter((row) => !undo.hidden.includes(row.id));
-	const byStatus: Record<Status, Opportunity[]> = {
-		new: open_.filter((row) => !row.trackedApplicationId),
-		tracked: (opportunities.data ?? []).filter((row) => row.trackedApplicationId),
-		dismissed: dismissed.data ?? [],
-	};
+	const list =
+		mode === "dismissed"
+			? (dismissed.data ?? [])
+			: (opportunities.data ?? []).filter((row) => !undo.hidden.includes(row.id));
 	const needle = text.trim().toLowerCase();
 	const sources = [
 		...new Set([...(opportunities.data ?? []), ...(dismissed.data ?? [])].map((row) => hostOf(row.url))),
 	].sort();
-	const rows = byStatus[status]
+	const rows = list
 		.filter(
 			(row) =>
 				(!needle || [row.role, row.company, row.location, row.snippet].join(" ").toLowerCase().includes(needle)) &&
@@ -101,32 +99,15 @@ export function JobsScreen({ job }: { job?: string | undefined }) {
 		(row) => row.kind === "discovery" && !hiddenSchedules.includes(row.id),
 	);
 	const active = discovery.find((row) => row.enabled) ?? discovery[0];
-	const counts = {
-		new: byStatus.new.length,
-		tracked: byStatus.tracked.length,
-		dismissed: byStatus.dismissed.length,
-	};
-
 	return (
 		<Screen
 			onRefresh={() =>
 				Promise.allSettled([opportunities.refetch(), dismissed.refetch(), schedules.refetch(), action.refresh()])
 			}
 		>
-			<Segmented
-				label={t`Show`}
-				value={status}
-				onChange={(value) => {
-					setPicked(value as Status);
-					setOpen(null);
-					setExpanded(false);
-				}}
-				options={[
-					{ value: "new", label: t`New ${counts.new}` },
-					{ value: "tracked", label: t`In Applications ${counts.tracked}` },
-					{ value: "dismissed", label: t`Not for me ${counts.dismissed}` },
-				]}
-			/>
+			<Text variant="title" accessibilityRole="header">
+				{mode === "dismissed" ? t`Dismissed jobs` : t`New opportunities`}
+			</Text>
 			<TextField
 				label={t`Search roles`}
 				value={text}
@@ -148,8 +129,8 @@ export function JobsScreen({ job }: { job?: string | undefined }) {
 			<LoadState query={dismissed} />
 			{!opportunities.isPending && !opportunities.isError && rows.length === 0 ? (
 				<Empty
-					status={status}
-					filtered={byStatus[status].length > 0}
+					mode={mode}
+					filtered={list.length > 0}
 					active={active}
 					onSetUp={() => edit(null)}
 					onOpenSearch={() => active && edit(active)}
@@ -174,13 +155,21 @@ export function JobsScreen({ job }: { job?: string | undefined }) {
 			{rows.length > shown.length ? (
 				<Button variant="ghost" label={t`Show ${rows.length - shown.length} more`} onPress={() => setExpanded(true)} />
 			) : null}
+			<Banner
+				tone="accent"
+				message={
+					mode === "dismissed"
+						? t`Restoring returns an opportunity to Discover. It does not create an application.`
+						: t`Tracking creates an application. Jobs already tracked open their existing application; they are never added twice.`
+				}
+			/>
 			<View style={{ height: space.s4 }} />
 		</Screen>
 	);
 }
 
 type EmptyProps = {
-	status: Status;
+	mode: Mode;
 	filtered: boolean;
 	active: { id: string; enabled: boolean } | undefined;
 	onSetUp: () => void;
@@ -188,7 +177,7 @@ type EmptyProps = {
 	onClear: () => void;
 };
 
-function Empty({ status, filtered, active, onSetUp, onOpenSearch, onClear }: EmptyProps) {
+function Empty({ mode, filtered, active, onSetUp, onOpenSearch, onClear }: EmptyProps) {
 	const { t } = useLingui();
 	if (filtered)
 		return (
@@ -197,14 +186,7 @@ function Empty({ status, filtered, active, onSetUp, onOpenSearch, onClear }: Emp
 				<Button variant="secondary" label={t`Clear filters`} onPress={onClear} />
 			</>
 		);
-	if (status === "tracked")
-		return (
-			<EmptyState
-				title={t`Nothing tracked yet`}
-				message={t`Roles you track appear here with a link to their application.`}
-			/>
-		);
-	if (status === "dismissed")
+	if (mode === "dismissed")
 		return (
 			<EmptyState
 				title={t`Nothing hidden`}
@@ -253,8 +235,16 @@ function JobCard({ row, open, onToggle, undo, action }: JobCardProps) {
 		<Card style={{ gap: space.s3 }}>
 			<Text variant="title">{row.role}</Text>
 			<Text color="ink2">{[company, row.location].filter(Boolean).join(" · ")}</Text>
-			<Text variant="caption" color="ink3">{t`Found ${time.when(row.firstSeenAt)}`}</Text>
-			{tracked ? <Chip label={t`In Applications`} /> : null}
+			<Text variant="caption" color="ink3">
+				{dismissed && row.dismissedAt
+					? t`Dismissed ${time.when(row.dismissedAt)}`
+					: t`Found ${time.when(row.firstSeenAt)}`}
+			</Text>
+			{dismissed ? null : tracked ? (
+				<Badge tone="ok" label={t`In Applications`} />
+			) : (
+				<Badge tone="info" label={t`New`} />
+			)}
 			<Actions>
 				{row.matches.map((match) => (
 					<Chip key={match} label={match} />

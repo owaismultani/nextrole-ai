@@ -5,7 +5,6 @@ import type { InterviewTimelineEntry } from "@reactive-resume/schema/application
 import type { InterviewSection, WorkspaceTab } from "@reactive-resume/schema/career";
 import type { ComponentProps, ReactNode } from "react";
 import { t } from "@lingui/core/macro";
-import { useLingui } from "@lingui/react";
 import { Trans } from "@lingui/react/macro";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useRouter } from "@tanstack/react-router";
@@ -16,28 +15,25 @@ import { Button, buttonVariants } from "@reactive-resume/ui/components/button";
 import { Icon } from "@reactive-resume/ui/components/icon";
 import { Spinner } from "@reactive-resume/ui/components/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@reactive-resume/ui/components/tabs";
-import { useBreakpoint } from "@reactive-resume/ui/hooks/use-breakpoint";
-import { downloadWithAnchor } from "@reactive-resume/utils/file";
-import { getInitials } from "@reactive-resume/utils/string";
 import { cn } from "@reactive-resume/utils/style";
 import { useApplicationJourney, useOverlayHistory, useSavedItems } from "../hooks";
-import { CountdownChip, Eyebrow, minutesUntil, tabLabel, useCareerTime, useNow } from "../shared";
+import { minutesUntil, tabLabel, useCareerTime, useNow } from "../shared";
 import { ActivityTab } from "./activity";
 import { ApplyTab } from "./apply";
 import { CoachSheet } from "./coach-sheet";
 import { DocumentsTab } from "./documents";
+import { EditDetailsProvider, useEditDetails } from "./edit-details";
 import { InterviewsTab } from "./interviews";
 import { MessagesTab } from "./messages";
+import { NextBand } from "./next-band";
 import { OfferDialog } from "./offer-dialog";
-import { SavedTab } from "./saved";
-import { actionLabel, preparationLabel, useWorkspaceState } from "./state";
 import { SummaryTab } from "./summary";
-import { ApplicationNotes } from "@/features/applications/components/application-notes";
+import { ApplicationActionsMenu } from "@/features/applications/components/application-actions-menu";
+import { FollowUpDialog } from "@/features/applications/components/detail/next-step-card";
 import { InterviewDialog } from "@/features/applications/components/interview-dialog";
-import { buildIcs } from "@/features/applications/ics";
-import { formatDuration, interviewKindOf, isInterview } from "@/features/applications/interviews";
-import { describeNextStep, getNextStep } from "@/features/applications/next-step";
-import { getStageLabel, PIPELINE } from "@/features/applications/stages";
+import { isInterview } from "@/features/applications/interviews";
+import { getClosedReasonLabel, getStageLabel, PIPELINE } from "@/features/applications/stages";
+import { useApplicationActions } from "@/features/applications/use-application-actions";
 import { D1, EASE } from "@/libs/motion";
 import { returnTarget } from "@/libs/origin";
 import { orpc } from "@/libs/orpc/client";
@@ -75,6 +71,8 @@ export type WorkspaceTabProps = {
 };
 
 const DAY = 86_400_000;
+/** Saved work is a section of Activity now; its address still opens there. */
+const VISIBLE_TABS = WORKSPACE_TABS.filter((value) => value !== "saved");
 /** The kind of saved item each tab (and interview section) shows read-only when one is opened from Saved. */
 function archiveKind(tab: WorkspaceTab, section: InterviewSection | undefined): SavedItem["data"]["kind"] | null {
 	switch (tab) {
@@ -131,7 +129,6 @@ export function Workspace({ applicationId, tab: requested, search }: WorkspacePr
 	const now = useNow();
 	// The round being edited is fixed when the dialog opens; "next interview" can move on while it's open.
 	const [editing, setEditing] = useState<{ id: string | null } | null>(null);
-	const breakpoint = useBreakpoint();
 	const query = useQuery(orpc.applications.getById.queryOptions({ input: { id: applicationId } }));
 	const saved = useSavedItems(applicationId);
 	const workspace = useQuery(orpc.career.workspace.queryOptions({ input: { applicationId } }));
@@ -240,181 +237,155 @@ export function Workspace({ applicationId, tab: requested, search }: WorkspacePr
 		search.offer && search.offer !== "new"
 			? (saved.data?.find((item) => item.id === search.offer && item.data.kind === "offer") ?? null)
 			: null;
-	const wide = breakpoint === "desktop" || breakpoint === "wide";
+	const shownTab = tab === "saved" ? "activity" : tab;
 
 	return (
-		<div className="flex min-h-svh flex-col">
-			<WorkspaceHeader
-				application={application}
-				now={now}
-				go={go}
-				onAddOffer={() => openSearch({ offer: "new" })}
-				onAskCoach={() => openSearch({ coach: true })}
-			/>
-			<div
-				className={cn(
-					"grid min-h-0 flex-1",
-					!wide && "grid-rows-[auto_minmax(0,1fr)]",
-					wide && (breakpoint === "wide" ? "grid-cols-[300px_minmax(0,1fr)]" : "grid-cols-[260px_minmax(0,1fr)]"),
-				)}
-			>
-				{wide ? (
-					<aside aria-label={t`Application details`} className="grid content-start gap-[22px] border-e border-line p-5">
-						<ContextColumn
-							application={application}
-							interview={interview}
-							now={now}
-							onEdit={() => openSearch({ edit: "interview" })}
-						/>
-					</aside>
-				) : (
-					<details className="group border-b border-line px-4 py-3 md:px-8">
-						<summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm font-medium">
-							<Icon
-								name="caret-right"
-								size={18}
-								className="transition-transform duration-standard ease-enter group-open:rotate-90"
-							/>
-							<Trans>Details</Trans>
-						</summary>
-						<div className="grid gap-[22px] pt-4">
-							<ContextColumn
-								application={application}
-								interview={interview}
-								now={now}
-								onEdit={() => openSearch({ edit: "interview" })}
-							/>
-						</div>
-					</details>
-				)}
-				<Tabs value={tab} onValueChange={(value) => go(value as WorkspaceTab)} className="min-w-0 gap-0">
-					<TabsList
-						variant="line"
-						className="h-[46px] w-full [scrollbar-width:none] justify-start gap-0 overflow-x-auto px-4 md:px-6 [&_[data-slot=tabs-indicator]]:bg-accent"
-					>
-						{WORKSPACE_TABS.map((value) => (
-							<TabsTrigger key={value} value={value} className="gap-1.5 px-3 data-active:font-semibold">
-								{tabLabel(value)}
-								{value === "interviews" && minutes !== null && minutes > 0 && minutes < 7 * 24 * 60 && (
-									<TabBadge tone={minutes <= 60 ? "warn" : "accent"}>
-										{minutes <= 60 ? t`${minutes} min` : t`${Math.round(minutes / 60)} h`}
-									</TabBadge>
-								)}
-								{value === "messages" && unreadMessages > 0 && <TabBadge tone="info">{unreadMessages}</TabBadge>}
-								{value === "saved" && (saved.data?.length ?? 0) > 0 && (
-									<TabBadge tone="plain">{saved.data?.length}</TabBadge>
-								)}
-							</TabsTrigger>
-						))}
-					</TabsList>
-					{WORKSPACE_TABS.map((value) => (
-						<TabsContent key={value} value={value} className="@container min-w-0 px-4 py-6 md:px-7">
-							{value === tab && (
-								<m.div
-									initial={{ opacity: 0, transform: "translateY(4px)" }}
-									animate={{ opacity: 1, transform: "translateY(0px)" }}
-									transition={{ duration: D1, ease: EASE }}
-								>
-									{blocked ? (
-										<div className="grid justify-items-start gap-3 rounded-xl border border-line p-5">
-											{waiting ? (
-												<p role="status" className="flex items-center gap-2 text-sm text-ink-2">
-													<Spinner decorative />
-													{archived ? <Trans>Loading saved version…</Trans> : <Trans>Loading workspace…</Trans>}
-												</p>
-											) : (
-												<p role="alert" className="text-sm text-ink-2">
-													{failed ? (
-														archived ? (
-															<Trans>This saved version couldn't be loaded.</Trans>
-														) : (
-															<Trans>This workspace couldn't be loaded.</Trans>
-														)
-													) : version ? (
-														<Trans>This saved version belongs to a different tab. Open it from Saved.</Trans>
-													) : (
-														<Trans>This saved version is no longer available.</Trans>
-													)}
-												</p>
-											)}
-											<div className="flex flex-wrap gap-2">
-												{failed && (
-													<Button
-														size="sm"
-														variant="secondary"
-														onClick={() => {
-															void saved.refetch();
-															if (!archived) void workspace.refetch();
-														}}
-													>
-														<Trans>Try again</Trans>
-													</Button>
-												)}
-												{archived && (
-													<Button size="sm" variant="secondary" onClick={() => setSearch({ version: undefined })}>
-														<Trans>Back to current</Trans>
-													</Button>
-												)}
-											</div>
-										</div>
-									) : (
-										<>
-											{version && (
-												<div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg bg-sunken px-3.5 py-2.5 text-sm">
-													<Icon name="clock-counter-clockwise" size={18} className="text-ink-3" />
-													<span className="flex-1">
-														<Trans>You're looking at a saved version. It can't be edited.</Trans>
-													</span>
-													<Button size="sm" variant="secondary" onClick={() => setSearch({ version: undefined })}>
-														<Trans>Back to current</Trans>
-													</Button>
-												</div>
-											)}
-											<TabBody tab={value} {...props} interviewsProps={interviewsProps} summaryProps={summaryProps} />
-										</>
+		<EditDetailsProvider application={application}>
+			<div className="flex min-h-svh flex-col">
+				<WorkspaceHeader application={application} go={go} onAskCoach={() => openSearch({ coach: true })} />
+				<NextBand
+					application={application}
+					interview={interview}
+					now={now}
+					go={go}
+					onAddOffer={() => openSearch({ offer: "new" })}
+					onEditInterview={() => openSearch({ edit: "interview" })}
+				/>
+				<div className="min-h-0 flex-1">
+					<Tabs value={shownTab} onValueChange={(value) => go(value as WorkspaceTab)} className="min-w-0 gap-0">
+						<TabsList
+							variant="line"
+							className="h-[46px] w-full [scrollbar-width:none] justify-start gap-0 overflow-x-auto px-4 md:px-6 [&_[data-slot=tabs-indicator]]:bg-accent"
+						>
+							{VISIBLE_TABS.map((value) => (
+								<TabsTrigger key={value} value={value} className="gap-1.5 px-3 data-active:font-semibold">
+									{tabLabel(value)}
+									{value === "interviews" && minutes !== null && minutes > 0 && minutes < 7 * 24 * 60 && (
+										<TabBadge tone={minutes <= 60 ? "warn" : "accent"}>
+											{minutes <= 60 ? t`${minutes} min` : t`${Math.round(minutes / 60)} h`}
+										</TabBadge>
 									)}
-								</m.div>
-							)}
-						</TabsContent>
-					))}
-				</Tabs>
+									{value === "messages" && unreadMessages > 0 && <TabBadge tone="info">{unreadMessages}</TabBadge>}
+								</TabsTrigger>
+							))}
+						</TabsList>
+						{VISIBLE_TABS.map((value) => (
+							<TabsContent key={value} value={value} className="@container min-w-0 px-4 py-6 md:px-7">
+								{value === shownTab && (
+									<m.div
+										initial={{ opacity: 0, transform: "translateY(4px)" }}
+										animate={{ opacity: 1, transform: "translateY(0px)" }}
+										transition={{ duration: D1, ease: EASE }}
+									>
+										{blocked ? (
+											<div className="grid justify-items-start gap-3 rounded-xl border border-line p-5">
+												{waiting ? (
+													<p role="status" className="flex items-center gap-2 text-sm text-ink-2">
+														<Spinner decorative />
+														{archived ? <Trans>Loading saved version…</Trans> : <Trans>Loading workspace…</Trans>}
+													</p>
+												) : (
+													<p role="alert" className="text-sm text-ink-2">
+														{failed ? (
+															archived ? (
+																<Trans>This saved version couldn't be loaded.</Trans>
+															) : (
+																<Trans>This workspace couldn't be loaded.</Trans>
+															)
+														) : version ? (
+															<Trans>This saved version belongs to a different tab. Open it from Saved.</Trans>
+														) : (
+															<Trans>This saved version is no longer available.</Trans>
+														)}
+													</p>
+												)}
+												<div className="flex flex-wrap gap-2">
+													{failed && (
+														<Button
+															size="sm"
+															variant="secondary"
+															onClick={() => {
+																void saved.refetch();
+																if (!archived) void workspace.refetch();
+															}}
+														>
+															<Trans>Try again</Trans>
+														</Button>
+													)}
+													{archived && (
+														<Button size="sm" variant="secondary" onClick={() => setSearch({ version: undefined })}>
+															<Trans>Back to current</Trans>
+														</Button>
+													)}
+												</div>
+											</div>
+										) : (
+											<>
+												{version && (
+													<div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg bg-sunken px-3.5 py-2.5 text-sm">
+														<Icon name="clock-counter-clockwise" size={18} className="text-ink-3" />
+														<span className="flex-1">
+															<Trans>You're looking at a saved version. It can't be edited.</Trans>
+														</span>
+														<Button size="sm" variant="secondary" onClick={() => setSearch({ version: undefined })}>
+															<Trans>Back to current</Trans>
+														</Button>
+													</div>
+												)}
+												<TabBody
+													tab={value}
+													savedOpen={tab === "saved"}
+													{...props}
+													interviewsProps={interviewsProps}
+													summaryProps={summaryProps}
+												/>
+											</>
+										)}
+									</m.div>
+								)}
+							</TabsContent>
+						))}
+					</Tabs>
+				</div>
+				<CoachSheet
+					application={application}
+					tab={tab}
+					hint={tab === "interviews" && section && section !== "overview" ? section : tab}
+					conversation={search.coach}
+					onConversationChange={(coach) =>
+						coach === undefined
+							? closeSearch({ coach })
+							: search.coach === undefined
+								? openSearch({ coach })
+								: setSearch({ coach })
+					}
+				/>
+				<InterviewDialog
+					application={application}
+					interview={editOpen ? (editingInterview ?? null) : null}
+					open={editOpen}
+					onOpenChange={(open) => (open ? openSearch({ edit: "interview" }) : closeSearch({ edit: undefined }))}
+				/>
+				<OfferDialog
+					application={application}
+					offer={editingOffer}
+					open={offerOpen}
+					onOpenChange={(open) => (open ? openSearch({ offer: "new" }) : closeSearch({ offer: undefined }))}
+				/>
 			</div>
-			<CoachSheet
-				application={application}
-				tab={tab}
-				hint={tab === "interviews" && section && section !== "overview" ? section : tab}
-				conversation={search.coach}
-				onConversationChange={(coach) =>
-					coach === undefined
-						? closeSearch({ coach })
-						: search.coach === undefined
-							? openSearch({ coach })
-							: setSearch({ coach })
-				}
-			/>
-			<InterviewDialog
-				application={application}
-				interview={editOpen ? (editingInterview ?? null) : null}
-				open={editOpen}
-				onOpenChange={(open) => (open ? openSearch({ edit: "interview" }) : closeSearch({ edit: undefined }))}
-			/>
-			<OfferDialog
-				application={application}
-				offer={editingOffer}
-				open={offerOpen}
-				onOpenChange={(open) => (open ? openSearch({ offer: "new" }) : closeSearch({ offer: undefined }))}
-			/>
-		</div>
+		</EditDetailsProvider>
 	);
 }
 
 type TabBodyProps = WorkspaceTabProps & {
 	tab: WorkspaceTab;
+	/** Saved versions were asked for: Activity opens with them showing. */
+	savedOpen: boolean;
 	interviewsProps: Omit<ComponentProps<typeof InterviewsTab>, never>;
 	summaryProps: Omit<ComponentProps<typeof SummaryTab>, never>;
 };
 
-function TabBody({ tab, interviewsProps, summaryProps, ...props }: TabBodyProps) {
+function TabBody({ tab, savedOpen, interviewsProps, summaryProps, ...props }: TabBodyProps) {
 	switch (tab) {
 		case "summary":
 			return <SummaryTab {...summaryProps} />;
@@ -427,9 +398,8 @@ function TabBody({ tab, interviewsProps, summaryProps, ...props }: TabBodyProps)
 		case "messages":
 			return <MessagesTab {...props} />;
 		case "saved":
-			return <SavedTab {...props} />;
 		case "activity":
-			return <ActivityTab {...props} />;
+			return <ActivityTab {...props} savedOpen={savedOpen} />;
 	}
 }
 
@@ -460,29 +430,23 @@ const stageDot = {
 
 type WorkspaceHeaderProps = {
 	application: Application;
-	now: Date;
 	go: WorkspaceTabProps["go"];
-	onAddOffer: () => void;
 	onAskCoach: () => void;
 };
 
 /**
- * The persistent header: who and where, the stage, the state of the documents (apart from the stage), where the job came
- * from, the one thing to do next, and a way back to the list it was opened from.
+ * The persistent header: who and where, where the job came from, the stage as a stepper (select one to move there),
+ * and a way back to the list it was opened from. What to do next is in the band under it.
  */
-function WorkspaceHeader({ application, now, go, onAddOffer, onAskCoach }: WorkspaceHeaderProps) {
+function WorkspaceHeader({ application, go, onAskCoach }: WorkspaceHeaderProps) {
 	const { date } = useCareerTime();
 	const router = useRouter();
-	const state = useWorkspaceState(application, now);
 	const journey = useApplicationJourney(application.id);
-	const reached = PIPELINE.indexOf(application.status);
 	const sent = application.status !== "saved";
 	const back = returnTarget();
-	const label = actionLabel(state.action);
-	const documents = preparationLabel(state.preparation);
 	const found = journey.data;
 	return (
-		<header className="grid gap-3 border-b border-line px-4 pt-[22px] pb-4 md:px-8">
+		<header className="grid gap-4 border-b border-line px-4 pt-[22px] pb-4 md:px-8">
 			<Link
 				to={back.href}
 				onClick={(event) => {
@@ -495,72 +459,35 @@ function WorkspaceHeader({ application, now, go, onAddOffer, onAskCoach }: Works
 				<Icon name="caret-left" size={16} />
 				{back.label}
 			</Link>
-			<div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-				<div className="grid min-w-0 gap-1.5">
-					<h1 className="font-display text-2xl leading-8 font-medium md:text-[30px] md:leading-9">
-						{application.role} · {application.company}
+			<div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+				<div className="grid min-w-0 gap-1">
+					<h1 className="font-display text-2xl leading-8 font-[750] tracking-[-0.035em] md:text-[30px] md:leading-9">
+						{application.role}
 					</h1>
 					<p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-ink-2">
-						<span className="flex items-center gap-1.5 text-ink">
-							<span aria-hidden="true" className={cn("size-2 rounded-full", stageDot[application.status])} />
-							{getStageLabel(application.status)}
-						</span>
+						<span className="font-semibold text-ink">{application.company}</span>
 						{application.location && <span>· {application.location}</span>}
 						{sent && <span>· {t`Applied ${date(application.appliedAt)}`}</span>}
-						{documents && (
-							<button
-								type="button"
-								onClick={() => go("documents")}
-								className={cn(
-									"rounded-full border px-2 py-px text-xs font-medium transition-colors duration-quick hover:bg-hover",
-									state.preparation === "attention"
-										? "border-danger text-danger-text"
-										: state.preparation === "ready"
-											? "border-accent text-accent-text"
-											: "border-line-2 text-ink-2",
-								)}
-							>
-								{documents}
-							</button>
-						)}
-					</p>
-					<p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-3">
 						{found ? (
 							<span>
-								<Trans>Found by discovery</Trans>
+								· <Trans>Found by discovery</Trans>
 							</span>
 						) : (
-							application.source && <span>{t`Source: ${application.source}`}</span>
+							application.source && <span>· {t`Source: ${application.source}`}</span>
 						)}
 						{application.sourceUrl && (
 							<a
 								href={application.sourceUrl}
 								target="_blank"
 								rel="noreferrer"
-								className="underline underline-offset-3 hover:text-ink"
+								className="text-accent-text underline underline-offset-3"
 							>
 								<Trans>Original posting</Trans>
 							</a>
 						)}
 					</p>
 				</div>
-				<div className="flex flex-wrap items-center gap-3">
-					{application.status !== "closed" && (
-						<div aria-hidden="true" className="hidden gap-1 xl:flex">
-							{PIPELINE.map((stage, index) => (
-								<span
-									key={stage}
-									className={cn("h-1.5 w-10 rounded-full", index <= reached ? stageDot[stage] : "bg-line")}
-								/>
-							))}
-						</div>
-					)}
-					{application.status === "offer" && (
-						<Link to="/dashboard/applications/offers" className={cn(buttonVariants({ variant: "secondary" }))}>
-							<Icon name="scales" size={18} />
-							<Trans>Compare offers</Trans>
-						</Link>
-					)}
+				<div className="flex items-center gap-2">
 					<Button
 						className="bg-accent-soft text-accent-text hover:bg-accent-soft hover:brightness-95"
 						variant="ghost"
@@ -569,223 +496,66 @@ function WorkspaceHeader({ application, now, go, onAddOffer, onAskCoach }: Works
 						<Icon name="sparkle" size={18} />
 						<Trans>Ask the coach</Trans>
 					</Button>
-					{label && (
-						<Button
-							onClick={() =>
-								state.action.kind === "add-offer"
-									? onAddOffer()
-									: go(state.action.tab, state.action.section ? { section: state.action.section } : {})
-							}
-						>
-							{label}
-						</Button>
-					)}
+					<WorkspaceMenu application={application} />
 				</div>
 			</div>
+			{application.status === "closed" ? (
+				<p className="flex items-center gap-1.5 text-sm text-ink-2">
+					<span aria-hidden="true" className={cn("size-2 rounded-full", stageDot.closed)} />
+					<strong className="font-semibold text-ink">{getStageLabel("closed")}</strong>
+					{application.closedReason && <span>· {getClosedReasonLabel(application.closedReason)}</span>}
+				</p>
+			) : (
+				<WorkspaceStepper application={application} go={go} />
+			)}
 		</header>
 	);
 }
 
-type ContextColumnProps = {
-	application: Application;
-	interview: InterviewTimelineEntry | undefined;
-	now: Date;
-	onEdit: () => void;
-};
-
-/** NEXT STEP, WHO YOU'LL MEET, WHAT YOU SENT and NOTES: the job at a glance beside every tab. */
-function ContextColumn({ application, interview, now, onEdit }: ContextColumnProps) {
-	const { i18n } = useLingui();
-	const { day, date, time } = useCareerTime();
-	const documents = useQuery(orpc.documents.list.queryOptions({ input: { trashed: false } }));
-	const hasSentVersion = Boolean(application.sentResumeVersionId || application.sentCoverLetterVersionId);
-	const trashed = useQuery({
-		...orpc.documents.list.queryOptions({ input: { trashed: true } }),
-		enabled: hasSentVersion,
-	});
-	const step = getNextStep(application, now);
-	const text = describeNextStep(step, application, i18n.locale);
-	const upcoming = step.kind === "interview" ? step.interview : interview;
-	const soon = upcoming ? minutesUntil(new Date(upcoming.at), now) <= 60 : false;
-	const available = [...(documents.data ?? []), ...(trashed.data ?? [])];
-	const resume = available.find((document) => document.type === "resume" && document.id === application.resumeId);
-	const letter = available.find((document) => document.type === "letter" && document.id === application.coverLetterId);
-	const missingDocument = Boolean((application.resumeId && !resume) || (application.coverLetterId && !letter));
-	const documentsPending = missingDocument && (documents.isPending || (hasSentVersion && trashed.isPending));
-	const documentsFailed = missingDocument && (documents.isError || (hasSentVersion && trashed.isError));
-	const sent = application.status !== "saved";
-
-	const addToCalendar = () => {
-		if (!upcoming) return;
-		const start = new Date(upcoming.at);
-		const people = upcoming.participants.map((person) => [person.name, person.role].filter(Boolean).join(", "));
-		const ics = buildIcs({
-			uid: upcoming.id,
-			title: `${interviewKindOf(upcoming.kind)?.label ?? ""} interview · ${application.role}, ${application.company}`,
-			start,
-			end: new Date(start.getTime() + upcoming.durationMinutes * 60_000),
-			...(upcoming.location ? { location: upcoming.location } : {}),
-			description: [people.join("\n"), upcoming.notes].filter(Boolean).join("\n\n"),
-		});
-		downloadWithAnchor(
-			new Blob([ics], { type: "text/calendar" }),
-			`${application.company}-interview.ics`.replace(/[^\w.-]+/g, "-"),
-		);
-	};
-
+/** The application's ⋯ menu: edit its details, move it to another stage, close or reopen it, or delete it. */
+function WorkspaceMenu({ application }: { application: Application }) {
+	const router = useRouter();
+	const editDetails = useEditDetails();
+	const [followUp, setFollowUp] = useState(false);
 	return (
 		<>
-			<section className="grid gap-2">
-				<Eyebrow>
-					<Trans>Next step</Trans>
-				</Eyebrow>
-				<div
-					className={cn(
-						"grid gap-2.5 rounded-xl border p-3.5 transition-colors duration-standard",
-						soon ? "border-warn bg-warn-soft/40" : "border-line bg-surface",
-					)}
-				>
-					<div className="flex gap-2.5">
-						<Icon name={upcoming ? "calendar-dot" : text.icon} className="mt-px shrink-0 text-ink-2" />
-						<div className="grid min-w-0 gap-0.5">
-							<p className="text-sm font-semibold">
-								{upcoming ? t`${interviewKindOf(upcoming.kind)?.label ?? ""} interview` : text.title}
-							</p>
-							{upcoming ? (
-								<>
-									<p className="text-[13px] text-ink-2">
-										{day(upcoming.at)} · {time(upcoming.at)} · {formatDuration(upcoming.durationMinutes, i18n.locale)}
-									</p>
-									{upcoming.location && <p className="text-xs text-ink-3">{upcoming.location}</p>}
-								</>
-							) : (
-								text.sub && <p className="text-[13px] text-ink-2">{text.sub}</p>
-							)}
-						</div>
-					</div>
-					{upcoming && <CountdownChip at={new Date(upcoming.at)} now={now} />}
-					<div className="flex flex-wrap gap-1.5">
-						<Button size="sm" variant="secondary" onClick={onEdit}>
-							{upcoming ? <Trans>Edit</Trans> : <Trans>Add an interview</Trans>}
-						</Button>
-						{upcoming && (
-							<Button size="sm" variant="ghost" onClick={addToCalendar}>
-								<Icon name="calendar-plus" size={16} />
-								<Trans>Add to calendar</Trans>
-							</Button>
-						)}
-					</div>
-				</div>
-			</section>
-
-			{upcoming && upcoming.participants.length > 0 && (
-				<section className="grid gap-2.5">
-					<Eyebrow>
-						<Trans>Who you'll meet</Trans>
-					</Eyebrow>
-					{upcoming.participants.map((person) => (
-						<div key={`${person.name}-${person.role}`} className="flex items-center gap-2.5">
-							<span className="grid size-[30px] shrink-0 place-items-center rounded-full bg-sunken text-xs font-semibold text-ink-2">
-								{getInitials(person.name)}
-							</span>
-							<div className="grid min-w-0">
-								<span className="truncate text-[13px] font-semibold">{person.name}</span>
-								{person.role && <span className="truncate text-xs text-ink-3">{person.role}</span>}
-							</div>
-						</div>
-					))}
-				</section>
-			)}
-			{upcoming?.notes && (
-				<section className="grid gap-2.5">
-					<Eyebrow>
-						<Trans>Interview notes</Trans>
-					</Eyebrow>
-					<p className="rounded-lg bg-sunken px-3 py-2.5 text-[13px] leading-[19px] whitespace-pre-wrap text-ink-2">
-						{upcoming.notes}
-					</p>
-				</section>
-			)}
-
-			{(resume || letter || documentsPending || documentsFailed) && (
-				<section className="grid gap-2">
-					<Eyebrow>
-						{sent ? (
-							<Trans>What you sent · {date(application.appliedAt)}</Trans>
-						) : (
-							<Trans>Documents for this job</Trans>
-						)}
-					</Eyebrow>
-					{documentsPending ? (
-						<p role="status" className="text-xs text-ink-3">
-							<Trans>Loading linked documents…</Trans>
-						</p>
-					) : documentsFailed ? (
-						<div className="grid justify-items-start gap-1.5">
-							<p role="alert" className="text-xs text-ink-3">
-								<Trans>Linked documents couldn't be loaded.</Trans>
-							</p>
-							<Button
-								size="sm"
-								variant="ghost"
-								onClick={() => {
-									void documents.refetch();
-									if (hasSentVersion) void trashed.refetch();
-								}}
-							>
-								<Trans>Try again</Trans>
-							</Button>
-						</div>
-					) : null}
-					{resume && application.resumeId && (
-						<Link
-							to="/builder/$resumeId"
-							params={{ resumeId: application.resumeId }}
-							search={application.sentResumeVersionId ? { version: application.sentResumeVersionId } : {}}
-							className="flex items-center gap-2.5 rounded-xl border border-line p-3 transition-colors duration-quick hover:bg-hover"
-						>
-							<Icon name="file-text" className="shrink-0 text-ink-2" />
-							<span className="grid min-w-0">
-								<span className="truncate text-[13px] font-semibold">{resume.name}</span>
-								<span className="text-xs text-ink-3">
-									{application.sentResumeVersionId ? (
-										<Trans>Resume · version sent</Trans>
-									) : (
-										<Trans>Resume · not sent yet</Trans>
-									)}
-								</span>
-							</span>
-						</Link>
-					)}
-					{letter && application.coverLetterId && (
-						<Link
-							to="/builder/letter/$coverLetterId"
-							params={{ coverLetterId: application.coverLetterId }}
-							search={application.sentCoverLetterVersionId ? { version: application.sentCoverLetterVersionId } : {}}
-							className="flex items-center gap-2.5 rounded-xl border border-line p-3 transition-colors duration-quick hover:bg-hover"
-						>
-							<Icon name="envelope-simple" className="shrink-0 text-ink-2" />
-							<span className="grid min-w-0">
-								<span className="truncate text-[13px] font-semibold">{letter.name}</span>
-								<span className="text-xs text-ink-3">
-									{application.sentCoverLetterVersionId ? (
-										<Trans>Letter · version sent</Trans>
-									) : (
-										<Trans>Letter · not sent yet</Trans>
-									)}
-								</span>
-							</span>
-						</Link>
-					)}
-				</section>
-			)}
-
-			<section className="grid gap-1.5">
-				<ApplicationNotes key={application.id} application={application} />
-				<p className="text-xs text-ink-3">
-					<Trans>The coach reads these for this application only.</Trans>
-				</p>
-			</section>
+			<ApplicationActionsMenu
+				application={application}
+				size="icon-sm"
+				onEditDetails={editDetails}
+				onFollowUp={() => setFollowUp(true)}
+				onDeleted={() => void router.navigate({ to: "/dashboard/applications" })}
+			/>
+			<FollowUpDialog application={application} open={followUp} onOpenChange={setFollowUp} />
 		</>
+	);
+}
+
+/** The five stages as a stepper: select one to move there. Applying from Saved goes through Mark as applied. */
+function WorkspaceStepper({ application, go }: { application: Application; go: WorkspaceTabProps["go"] }) {
+	const { moveTo } = useApplicationActions();
+	const reached = PIPELINE.indexOf(application.status);
+	return (
+		<ol aria-label={t`Stages`} className="grid max-w-xl grid-cols-5 gap-1.5">
+			{PIPELINE.map((stage, index) => (
+				<li key={stage}>
+					<button
+						type="button"
+						aria-current={stage === application.status ? "step" : undefined}
+						onClick={() => {
+							if (stage === application.status) return;
+							if (application.status === "saved" && stage === "applied") go("apply");
+							else moveTo(application, stage);
+						}}
+						className="grid w-full gap-1 text-start"
+					>
+						<span className={cn("h-1.5 rounded-full", index <= reached ? stageDot[stage] : "bg-line")} />
+						<span className={cn("text-[11px]", stage === application.status ? "font-semibold text-ink" : "text-ink-3")}>
+							{getStageLabel(stage)}
+						</span>
+					</button>
+				</li>
+			))}
+		</ol>
 	);
 }

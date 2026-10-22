@@ -23,7 +23,7 @@ const appTabIcons: Record<string, IconName> = {
 	discover: "compass",
 	applications: "briefcase",
 	documents: "file-text",
-	profile: "user-circle",
+	knowledge: "books",
 	coach: "sparkle",
 	automation: "clock",
 	settings: "gear-six",
@@ -31,9 +31,9 @@ const appTabIcons: Record<string, IconName> = {
 };
 
 /** The destinations the phone bar leaves to its More tab; the tablet sidebar lists them itself. */
-const moreRoutes = new Set(["more", "profile", "coach", "automation", "settings"]);
+const moreRoutes = new Set(["more", "knowledge", "coach", "automation", "settings"]);
 /** The tablet sidebar: the primary destinations, then the utilities below a divider. */
-const primaryRoutes = ["overview", "discover", "applications", "documents", "profile", "coach"];
+const primaryRoutes = ["overview", "discover", "applications", "documents", "knowledge", "coach"];
 const utilityRoutes = ["automation", "settings"];
 
 // tokens.md §7: the active-tab marker on the bar's top rule; Android tab cells are 64 tall (app.html).

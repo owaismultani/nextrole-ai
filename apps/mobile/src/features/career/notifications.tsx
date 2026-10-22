@@ -1,20 +1,32 @@
 import { useLingui } from "@lingui/react/macro";
 import { useRouter } from "expo-router";
 import { useState } from "react";
+import { View } from "react-native";
 import Animated from "react-native-reanimated";
 import { client, useCareerTime, useNow, useTodayQueries, useUndoRows } from "./hooks";
 import { Actions, LoadState, Section } from "./shared";
 import { getNextStep } from "@/features/applications/next-step";
 import { useApplications } from "@/features/applications/queries";
 import { routes } from "@/routes";
-import { Button, Card, EmptyState, Text, listItemMotion, listLayout, useFirstAppearance, useTheme } from "@/ui";
+import {
+	Button,
+	Card,
+	EmptyState,
+	IconButton,
+	Sheet,
+	Text,
+	listItemMotion,
+	listLayout,
+	useFirstAppearance,
+	useTheme,
+} from "@/ui";
 
 /**
  * Notifications that need you: new roles to review, follow-up drafts, briefings, and anything that stopped working (a
  * failed schedule, failed email, a paused briefing), each with the action that recovers it. Mark as read, with Undo; read
  * ones can be shown again.
  */
-export function Notifications() {
+export function Notifications({ bare }: { bare?: boolean }) {
 	const { t } = useLingui();
 	const { space } = useTheme();
 	const router = useRouter();
@@ -60,7 +72,7 @@ export function Notifications() {
 	};
 
 	return (
-		<Section title={t`Notifications`}>
+		<Container bare={bare}>
 			<LoadState query={queries.notifications} />
 			{!queries.notifications.isPending && !queries.notifications.isError && notes.length === 0 ? (
 				<EmptyState
@@ -109,6 +121,63 @@ export function Notifications() {
 						/>
 					</Card>
 				))}
-		</Section>
+		</Container>
+	);
+}
+
+/** The notifications list under its own heading, or without one when a sheet already has a title. */
+function Container({ bare, children }: { bare?: boolean | undefined; children: React.ReactNode }) {
+	const { t } = useLingui();
+	const { space } = useTheme();
+	return bare ? (
+		<View style={{ gap: space.s3 }}>{children}</View>
+	) : (
+		<Section title={t`Notifications`}>{children}</Section>
+	);
+}
+
+/**
+ * The bell in Overview's header: how many notifications are unread, and a sheet with all of them, so they stay one tap
+ * away without taking space from what you came to do.
+ */
+export function NotificationsBell() {
+	const { t } = useLingui();
+	const { colors, radius, space } = useTheme();
+	const [open, setOpen] = useState(false);
+	const queries = useTodayQueries();
+	const unread = (queries.notifications.data ?? []).filter((row) => !row.readAt).length;
+	return (
+		<>
+			<View>
+				<IconButton
+					icon="bell"
+					label={unread > 0 ? t`Notifications, ${unread} unread` : t`Notifications`}
+					onPress={() => setOpen(true)}
+				/>
+				{unread > 0 ? (
+					<View
+						pointerEvents="none"
+						importantForAccessibility="no-hide-descendants"
+						style={{
+							position: "absolute",
+							top: space.s1,
+							end: space.s1,
+							minWidth: space.s4,
+							paddingHorizontal: space.s1,
+							borderRadius: radius.rPill,
+							backgroundColor: colors.accent,
+							alignItems: "center",
+						}}
+					>
+						<Text variant="micro" color="onAccent">
+							{unread > 9 ? "9+" : String(unread)}
+						</Text>
+					</View>
+				) : null}
+			</View>
+			<Sheet open={open} onClose={() => setOpen(false)} title={t`Notifications`} detents={[0.9]}>
+				<Notifications bare />
+			</Sheet>
+		</>
 	);
 }

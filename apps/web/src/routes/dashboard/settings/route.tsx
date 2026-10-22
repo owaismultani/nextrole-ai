@@ -1,22 +1,28 @@
-import type { IconName } from "@reactive-resume/ui/components/icon";
 import { t } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { Fragment } from "react";
 import { Icon } from "@reactive-resume/ui/components/icon";
+import { useBreakpoint } from "@reactive-resume/ui/hooks/use-breakpoint";
+import { PageHeader } from "@/components/layout/page-header";
+import { SectionTabs } from "@/components/layout/section-tabs";
 import { popTransition } from "@/features/settings/root";
 
-type Page = {
-	to: "/dashboard/settings/account" | "/dashboard/settings/preferences" | "/dashboard/settings/ai";
-	icon: IconName;
-	label: () => string;
-};
+type PageTo =
+	| "/dashboard/settings/account"
+	| "/dashboard/settings/preferences"
+	| "/dashboard/settings/ai"
+	| "/dashboard/settings/security"
+	| "/dashboard/settings/developer";
 
-// Six pages became three, each with one job (README §5.9). Automation has its own place in the main navigation.
-const SETTINGS_PAGES: Page[] = [
-	{ to: "/dashboard/settings/account", icon: "user-circle", label: () => t`Account` },
-	{ to: "/dashboard/settings/preferences", icon: "sliders-horizontal", label: () => t`Preferences` },
-	{ to: "/dashboard/settings/ai", icon: "sparkle", label: () => t`AI & developer` },
+// Each page has one job. Automation has its own place in the main navigation. `ai` is Integrations: the address stays
+// because the app links to it from everywhere a connection is needed.
+const getPages = (): { to: PageTo; label: string }[] => [
+	{ to: "/dashboard/settings/account", label: t`Account` },
+	{ to: "/dashboard/settings/preferences", label: t`Preferences` },
+	{ to: "/dashboard/settings/ai", label: t`Integrations` },
+	{ to: "/dashboard/settings/security", label: t`Security` },
+	{ to: "/dashboard/settings/developer", label: t`Developer` },
 ];
 
 // The project's own links: where to read up, see the code, help translate, report a problem or donate.
@@ -32,30 +38,39 @@ export const Route = createFileRoute("/dashboard/settings")({ component: RouteCo
 
 function RouteComponent() {
 	const pathname = useRouterState({ select: (state) => state.location.pathname });
+	const isPhone = useBreakpoint() === "mobile";
 	const isRoot = pathname.replace(/\/$/, "") === "/dashboard/settings";
+	const pages = getPages();
+	const current = pages.find((page) => pathname.startsWith(page.to));
 
 	return (
-		<div className="grid min-h-full content-start sm:h-svh sm:min-h-0 sm:grid-rows-[auto_minmax(0,1fr)] sm:overflow-hidden lg:grid-cols-[220px_minmax(0,1fr)] lg:grid-rows-1 lg:content-stretch">
-			<nav
-				aria-label={t`Settings`}
-				className="flex flex-col gap-1 border-line [view-transition-name:settings-nav] max-lg:border-b max-sm:hidden lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:border-e lg:py-7 lg:ps-6 lg:pe-3"
-			>
-				<div className="flex gap-1 max-lg:overflow-x-auto max-lg:px-6 max-lg:py-2 lg:flex-col">
-					{SETTINGS_PAGES.map((page) => (
-						<Link
-							key={page.to}
-							to={page.to}
-							className="flex h-10 shrink-0 items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium text-ink-2 transition-colors duration-quick hover:bg-hover"
-							activeProps={{ className: "bg-sunken text-ink", "aria-current": "page" }}
-						>
-							<Icon name={page.icon} size={20} />
-							{page.label()}
-						</Link>
-					))}
-				</div>
-				<p className="mt-auto px-2.5 text-xs leading-[18px] text-ink-3 max-lg:hidden">
+		<div className="mx-auto flex min-h-svh w-full max-w-[1180px] flex-col gap-5 px-8 py-8 max-sm:px-4 max-sm:py-5">
+			{!isRoot && isPhone && (
+				<Link
+					to="/dashboard/settings"
+					viewTransition={popTransition}
+					className="inline-flex h-9 w-fit items-center gap-1 text-sm text-ink-2"
+				>
+					<Icon name="caret-left" size={20} />
+					<Trans>Settings</Trans>
+				</Link>
+			)}
+			{!isRoot && (
+				<PageHeader
+					title={isPhone && current ? current.label : <Trans>Settings</Trans>}
+					description={isPhone ? undefined : <Trans>Manage your account and application preferences.</Trans>}
+				/>
+			)}
+			{!isRoot && !isPhone && (
+				<SectionTabs label={t`Settings`} tabs={pages.map((page) => ({ to: page.to, label: page.label }))} />
+			)}
+			<div className="grid max-w-[860px] gap-5">
+				<Outlet />
+			</div>
+			{!isRoot && (
+				<p className="mt-4 border-t border-line pt-5 text-xs leading-[18px] text-ink-3">
 					<Trans>Reactive Resume {__APP_VERSION__} · MIT</Trans>
-					<br />
+					{" · "}
 					{getProjectLinks().map((link, index) => (
 						<Fragment key={link.href}>
 							{index > 0 && " · "}
@@ -65,23 +80,7 @@ function RouteComponent() {
 						</Fragment>
 					))}
 				</p>
-			</nav>
-
-			<div className="min-w-0 px-12 pt-8 pb-16 max-lg:px-6 max-sm:px-4 max-sm:pt-4 sm:min-h-0 sm:overflow-y-auto sm:overscroll-contain">
-				{!isRoot && (
-					<Link
-						to="/dashboard/settings"
-						viewTransition={popTransition}
-						className="mb-4 inline-flex h-9 items-center gap-1 text-sm text-ink-2 sm:hidden"
-					>
-						<Icon name="caret-left" size={20} />
-						<Trans>Settings</Trans>
-					</Link>
-				)}
-				<div className="grid max-w-[680px] gap-8">
-					<Outlet />
-				</div>
-			</div>
+			)}
 		</div>
 	);
 }

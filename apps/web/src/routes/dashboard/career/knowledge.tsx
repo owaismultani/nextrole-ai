@@ -4,6 +4,6 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 export const Route = createFileRoute("/dashboard/career/knowledge")({
 	beforeLoad: ({ location }) => {
 		if (location.pathname.replace(/\/$/, "") === "/dashboard/career/knowledge")
-			throw redirect({ to: "/dashboard/profile/facts", replace: true });
+			throw redirect({ to: "/dashboard/knowledge/facts", replace: true });
 	},
 });

@@ -8,14 +8,14 @@ import { decisionLabel, describeEvent } from "./pipeline-words";
 import { orpc } from "@/api/client";
 import { useSession } from "@/auth/session";
 import { routes } from "@/routes";
-import { Button, Text, useTheme } from "@/ui";
+import { Badge, Button, Text, useTheme } from "@/ui";
 
 const TONE = {
-	new: "accentText",
-	known: "ink3",
-	rejected: "ink3",
-	unreadable: "warnText",
-	invalid: "ink3",
+	new: "ok",
+	known: "neutral",
+	rejected: "neutral",
+	unreadable: "warn",
+	invalid: "neutral",
 } as const;
 
 /** Every search result of one run and what became of it: the answer to "why wasn't that job found". */
@@ -35,10 +35,9 @@ export function RunResults({ runId }: { runId: string }) {
 	if (query.data.items.length === 0) return <Text color="ink3">{t`No results were kept for this run.`}</Text>;
 	return (
 		<View style={{ gap: space.s1 }}>
-			<Text weight={600}>{t`Every result of this search`}</Text>
 			{query.data.items.map((item) => (
 				<View key={`${item.decision}-${item.url}`}>
-					<Text color={TONE[item.decision]}>{decisionLabel(item.decision)}</Text>
+					<Badge tone={TONE[item.decision]} label={decisionLabel(item.decision)} />
 					<Text color="ink2">{`${item.title || item.url}${item.host ? ` · ${item.host}` : ""}`}</Text>
 					{item.applicationId ? (
 						<Button

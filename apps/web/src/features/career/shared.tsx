@@ -250,8 +250,8 @@ export function Eyebrow({ children, className }: EyebrowProps) {
 }
 
 const statusPill = {
-	supported: { icon: "check-circle", tone: "bg-accent-soft text-accent-text" },
-	added: { icon: "check-circle", tone: "bg-accent-soft text-accent-text" },
+	supported: { icon: "check-circle", tone: "bg-ok-soft text-ok-text" },
+	added: { icon: "check-circle", tone: "bg-ok-soft text-ok-text" },
 	partial: { icon: "circle-half", tone: "bg-warn-soft text-warn-text" },
 	missing: { icon: "question", tone: "bg-sunken text-ink-2" },
 } satisfies Record<string, { icon: IconName; tone: string }>;
@@ -279,7 +279,7 @@ export function InfoChip({ tone, children }: { tone: "match" | "unknown"; childr
 		<span
 			className={cn(
 				"inline-flex h-6 items-center gap-1 rounded-sm px-2 text-xs font-medium",
-				tone === "match" ? "bg-accent-soft text-accent-text" : "bg-warn-soft text-warn-text",
+				tone === "match" ? "bg-ok-soft text-ok-text" : "bg-warn-soft text-warn-text",
 			)}
 		>
 			<Icon name={tone === "match" ? "check" : "question"} size={15} />
@@ -290,7 +290,7 @@ export function InfoChip({ tone, children }: { tone: "match" | "unknown"; childr
 
 type FilterChipProps = { pressed: boolean; onClick: () => void; children: ReactNode; className?: string };
 
-/** A 30px pill toggle for filters and single choices; selected is ink-filled. */
+/** A 30px pill toggle for filters and single choices; selected is a soft accent fill. */
 export function FilterChip({ pressed, onClick, children, className }: FilterChipProps) {
 	return (
 		<button
@@ -299,7 +299,9 @@ export function FilterChip({ pressed, onClick, children, className }: FilterChip
 			onClick={onClick}
 			className={cn(
 				"touch-target inline-flex h-[30px] items-center rounded-full border px-2.5 text-xs font-medium transition-[background-color,border-color,color,scale] duration-quick ease-enter active:scale-[0.97]",
-				pressed ? "border-ink bg-ink text-bg" : "border-line-2 text-ink hover:bg-hover",
+				pressed
+					? "border-accent/30 bg-accent-soft font-semibold text-accent-text"
+					: "border-line-2 text-ink-2 hover:bg-hover",
 				className,
 			)}
 		>

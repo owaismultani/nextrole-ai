@@ -46,17 +46,18 @@ export function useProfile() {
 	return { profile, save, isError: query.isError, retry: () => void query.refetch() };
 }
 
-export function PreferencesPage() {
+/** `inPanel`: shown in a side panel that already has a title, so the form's own heading is left out. */
+export function PreferencesPage({ inPanel }: { inPanel?: boolean }) {
 	const query = useQuery(orpc.career.profile.queryOptions());
 	const profile = query.data;
 	if (query.isError && !profile) return <CareerLoadError onRetry={() => void query.refetch()} />;
 	// The form keeps its own draft once loaded, so a background refetch never overwrites what's being typed.
-	return profile ? <PreferencesForm initial={profile} /> : <CareerLoading />;
+	return profile ? <PreferencesForm initial={profile} inPanel={inPanel} /> : <CareerLoading />;
 }
 
-type PreferencesFormProps = { initial: CareerProfileData };
+type PreferencesFormProps = { initial: CareerProfileData; inPanel?: boolean | undefined };
 
-function PreferencesForm({ initial }: PreferencesFormProps) {
+function PreferencesForm({ initial, inPanel }: PreferencesFormProps) {
 	const { i18n } = useLingui();
 	const queryClient = useQueryClient();
 	const now = useNow();
@@ -102,61 +103,122 @@ function PreferencesForm({ initial }: PreferencesFormProps) {
 
 	return (
 		<div className="grid max-w-[820px] gap-[18px]" onBlur={() => flush()}>
-			<div className="flex items-center gap-2">
-				<h2 className="flex-1 text-[17px] font-semibold">
-					<Trans>What you're looking for</Trans>
-				</h2>
-				<span role="status" className="flex items-center gap-1 text-xs text-ink-3">
-					<Icon name={failed ? "cloud-slash" : dirty ? "arrows-clockwise" : "cloud-check"} size={16} />
-					{failed ? (
-						<Trans>Not saved</Trans>
-					) : dirty ? (
-						<Trans>Saving…</Trans>
-					) : justNow ? (
-						<Trans>Saved just now</Trans>
-					) : (
-						<Trans>Saved</Trans>
-					)}
-				</span>
-				{failed && (
-					<button
-						type="button"
-						onClick={() => flush(true)}
-						className="text-xs text-ink-3 underline underline-offset-2 hover:text-ink"
-					>
-						<Trans>Retry</Trans>
-					</button>
-				)}
-			</div>
+			{inPanel ? (
+				<section className="grid gap-4 rounded-xl border border-line bg-surface p-4">
+					<div className="flex items-center gap-2">
+						<h3 className="flex-1 text-sm font-semibold">
+							<Trans>What you want</Trans>
+						</h3>
+						<span role="status" className="flex items-center gap-1 text-xs text-ink-3">
+							<Icon name={failed ? "cloud-slash" : dirty ? "arrows-clockwise" : "cloud-check"} size={16} />
+							{failed ? (
+								<Trans>Not saved</Trans>
+							) : dirty ? (
+								<Trans>Saving…</Trans>
+							) : justNow ? (
+								<Trans>Saved just now</Trans>
+							) : (
+								<Trans>Saved</Trans>
+							)}
+						</span>
+						{failed && (
+							<button
+								type="button"
+								onClick={() => flush(true)}
+								className="text-xs text-ink-3 underline underline-offset-2 hover:text-ink"
+							>
+								<Trans>Retry</Trans>
+							</button>
+						)}
+					</div>
+					<div className="grid gap-4">
+						<ChipField
+							label={t`Target roles`}
+							placeholder={t`Add a role, then Enter`}
+							value={draft.targetRoles}
+							onChange={(targetRoles) => change({ targetRoles })}
+						/>
+						<ChipField
+							label={t`Where you want to work`}
+							placeholder={t`Add a place, then Enter`}
+							value={draft.locations}
+							onChange={(locations) => change({ locations })}
+						/>
+					</div>
 
-			<div className="grid gap-4 sm:grid-cols-2">
-				<ChipField
-					label={t`Target roles`}
-					placeholder={t`Add a role, then Enter`}
-					value={draft.targetRoles}
-					onChange={(targetRoles) => change({ targetRoles })}
-				/>
-				<ChipField
-					label={t`Where you want to work`}
-					placeholder={t`Add a place, then Enter`}
-					value={draft.locations}
-					onChange={(locations) => change({ locations })}
-				/>
-			</div>
+					<div className="grid gap-1.5">
+						<label htmlFor={`${id}-priorities`} className="text-xs font-medium text-ink-2">
+							<Trans>What matters to you</Trans>
+						</label>
+						<Textarea
+							id={`${id}-priorities`}
+							rows={3}
+							maxLength={4000}
+							value={draft.priorities}
+							onChange={(event) => change({ priorities: event.target.value })}
+							className="min-h-[84px] py-2.5 text-sm leading-[21px]"
+						/>
+					</div>
+				</section>
+			) : (
+				<>
+					<div className="flex items-center gap-2">
+						<h2 className="flex-1 text-[17px] font-semibold">
+							<Trans>What you're looking for</Trans>
+						</h2>
+						<span role="status" className="flex items-center gap-1 text-xs text-ink-3">
+							<Icon name={failed ? "cloud-slash" : dirty ? "arrows-clockwise" : "cloud-check"} size={16} />
+							{failed ? (
+								<Trans>Not saved</Trans>
+							) : dirty ? (
+								<Trans>Saving…</Trans>
+							) : justNow ? (
+								<Trans>Saved just now</Trans>
+							) : (
+								<Trans>Saved</Trans>
+							)}
+						</span>
+						{failed && (
+							<button
+								type="button"
+								onClick={() => flush(true)}
+								className="text-xs text-ink-3 underline underline-offset-2 hover:text-ink"
+							>
+								<Trans>Retry</Trans>
+							</button>
+						)}
+					</div>
 
-			<div className="grid gap-1.5">
-				<label htmlFor={`${id}-priorities`} className="text-xs font-medium text-ink-2">
-					<Trans>What matters to you</Trans>
-				</label>
-				<Textarea
-					id={`${id}-priorities`}
-					rows={3}
-					maxLength={4000}
-					value={draft.priorities}
-					onChange={(event) => change({ priorities: event.target.value })}
-					className="min-h-[84px] py-2.5 text-sm leading-[21px]"
-				/>
-			</div>
+					<div className={inPanel ? "grid gap-4" : "grid gap-4 sm:grid-cols-2"}>
+						<ChipField
+							label={t`Target roles`}
+							placeholder={t`Add a role, then Enter`}
+							value={draft.targetRoles}
+							onChange={(targetRoles) => change({ targetRoles })}
+						/>
+						<ChipField
+							label={t`Where you want to work`}
+							placeholder={t`Add a place, then Enter`}
+							value={draft.locations}
+							onChange={(locations) => change({ locations })}
+						/>
+					</div>
+
+					<div className="grid gap-1.5">
+						<label htmlFor={`${id}-priorities`} className="text-xs font-medium text-ink-2">
+							<Trans>What matters to you</Trans>
+						</label>
+						<Textarea
+							id={`${id}-priorities`}
+							rows={3}
+							maxLength={4000}
+							value={draft.priorities}
+							onChange={(event) => change({ priorities: event.target.value })}
+							className="min-h-[84px] py-2.5 text-sm leading-[21px]"
+						/>
+					</div>
+				</>
+			)}
 
 			<section className="grid gap-2.5 rounded-xl border border-line bg-surface p-4">
 				<div className="grid gap-1">
@@ -168,7 +230,9 @@ function PreferencesForm({ initial }: PreferencesFormProps) {
 					</p>
 				</div>
 
-				<div className="mt-1 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+				<div
+					className={inPanel ? "mt-1 grid gap-3.5 sm:grid-cols-2" : "mt-1 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4"}
+				>
 					<SalaryField
 						id={`${id}-salary`}
 						locale={i18n.locale}
@@ -215,6 +279,7 @@ function PreferencesForm({ initial }: PreferencesFormProps) {
 						<span className={fieldShell}>
 							<input
 								id={`${id}-notice`}
+								placeholder="0"
 								type="number"
 								inputMode="numeric"
 								min={0}

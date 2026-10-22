@@ -6,12 +6,13 @@ import { cn } from "@reactive-resume/utils/style";
 
 /** Status pills. Color always pairs with text; never use a badge as the only signal. */
 const badgeVariants = cva(
-	"group/badge inline-flex h-5 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-full border border-transparent px-2 text-xs font-medium whitespace-nowrap [&>[data-slot=icon]]:text-[15px]! [&>svg]:pointer-events-none [&>svg]:size-3!",
+	"group/badge inline-flex h-5 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-full border border-transparent px-2 text-[11px] font-[550] whitespace-nowrap [&>[data-slot=icon]]:text-[15px]! [&>svg]:pointer-events-none [&>svg]:size-3!",
 	{
 		variants: {
 			variant: {
 				neutral: "bg-sunken text-ink-2",
 				accent: "bg-accent-soft text-accent-text",
+				ok: "bg-ok-soft text-ok-text",
 				solid: "bg-accent text-on-accent",
 				warn: "bg-warn-soft text-warn-text",
 				danger: "bg-danger-soft text-danger-text",

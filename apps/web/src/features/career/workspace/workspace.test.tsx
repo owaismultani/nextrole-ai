@@ -38,6 +38,7 @@ vi.mock("@/libs/orpc/client", () => {
 	});
 	return {
 		orpc: {
+			applications: { update: endpoint("update") },
 			career: {
 				workspace: endpoint("workspace"),
 				savedItems: endpoint("savedItems"),
@@ -64,7 +65,10 @@ vi.mock("@/features/settings/integrations/hooks/use-has-usable-ai-provider", () 
 }));
 vi.mock("@/features/applications/use-application-actions", () => ({
 	useInvalidateApplications: () => api.invalidate,
+	useApplicationActions: () => ({ moveTo: vi.fn(), close: vi.fn(), remove: { mutate: vi.fn() } }),
 }));
+vi.mock("@/features/applications/components/application-form-sheet", () => ({ ApplicationFormSheet: () => null }));
+vi.mock("@/hooks/use-confirm", () => ({ useConfirm: () => vi.fn(), usePrompt: () => vi.fn() }));
 vi.mock("../coach-thread", () => ({
 	useCoachKnowledge: () => ({
 		stories: api.stories,

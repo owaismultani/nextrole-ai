@@ -149,7 +149,7 @@ export function JobMatch({ id, data, applicationId, locked, offline, onTerm }: J
 							))}
 						</View>
 						{match.missing.length === 0 && match.total > 0 && (
-							<Text color="accentText">{t`All posting terms are covered.`}</Text>
+							<Text color="okText">{t`All posting terms are covered.`}</Text>
 						)}
 						<Text variant="label">{t`Already covered · pick one to find it on the page`}</Text>
 						<View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.s2 }}>

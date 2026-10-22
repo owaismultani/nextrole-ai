@@ -204,7 +204,7 @@ export function Schedules({ deleted, onOpenSchedule, className }: SchedulesProps
 									>
 										<span className="text-sm font-semibold">{title}</span>
 										<span className="line-clamp-2 text-xs leading-[17px] text-ink-2">{describe(row)}</span>
-										<span className={cn("text-xs", row.enabled && !done ? "text-accent-text" : "text-ink-3")}>
+										<span className={cn("text-xs", row.enabled && !done ? "text-ok-text" : "text-ink-3")}>
 											{status(row)}
 										</span>
 										{state && (state === "running" || state === "queued") ? (

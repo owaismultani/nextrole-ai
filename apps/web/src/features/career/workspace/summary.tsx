@@ -1,15 +1,19 @@
 import type { WorkspaceTabProps } from "./shell";
 import { t } from "@lingui/core/macro";
-import { useLingui } from "@lingui/react";
 import { Trans } from "@lingui/react/macro";
+import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@reactive-resume/ui/components/button";
 import { Icon } from "@reactive-resume/ui/components/icon";
+import { toast } from "@reactive-resume/ui/components/toast";
 import { latest, useSavedItems } from "../hooks";
 import { Eyebrow, useCareerTime } from "../shared";
+import { useEditDetails } from "./edit-details";
 import { FitTab } from "./fit";
-import { actionLabel, preparationLabel, useWorkspaceState } from "./state";
-import { describeNextStep, getNextStep } from "@/features/applications/next-step";
+import { OverviewRail } from "./overview-rail";
+import { Contacts } from "@/features/applications/components/detail/contacts";
+import { useInvalidateApplications } from "@/features/applications/use-application-actions";
+import { orpc } from "@/libs/orpc/client";
 
 type SummaryProps = WorkspaceTabProps & { onAddOffer: () => void; onEditOffer: (id: string) => void };
 
@@ -23,69 +27,24 @@ export function SummaryTab(props: SummaryProps) {
 }
 
 function SummaryBody(props: SummaryProps) {
-	const { application, now, go } = props;
+	const { application, interview, now } = props;
 	return (
-		<div className="grid gap-8">
-			<NextAction application={application} now={now} go={go} onAddOffer={props.onAddOffer} />
-			<Posting application={application} />
-			<FollowUpAndContacts application={application} />
-			<Offers application={application} onAddOffer={props.onAddOffer} onEditOffer={props.onEditOffer} />
-			<section id="fit" aria-label={t`Fit`} className="grid scroll-mt-6 gap-3">
-				<Eyebrow>
-					<Trans>How you fit</Trans>
-				</Eyebrow>
-				<FitTab {...props} />
-			</section>
-		</div>
-	);
-}
-
-type NextActionProps = {
-	application: SummaryProps["application"];
-	now: Date;
-	go: SummaryProps["go"];
-	onAddOffer: () => void;
-};
-
-function NextAction({ application, now, go, onAddOffer }: NextActionProps) {
-	const { i18n } = useLingui();
-	const state = useWorkspaceState(application, now);
-	const text = describeNextStep(getNextStep(application, now), application, i18n.locale);
-	const label = actionLabel(state.action);
-	const documents = preparationLabel(state.preparation);
-	return (
-		<section aria-label={t`Next action`} className="grid gap-2">
-			<Eyebrow>
-				<Trans>Next action</Trans>
-			</Eyebrow>
-			<div className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-xl border border-line bg-surface p-4">
-				<Icon name={text.icon} size={22} className="shrink-0 text-ink-2" />
-				<div className="grid min-w-0 flex-1 gap-0.5">
-					<p className="text-sm font-semibold">{text.title}</p>
-					{text.sub && <p className="text-[13px] text-ink-2">{text.sub}</p>}
-					{documents && (
-						<p className="text-xs text-ink-3">
-							{documents}
-							{" · "}
-							<button type="button" className="underline" onClick={() => go("documents")}>
-								<Trans>Open documents</Trans>
-							</button>
-						</p>
-					)}
-				</div>
-				{label && (
-					<Button
-						onClick={() =>
-							state.action.kind === "add-offer"
-								? onAddOffer()
-								: go(state.action.tab, state.action.section ? { section: state.action.section } : {})
-						}
-					>
-						{label}
-					</Button>
-				)}
+		<div className="grid items-start gap-8 @4xl:grid-cols-[minmax(0,1fr)_320px]">
+			<div className="grid min-w-0 gap-8">
+				<Posting application={application} />
+				<Offers application={application} onAddOffer={props.onAddOffer} onEditOffer={props.onEditOffer} />
+				<section id="fit" aria-label={t`Fit`} className="grid scroll-mt-6 gap-3">
+					<Eyebrow>
+						<Trans>How you fit</Trans>
+					</Eyebrow>
+					<FitTab {...props} />
+				</section>
 			</div>
-		</section>
+			<aside aria-label={t`Application details`} className="grid content-start gap-5">
+				<FollowUpAndContacts application={application} />
+				<OverviewRail application={application} interview={interview} now={now} />
+			</aside>
+		</div>
 	);
 }
 
@@ -113,7 +72,7 @@ function Posting({ application }: { application: SummaryProps["application"] }) 
 							return (
 								<li key={requirement} className="flex items-start gap-2">
 									{status === "supported" ? (
-										<Icon name="check-circle" size={18} className="mt-0.5 shrink-0 text-accent-text" />
+										<Icon name="check-circle" size={18} className="mt-0.5 shrink-0 text-ok-text" />
 									) : (
 										<span aria-hidden="true" className="mt-2 size-1.5 shrink-0 rounded-full bg-line-2" />
 									)}
@@ -161,6 +120,37 @@ function Posting({ application }: { application: SummaryProps["application"] }) 
 					)}
 				</summary>
 				<div className="border-t border-line px-4 py-3">
+					{application.postingSource && (
+						<p className="mb-2 text-xs text-ink-3">
+							{application.postingSource.method === "paste" ? (
+								<Trans>Pasted description</Trans>
+							) : (
+								<Trans>
+									Retrieved {application.postingSource.retrievedAt} using {application.postingSource.method}. Retrieval
+									time does not establish origin freshness.
+								</Trans>
+							)}
+						</p>
+					)}
+					{(application.postingSource?.truncated || application.postingSource?.completeness === "incomplete") && (
+						<p className="mb-2 text-xs text-warn-text" role="alert">
+							<Trans>This saved description is clipped or incomplete. Review before preparing documents.</Trans>
+						</p>
+					)}
+					{application.requirements.length > 0 && (
+						<div className="mb-3 grid gap-1.5">
+							<p className="text-xs font-semibold text-ink-3 uppercase">
+								<Trans>What it asks for</Trans>
+							</p>
+							<ul className="flex flex-wrap gap-1.5">
+								{application.requirements.map((requirement) => (
+									<li key={requirement} className="rounded-md bg-sunken px-2 py-1 text-xs">
+										{requirement}
+									</li>
+								))}
+							</ul>
+						</div>
+					)}
 					{application.jobDescription ? (
 						<p className="max-h-96 overflow-y-auto text-sm leading-[21px] whitespace-pre-line text-ink-2">
 							{application.jobDescription}
@@ -178,10 +168,20 @@ function Posting({ application }: { application: SummaryProps["application"] }) 
 
 function FollowUpAndContacts({ application }: { application: SummaryProps["application"] }) {
 	const { date } = useCareerTime();
+	const editDetails = useEditDetails();
+	const invalidate = useInvalidateApplications();
+	const update = useMutation({
+		...orpc.applications.update.mutationOptions(),
+		onSuccess: () => invalidate(application.id),
+		onError: () => toast.add({ type: "error", description: t`Couldn't save.` }),
+	});
 	const hasFollowUp = Boolean(application.followUpAt);
 	const contacts = application.contacts;
 	return (
-		<section aria-label={t`Follow-up and contacts`} className="grid gap-3 @xl:grid-cols-2">
+		<section
+			aria-label={t`Follow-up and contacts`}
+			className="grid gap-4 rounded-2xl border border-line bg-surface p-4"
+		>
 			<div className="grid content-start gap-2">
 				<Eyebrow>
 					<Trans>Follow-up</Trans>
@@ -201,30 +201,16 @@ function FollowUpAndContacts({ application }: { application: SummaryProps["appli
 				<Eyebrow>
 					<Trans>Contacts</Trans>
 				</Eyebrow>
-				{contacts.length === 0 ? (
-					<p className="text-sm text-ink-3">
-						<Trans>No contacts yet.</Trans>
-					</p>
-				) : (
-					<ul className="grid gap-1.5 text-sm">
-						{contacts.map((contact) => (
-							<li key={`${contact.name}-${contact.email}`} className="flex flex-wrap gap-x-2">
-								<span className="font-medium">{contact.name}</span>
-								{contact.role && <span className="text-ink-3">{contact.role}</span>}
-								{contact.email && (
-									<a href={`mailto:${contact.email}`} className="text-ink-2 underline underline-offset-3">
-										{contact.email}
-									</a>
-								)}
-							</li>
-						))}
-					</ul>
-				)}
+				<Contacts
+					contacts={contacts}
+					disabled={update.isPending}
+					onChange={(next) => update.mutate({ id: application.id, contacts: next })}
+				/>
 			</div>
-			<p className="text-xs text-ink-3 @xl:col-span-2">
-				<Link to="/dashboard/applications" search={{ applicationId: application.id }} className="underline">
-					<Trans>Edit follow-up, contacts and details</Trans>
-				</Link>
+			<p className="text-xs text-ink-3">
+				<button type="button" onClick={editDetails} className="underline">
+					<Trans>Edit follow-up and details</Trans>
+				</button>
 			</p>
 		</section>
 	);
@@ -243,9 +229,14 @@ function Offers({ application, onAddOffer, onEditOffer }: OffersProps) {
 	if (!show) return null;
 	return (
 		<section id="offers" aria-label={t`Offers`} className="grid scroll-mt-6 gap-2">
-			<Eyebrow>
-				<Trans>Offers</Trans>
-			</Eyebrow>
+			<div className="flex items-center justify-between gap-3">
+				<Eyebrow>
+					<Trans>Offers</Trans>
+				</Eyebrow>
+				<Link to="/dashboard/applications/offers" className="text-[13px] underline underline-offset-3">
+					<Trans>Compare offers</Trans>
+				</Link>
+			</div>
 			{offers.length === 0 ? (
 				<p className="text-sm text-ink-3">
 					<Trans>No offer has been recorded for this application.</Trans>

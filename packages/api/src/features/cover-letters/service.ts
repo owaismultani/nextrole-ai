@@ -453,6 +453,44 @@ export const coverLetterService = {
 		await writeLetterVersion(db, { letter: resolved, userId: input.userId, kind: "restored" });
 		return resolved;
 	},
+	/**
+	 * Writes a new generated body over a letter in one transaction. The letter as it reads now and the new one are both
+	 * kept in History as `generated` versions, so edits made to the earlier generation can be restored. A trashed or
+	 * locked letter is not replaced.
+	 */
+	replaceGeneration: async (
+		input: OwnedId & {
+			content: string;
+			/** History's name for the letter being replaced, and for the new one. */
+			replaced: string;
+			name: string;
+			/** Runs in the same transaction, given the History version that holds the replaced letter. */
+			alongside?: (tx: DbOrTx, replaced: { id: string }) => Promise<unknown>;
+		},
+	) => {
+		const [stored] = await db
+			.select({ trashedAt: schema.coverLetter.trashedAt })
+			.from(schema.coverLetter)
+			.where(and(eq(schema.coverLetter.id, input.id), eq(schema.coverLetter.userId, input.userId)));
+		if (!stored || stored.trashedAt) throw new ORPCError("NOT_FOUND");
+		const current = await getById(input);
+		return db.transaction(async (tx) => {
+			await lockDocumentOwner(tx, input.userId);
+			const version = { userId: input.userId, kind: "generated" as const };
+			const replaced = await writeLetterVersion(tx, { ...version, letter: current, name: input.replaced });
+			const updated = await resolveLinks(
+				await updateRevision(
+					{ id: input.id, userId: input.userId, expectedRevision: current.revision },
+					{ content: sanitizeCoverLetterHtml(coverLetterContentSchema.shape.content.parse(input.content)) },
+					tx,
+				),
+				input.userId,
+			);
+			await writeLetterVersion(tx, { ...version, letter: updated, name: input.name });
+			await input.alongside?.(tx, replaced);
+			return updated;
+		});
+	},
 	/** The version an application was sent with ("sent", named after the company). */
 	recordSent: async (input: OwnedId & { company: string }) => {
 		const letter = await getById(input);

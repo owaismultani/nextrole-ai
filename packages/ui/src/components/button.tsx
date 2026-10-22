@@ -5,7 +5,7 @@ import { Spinner } from "@reactive-resume/ui/components/spinner";
 import { cn } from "@reactive-resume/utils/style";
 
 const buttonVariants = cva(
-	"group/button touch-target relative inline-flex shrink-0 items-center justify-center gap-2 border border-transparent text-sm font-medium whitespace-nowrap transition-[background-color,border-color,color,filter,scale] duration-quick ease-enter select-none disabled:pointer-events-none aria-busy:cursor-progress [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+	"group/button touch-target relative inline-flex shrink-0 items-center justify-center gap-2 border border-transparent text-[13px] font-semibold whitespace-nowrap transition-[background-color,border-color,color,filter,scale] duration-quick ease-enter select-none disabled:pointer-events-none aria-busy:cursor-progress [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
 	{
 		variants: {
 			variant: {
@@ -18,8 +18,8 @@ const buttonVariants = cva(
 				link: "h-auto! border-0 px-0! text-accent-text underline-offset-4 hover:underline",
 			},
 			size: {
-				default: "h-9 rounded-md px-3.5",
-				sm: "h-7 gap-1.5 rounded-sm px-2.5 text-[13px]",
+				default: "h-10 rounded-lg px-4",
+				sm: "h-8 gap-1.5 rounded-md px-3 text-xs",
 				lg: "h-11 rounded-lg px-4 text-base",
 				icon: "size-9 rounded-md",
 				"icon-sm": "size-8 rounded-md",

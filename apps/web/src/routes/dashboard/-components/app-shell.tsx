@@ -5,8 +5,8 @@ import { Trans } from "@lingui/react/macro";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useMatchRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@reactive-resume/ui/components/avatar";
-import { BrandIcon } from "@reactive-resume/ui/components/brand-icon";
 import { Button } from "@reactive-resume/ui/components/button";
 import {
 	DropdownMenu,
@@ -30,11 +30,11 @@ import { orpc } from "@/libs/orpc/client";
 
 type NavItem = {
 	to:
-		| "/dashboard"
+		| "/dashboard/documents"
+		| "/dashboard/knowledge"
 		| "/dashboard/overview"
 		| "/dashboard/discover"
 		| "/dashboard/applications"
-		| "/dashboard/profile"
 		| "/dashboard/coach/{-$conversationId}"
 		| "/dashboard/automation"
 		| "/dashboard/trash"
@@ -60,25 +60,24 @@ function useNavItems() {
 		{ to: "/dashboard/overview", icon: "squares-four", label: t`Overview`, ...(unread ? { count: unread } : {}) },
 		{ to: "/dashboard/discover", icon: "compass", label: t`Discover`, ...(fresh ? { count: fresh } : {}) },
 		{ to: "/dashboard/applications", icon: "briefcase", label: t`Applications` },
-		{ to: "/dashboard", icon: "file-text", label: t`Documents` },
-		{ to: "/dashboard/profile", icon: "user-circle", label: t`Profile` },
+		{ to: "/dashboard/documents", icon: "file-text", label: t`Documents` },
+		{ to: "/dashboard/knowledge", icon: "books", label: t`Knowledge` },
 		{ to: "/dashboard/coach/{-$conversationId}", icon: "sparkle", label: t`Coach` },
 	];
-	const utilities: NavItem[] = [
-		{ to: "/dashboard/automation", icon: "clock", label: t`Automation` },
-		{ to: "/dashboard/settings", icon: "gear-six", label: t`Settings` },
-	];
+	const utilities: NavItem[] = [{ to: "/dashboard/automation", icon: "clock", label: t`Automation` }];
+	// Settings is in the account menu on wide screens; the phone bar has no account menu, so its More holds it.
+	const settings: NavItem = { to: "/dashboard/settings", icon: "gear-six", label: t`Settings` };
 	const trash: NavItem | null = counts?.trash
 		? { to: "/dashboard/trash", icon: "trash", label: t`Trash`, count: counts.trash }
 		: null;
 
-	return { items, utilities, trash };
+	return { items, utilities, trash, settings };
 }
 
 /** Whether the item is the current page: Documents is exact, the others match their section. */
 function useIsCurrent() {
 	const matchRoute = useMatchRoute();
-	return (to: NavItem["to"]) => Boolean(matchRoute({ to, fuzzy: to !== "/dashboard" }));
+	return (to: NavItem["to"]) => Boolean(matchRoute({ to, fuzzy: true }));
 }
 
 /**
@@ -88,8 +87,31 @@ function useIsCurrent() {
  */
 type AppShellProps = { children: ReactNode };
 
+const COLLAPSED_KEY = "nextrole-nav-collapsed";
+
+/** Whether the wide sidebar is folded to icons; remembered on this device, and the page works without storage. */
+function useNavCollapsed() {
+	const [collapsed, setCollapsed] = useState(() => {
+		try {
+			return globalThis.localStorage?.getItem(COLLAPSED_KEY) === "1";
+		} catch {
+			return false;
+		}
+	});
+	const set = (next: boolean) => {
+		setCollapsed(next);
+		try {
+			globalThis.localStorage?.setItem(COLLAPSED_KEY, next ? "1" : "0");
+		} catch {
+			// Not remembered; the sidebar still folds for this visit.
+		}
+	};
+	return [collapsed, set] as const;
+}
+
 export function AppShell({ children }: AppShellProps) {
 	const breakpoint = useBreakpoint();
+	const [collapsed, setCollapsed] = useNavCollapsed();
 	const openDialog = useDialogStore((state) => state.openDialog);
 	const matchRoute = useMatchRoute();
 	const tabs =
@@ -108,7 +130,7 @@ export function AppShell({ children }: AppShellProps) {
 					? tabs
 						? "grid-rows-[minmax(0,1fr)_auto]"
 						: ""
-					: breakpoint === "tablet"
+					: breakpoint === "tablet" || collapsed
 						? "grid-cols-[64px_minmax(0,1fr)]"
 						: "grid-cols-[240px_minmax(0,1fr)]",
 			)}
@@ -119,7 +141,9 @@ export function AppShell({ children }: AppShellProps) {
 			>
 				<Trans>Skip to main content</Trans>
 			</a>
-			{breakpoint !== "mobile" && (breakpoint === "tablet" ? <Rail /> : <Sidebar />)}
+			{breakpoint === "tablet" && <Rail />}
+			{(breakpoint === "desktop" || breakpoint === "wide") &&
+				(collapsed ? <Rail onExpand={() => setCollapsed(false)} /> : <Sidebar onCollapse={() => setCollapsed(true)} />)}
 			<main id="main-content" className="min-w-0">
 				<GuestBanner />
 				{children}
@@ -129,7 +153,30 @@ export function AppShell({ children }: AppShellProps) {
 	);
 }
 
-function Sidebar() {
+/** The fold/unfold button: a small round button on the sidebar's edge, in the same place whether it is open or folded. */
+function NavToggle({ collapsed, onClick }: { collapsed: boolean; onClick: () => void }) {
+	const label = collapsed ? t`Expand sidebar` : t`Collapse sidebar`;
+	return (
+		<Tooltip>
+			<TooltipTrigger
+				render={
+					<button
+						type="button"
+						aria-label={label}
+						aria-expanded={!collapsed}
+						onClick={onClick}
+						className="absolute -end-3 top-[30px] z-10 grid size-6 place-items-center rounded-full border border-line bg-surface text-ink-3 shadow-e1 transition-[background-color,color,scale] duration-quick ease-enter hover:bg-sunken hover:text-ink active:scale-[0.94]"
+					/>
+				}
+			>
+				<Icon name={collapsed ? "caret-right" : "caret-left"} size={14} />
+			</TooltipTrigger>
+			<TooltipContent side="right">{label}</TooltipContent>
+		</Tooltip>
+	);
+}
+
+function Sidebar({ onCollapse }: { onCollapse: () => void }) {
 	const { items, utilities, trash } = useNavItems();
 	const isCurrent = useIsCurrent();
 	const openPalette = useCommandPaletteStore((state) => state.setOpen);
@@ -138,11 +185,25 @@ function Sidebar() {
 	return (
 		<aside
 			aria-label={t`App navigation`}
-			className="sticky top-0 flex h-svh flex-col gap-3 border-e border-line bg-surface p-3 [view-transition-name:app-nav]"
+			className="sticky top-0 z-20 flex h-svh flex-col gap-3 border-e border-line bg-surface p-3 [view-transition-name:app-nav]"
 		>
-			<Link to="/" className="flex h-9 items-center gap-2.5 px-1.5">
-				<BrandIcon variant="icon" alt="" className="size-6 shrink-0" />
-				<span className="text-sm font-semibold">Reactive Resume</span>
+			<NavToggle collapsed={false} onClick={onCollapse} />
+			<Link to="/" className="flex items-center gap-2.5 px-1.5 py-1">
+				<span
+					aria-hidden="true"
+					className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent font-display text-xl font-extrabold text-on-accent"
+				>
+					N
+				</span>
+				<span className="grid min-w-0 leading-tight">
+					<span className="flex items-center gap-1.5 font-display text-[23px] font-extrabold tracking-[-0.055em]">
+						NextRole
+						<span className="rounded-md bg-accent-soft px-1.5 py-px font-ui text-[11px] font-bold tracking-normal text-accent-text">
+							AI
+						</span>
+					</span>
+					<span className="truncate text-[11px] text-ink-3">Built on Reactive Resume</span>
+				</span>
 			</Link>
 
 			<button
@@ -214,19 +275,25 @@ function NavLink({ item, current }: { item: NavItem; current: boolean }) {
 			to={item.to}
 			aria-current={current ? "page" : undefined}
 			className={cn(
-				"flex h-[34px] items-center gap-2.5 rounded-lg px-2.5 text-sm transition-[background-color,color,scale] duration-quick ease-enter active:scale-[0.97]",
-				current ? "bg-sunken font-medium text-ink" : "text-ink-2 hover:bg-hover hover:text-ink",
+				"relative flex h-10 items-center gap-2.5 rounded-lg px-2.5 text-[13px] font-[550] transition-[background-color,color,scale] duration-quick ease-enter active:scale-[0.97]",
+				current
+					? "bg-accent-soft font-bold text-accent-text before:absolute before:inset-y-1.5 before:-inset-s-3 before:w-0.75 before:rounded-e-full before:bg-accent"
+					: "text-ink-2 hover:bg-hover hover:text-ink",
 			)}
 		>
 			<Icon name={item.icon} filled={current} />
 			<span className="flex-1">{item.label}</span>
-			{item.count ? <span className="font-mono text-xs text-ink-3">{item.count}</span> : null}
+			{item.count ? (
+				<span className="rounded-md bg-sunken px-1.5 text-[11px] font-medium text-ink-2 tabular-nums">
+					{item.count}
+				</span>
+			) : null}
 		</Link>
 	);
 }
 
 /** Tablets: the same destinations as icons, with their names in tooltips. */
-function Rail() {
+function Rail({ onExpand }: { onExpand?: () => void }) {
 	const { items, utilities, trash } = useNavItems();
 	const isCurrent = useIsCurrent();
 	const openPalette = useCommandPaletteStore((state) => state.setOpen);
@@ -235,10 +302,15 @@ function Rail() {
 	return (
 		<aside
 			aria-label={t`App navigation`}
-			className="sticky top-0 flex h-svh flex-col items-center gap-2 border-e border-line bg-surface py-3 [view-transition-name:app-nav]"
+			className="sticky top-0 z-20 flex h-svh flex-col items-center gap-2 border-e border-line bg-surface py-3 [view-transition-name:app-nav]"
 		>
-			<Link to="/" aria-label="Reactive Resume" className="mb-1 grid size-8 place-items-center rounded-md">
-				<BrandIcon variant="icon" alt="" className="size-6" />
+			{onExpand && <NavToggle collapsed onClick={onExpand} />}
+			<Link
+				to="/"
+				aria-label="NextRole AI"
+				className="mb-1 grid size-9 place-items-center rounded-lg bg-accent font-display text-xl font-extrabold text-on-accent"
+			>
+				N
 			</Link>
 			<RailTip label={t`Search`} icon="magnifying-glass">
 				<button
@@ -308,11 +380,12 @@ function RailTip({
 function MobileTabs() {
 	const isCurrent = useIsCurrent();
 	const openDialog = useDialogStore((state) => state.openDialog);
-	const { items, utilities, trash } = useNavItems();
+	const { items, utilities, trash, settings } = useNavItems();
 	const first = items.filter((item) => ["/dashboard/overview", "/dashboard/discover"].includes(item.to));
 	const more = [
-		...items.filter((item) => ["/dashboard/profile", "/dashboard/coach/{-$conversationId}"].includes(item.to)),
+		...items.filter((item) => ["/dashboard/knowledge", "/dashboard/coach/{-$conversationId}"].includes(item.to)),
 		...utilities,
+		settings,
 		...(trash ? [trash] : []),
 	];
 	const moreCurrent = more.some((item) => isCurrent(item.to));
@@ -376,12 +449,12 @@ function MobileTabs() {
 				{tab("briefcase", t`Applications`, isCurrent("/dashboard/applications"))}
 			</Link>
 			<Link
-				to="/dashboard"
-				aria-current={isCurrent("/dashboard") ? "page" : undefined}
+				to="/dashboard/documents"
+				aria-current={isCurrent("/dashboard/documents") ? "page" : undefined}
 				viewTransition={false}
 				className={link}
 			>
-				{tab("file-text", t`Documents`, isCurrent("/dashboard"))}
+				{tab("file-text", t`Documents`, isCurrent("/dashboard/documents"))}
 			</Link>
 			<DropdownMenu>
 				<DropdownMenuTrigger aria-label={t`More`} className={cn(link, "outline-none")}>

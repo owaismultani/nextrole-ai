@@ -154,7 +154,7 @@ function Plan({ application, interview, briefing, readOnly, go }: PlanProps) {
 			case "story":
 				return (
 					<Link
-						to="/dashboard/profile/stories/{-$storyId}"
+						to="/dashboard/knowledge/stories/{-$storyId}"
 						params={{ storyId: row.storyId ?? undefined }}
 						className={className}
 					>
@@ -164,7 +164,7 @@ function Plan({ application, interview, briefing, readOnly, go }: PlanProps) {
 			case "draft-story":
 				return (
 					<Link
-						to="/dashboard/profile/stories/{-$storyId}"
+						to="/dashboard/knowledge/stories/{-$storyId}"
 						params={{ storyId: undefined }}
 						search={{ edit: true }}
 						className={className}
@@ -413,7 +413,7 @@ function StoriesToBring({ application, briefing }: StoriesToBringProps) {
 			{bring.map((story) => (
 				<Link
 					key={story.id}
-					to="/dashboard/profile/stories/{-$storyId}"
+					to="/dashboard/knowledge/stories/{-$storyId}"
 					params={{ storyId: story.id }}
 					className="flex items-start gap-2 text-[13px] leading-[19px] text-ink hover:underline"
 				>

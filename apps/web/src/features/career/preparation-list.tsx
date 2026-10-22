@@ -56,7 +56,7 @@ export function PreparationList({ className }: PreparationListProps) {
 						<Trans>Document preparation</Trans>
 					</span>
 				</Eyebrow>
-				{ready > 0 && <span className="text-xs font-medium text-accent-text">{t`${ready} ready for review`}</span>}
+				{ready > 0 && <span className="text-xs font-medium text-ok-text">{t`${ready} ready for review`}</span>}
 			</div>
 			<p className="px-4 pb-3 text-xs leading-[17px] text-ink-3">
 				<Trans>
@@ -237,6 +237,30 @@ export function PreparationRow({ job, scope = "all" }: PreparationRowProps) {
 								)}
 							</p>
 						)}
+						{step.outputId && step.replacedVersionId && (
+							<p className="text-ink-3">
+								<Trans>Generation {step.generation}. The one it replaced is kept in History.</Trans>{" "}
+								{step.kind === "resume" ? (
+									<Link
+										to="/builder/$resumeId"
+										params={{ resumeId: step.outputId }}
+										search={{ version: step.replacedVersionId }}
+										className="underline"
+									>
+										<Trans>See the earlier version</Trans>
+									</Link>
+								) : (
+									<Link
+										to="/builder/letter/$coverLetterId"
+										params={{ coverLetterId: step.outputId }}
+										search={{ version: step.replacedVersionId }}
+										className="underline"
+									>
+										<Trans>See the earlier version</Trans>
+									</Link>
+								)}
+							</p>
+						)}
 						{step.eligibleAt && (
 							<p className="text-ink-3">
 								<Trans>Eligible again {when(step.eligibleAt)}.</Trans>
@@ -245,13 +269,15 @@ export function PreparationRow({ job, scope = "all" }: PreparationRowProps) {
 						{step.stale && (
 							<p className="text-warn-text">
 								<Trans>
-									Your baseline resume or the posting changed since this was made. Regenerate for a fresh copy.
+									Your baseline resume or the posting changed since this was made. Regenerate to bring it up to date.
 								</Trans>
 							</p>
 						)}
 						{step.edited && (
 							<p className="text-ink-3">
-								<Trans>You edited this document. Regenerating makes a new copy and leaves yours untouched.</Trans>
+								<Trans>
+									You edited this document. Regenerating writes over it and keeps your edits in its History.
+								</Trans>
 							</p>
 						)}
 						{step.issues.length > 0 && (

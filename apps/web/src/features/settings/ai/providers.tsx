@@ -32,6 +32,7 @@ import {
 	providerOptions,
 } from "./catalog";
 import { Combobox } from "@/components/ui/combobox";
+import { FilterChip } from "@/features/career/shared";
 import { useClosingValue } from "@/hooks/use-closing-value";
 import { useConfirm } from "@/hooks/use-confirm";
 import { getOrpcErrorMessage } from "@/libs/error-message";
@@ -326,6 +327,9 @@ function ProviderFieldsForm({ provider, value, onChange, keyOptional }: Provider
 		retry: false,
 	});
 	const models = catalogId ? (catalog?.[catalogId] ?? []) : [];
+	// The suggestions are newest first. The datalist only shows IDs matching the typed text, so a filled-in model would
+	// hide the rest; these stay in view.
+	const latest = models.slice(0, 6);
 
 	return (
 		<div className="grid gap-3 sm:grid-cols-2">
@@ -357,7 +361,7 @@ function ProviderFieldsForm({ provider, value, onChange, keyOptional }: Provider
 					list={`${id}-models`}
 					aria-describedby={`${id}-model-hint`}
 					value={value.model}
-					placeholder={defaults.model || "gpt-4.1"}
+					placeholder={defaults.model || latest[0]?.id || "gpt-6.1-sol"}
 					onChange={(event) => set({ model: event.target.value })}
 					{...secretInputProps}
 				/>
@@ -368,6 +372,19 @@ function ProviderFieldsForm({ provider, value, onChange, keyOptional }: Provider
 						</option>
 					))}
 				</datalist>
+				{latest.length > 0 && (
+					<div role="group" aria-label={t`Latest models`} className="flex flex-wrap gap-1.5">
+						{latest.map((model) => (
+							<FilterChip
+								key={model.id}
+								pressed={value.model.trim() === model.id}
+								onClick={() => set({ model: model.id })}
+							>
+								<span title={model.id}>{model.name}</span>
+							</FilterChip>
+						))}
+					</div>
+				)}
 				<p id={`${id}-model-hint`} className="text-xs leading-5 text-ink-3">
 					{!catalogId ? (
 						<Trans>Enter any model ID supported by your endpoint.</Trans>

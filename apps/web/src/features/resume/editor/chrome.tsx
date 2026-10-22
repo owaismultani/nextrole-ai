@@ -131,7 +131,7 @@ export function BackLink({ applicationId }: { applicationId?: string | null | un
 						/>
 					) : (
 						<Link
-							to="/dashboard"
+							to="/dashboard/documents"
 							aria-label={label}
 							className={className}
 							onClick={(event) => {

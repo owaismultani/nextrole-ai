@@ -265,7 +265,7 @@ export const careerPreparation = pg.pgTable(
 		/** True when a person asked for this document: it then runs even if the automatic toggle is off. */
 		manual: pg.boolean("manual").notNull().default(false),
 		status: pg.text("status").notNull().default("queued"),
-		/** Bumped by an explicit regenerate; each generation writes a new document and never overwrites an edited one. */
+		/** Bumped by an explicit regenerate; each generation is written over the same document, the last kept in History. */
 		generation: pg.integer("generation").notNull().default(1),
 		attempts: pg.integer("attempts").notNull().default(0),
 		nextAttemptAt: pg.timestamp("next_attempt_at", { withTimezone: true }).notNull().defaultNow(),
@@ -278,6 +278,13 @@ export const careerPreparation = pg.pgTable(
 		issues: pg.jsonb("issues").notNull().$type<string[]>().default([]),
 		/** The resume or cover letter produced; chosen before it is created so a retry reuses it. */
 		outputId: pg.text("output_id"),
+		/**
+		 * The generation `outputId` holds. A regenerate keeps the document and writes the next generation over it, with
+		 * the one it replaces kept in History; null while a new document is being made for this generation.
+		 */
+		outputGeneration: pg.integer("output_generation"),
+		/** The History version holding the generation the last regenerate wrote over, to point people back to it. */
+		replacedVersionId: pg.text("replaced_version_id"),
 		baselineResumeId: pg.text("baseline_resume_id"),
 		/** The baseline's `updated_at` when it was read, to tell later when the document may be out of date. */
 		baselineVersion: pg.text("baseline_version"),

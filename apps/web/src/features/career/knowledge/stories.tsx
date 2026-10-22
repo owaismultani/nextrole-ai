@@ -77,7 +77,7 @@ export function StoriesPage({ storyId, edit }: StoriesPageProps) {
 
 	const open = (id: string | undefined, editMode = false) =>
 		void navigate({
-			to: "/dashboard/profile/stories/{-$storyId}",
+			to: "/dashboard/knowledge/stories/{-$storyId}",
 			params: { storyId: id ?? undefined },
 			search: editMode ? { edit: true } : {},
 		});
@@ -116,7 +116,7 @@ export function StoriesPage({ storyId, edit }: StoriesPageProps) {
 					))}
 				</AnimatePresence>
 				<Link
-					to="/dashboard/profile/stories/{-$storyId}"
+					to="/dashboard/knowledge/stories/{-$storyId}"
 					params={{ storyId: undefined }}
 					search={{ edit: true }}
 					className={cn(
@@ -190,7 +190,7 @@ function StoryCard({ story, selected, changed }: StoryCardProps) {
 
 	return (
 		<Link
-			to="/dashboard/profile/stories/{-$storyId}"
+			to="/dashboard/knowledge/stories/{-$storyId}"
 			params={{ storyId: story.id }}
 			aria-current={selected ? "page" : undefined}
 			className={cn(
@@ -291,7 +291,7 @@ function StoryReader({ story, facts, onEdit }: StoryReaderProps) {
 				{backing.map((fact) => (
 					<Link
 						key={fact.id}
-						to="/dashboard/profile/facts"
+						to="/dashboard/knowledge/facts"
 						search={{ highlight: fact.id }}
 						className="flex items-start gap-2.5 rounded-md bg-bg px-2.5 py-2 text-[13px] leading-[19px] transition-colors duration-quick hover:bg-hover"
 					>

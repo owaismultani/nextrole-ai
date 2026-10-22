@@ -7,8 +7,8 @@ export default function AiScreen() {
 	const { t } = useLingui();
 	return (
 		<Screen>
-			<Stack.Screen options={{ title: t`AI & developer` }} />
-			<Text color="ink2">{t`Connect the tools you use for writing, job search and working with your resumes.`}</Text>
+			<Stack.Screen options={{ title: t`Integrations` }} />
+			<Text color="ink2">{t`The AI connections and web search that writing, coaching and discovery run on.`}</Text>
 			<Card>
 				<ListRow
 					title={t`AI providers`}
@@ -17,12 +17,6 @@ export default function AiScreen() {
 					onPress={() => router.push("/settings/ai-providers")}
 				/>
 				<ListRow title={t`Web access`} leading="globe" chevron onPress={() => router.push("/settings/ai-web-access")} />
-				<ListRow
-					title={t`MCP server`}
-					leading="terminal-window"
-					chevron
-					onPress={() => router.push("/settings/ai-mcp")}
-				/>
 				<ListRow
 					title={t`Report AI content`}
 					leading="warning-circle"

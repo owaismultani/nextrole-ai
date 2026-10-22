@@ -85,7 +85,7 @@ export default function TabsLayout() {
 									<Tabs.Screen name="documents" options={{ title: t`Documents` }} />
 									<Tabs.Screen name="more" options={{ title: t`More` }} />
 									{/* Reached from More (phone) or the sidebar (tablet), not from a bar cell. */}
-									<Tabs.Screen name="profile" options={{ title: t`Profile`, href: null }} />
+									<Tabs.Screen name="knowledge" options={{ title: t`Knowledge`, href: null }} />
 									<Tabs.Screen name="coach" options={{ title: t`Coach`, href: null }} />
 									<Tabs.Screen name="automation" options={{ title: t`Automation`, href: null }} />
 									<Tabs.Screen name="settings" options={{ title: t`Settings`, href: null }} />

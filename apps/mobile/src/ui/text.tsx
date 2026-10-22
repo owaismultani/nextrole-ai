@@ -15,15 +15,15 @@ export type TextProps = NativeTextProps & {
 	/** A colour token. Defaults to `ink`. */
 	color?: ColorToken | undefined;
 	/**
-	 * Hanken Grotesk weight for UI variants, where tokens.md names one (field labels 600, document names 600).
-	 * Ignored for the Newsreader and mono variants.
+	 * DM Sans weight for UI variants, where tokens.md names one (field labels 600, document names 600).
+	 * Ignored for the display and mono variants.
 	 */
 	weight?: 400 | 500 | 600 | 700 | undefined;
 	align?: "auto" | "left" | "center" | "right" | undefined;
 	children?: ReactNode;
 };
 
-const displayVariants = new Set<TextVariant>(["largeIOS", "largeAnd", "display", "heading", "mono"]);
+const displayVariants = new Set<TextVariant>(["largeIOS", "largeAnd", "display", "heading", "title", "mono"]);
 
 export function Text({ variant = "body", color = "ink", weight, align, style, ...props }: TextProps) {
 	const { colors, fonts, type } = useTheme();

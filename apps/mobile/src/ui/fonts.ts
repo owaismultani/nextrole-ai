@@ -3,11 +3,12 @@
 import { fonts } from "./tokens";
 
 export const fontAssets = {
-	[fonts.ui[400]]: require("../../assets/fonts/HankenGrotesk-Regular.ttf"),
-	[fonts.ui[500]]: require("../../assets/fonts/HankenGrotesk-Medium.ttf"),
-	[fonts.ui[600]]: require("../../assets/fonts/HankenGrotesk-SemiBold.ttf"),
-	[fonts.ui[700]]: require("../../assets/fonts/HankenGrotesk-Bold.ttf"),
-	[fonts.display[400]]: require("../../assets/fonts/Newsreader-Regular.ttf"),
-	[fonts.display[500]]: require("../../assets/fonts/Newsreader-Medium.ttf"),
-	[fonts.display[600]]: require("../../assets/fonts/Newsreader-SemiBold.ttf"),
+	[fonts.ui[400]]: require("../../assets/fonts/DMSans-Regular.ttf"),
+	[fonts.ui[500]]: require("../../assets/fonts/DMSans-Medium.ttf"),
+	[fonts.ui[600]]: require("../../assets/fonts/DMSans-SemiBold.ttf"),
+	[fonts.ui[700]]: require("../../assets/fonts/DMSans-Bold.ttf"),
+	[fonts.display[600]]: require("../../assets/fonts/Manrope-SemiBold.ttf"),
+	[fonts.display[700]]: require("../../assets/fonts/Manrope-Bold.ttf"),
+	[fonts.display[800]]: require("../../assets/fonts/Manrope-ExtraBold.ttf"),
+	[fonts.paper]: require("../../assets/fonts/Newsreader-Regular.ttf"),
 };

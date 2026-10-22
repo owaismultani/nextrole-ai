@@ -11,6 +11,8 @@ import { useApplicationJourney } from "../hooks";
 import { CareerLoadError } from "../load-state";
 import { describeEvent } from "../pipeline-words";
 import { FilterChip, useCareerTime } from "../shared";
+import { SavedTab } from "./saved";
+import { Activity as TimelineEditor } from "@/features/applications/components/detail/activity";
 import { interviewKindOf, isInterview } from "@/features/applications/interviews";
 import { getStageLabel } from "@/features/applications/stages";
 
@@ -33,7 +35,8 @@ const DOCUMENT_EVENTS = new Set(["prep.queued", "prep.done", "prep.failed", "pre
  * applied, how the job was found and what was prepared for it. The step-by-step log of document work is kept behind
  * "Technical details".
  */
-export function ActivityTab({ application }: WorkspaceTabProps) {
+export function ActivityTab({ savedOpen, ...props }: WorkspaceTabProps & { savedOpen: boolean }) {
+	const { application, go } = props;
 	const { when } = useCareerTime();
 	const journey = useApplicationJourney(application.id);
 	const [filter, setFilter] = useState<Filter>("all");
@@ -130,6 +133,35 @@ export function ActivityTab({ application }: WorkspaceTabProps) {
 
 	return (
 		<div className="grid gap-4">
+			<details className="group rounded-xl border border-line bg-surface">
+				<summary className="flex cursor-pointer list-none items-center gap-1.5 px-4 py-3 text-sm font-medium">
+					<Icon
+						name="caret-right"
+						size={18}
+						className="transition-transform duration-standard ease-enter group-open:rotate-90"
+					/>
+					<Trans>Add a note or edit the timeline</Trans>
+				</summary>
+				<div className="border-t border-line px-4 py-4">
+					<TimelineEditor
+						application={application}
+						onOpenInterview={(entry) => go("activity", { edit: "interview", round: entry.id })}
+					/>
+				</div>
+			</details>
+			<details open={savedOpen} className="group rounded-xl border border-line bg-surface">
+				<summary className="flex cursor-pointer list-none items-center gap-1.5 px-4 py-3 text-sm font-medium">
+					<Icon
+						name="caret-right"
+						size={18}
+						className="transition-transform duration-standard ease-enter group-open:rotate-90"
+					/>
+					<Trans>Saved versions</Trans>
+				</summary>
+				<div className="border-t border-line px-4 py-4">
+					<SavedTab {...props} />
+				</div>
+			</details>
 			<div role="group" aria-label={t`Show`} className="flex flex-wrap items-center gap-1.5">
 				{(
 					[

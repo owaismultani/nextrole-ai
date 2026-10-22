@@ -14,13 +14,13 @@ type Location = { href: string; pathname: string };
  */
 export function rememberOrigin(from: Location | undefined, to: Location) {
 	// Opening an editor from the Documents library remembers the library view (scope, search, tags) it was opened from.
-	if (from?.pathname === "/dashboard" && to.pathname.startsWith("/builder/")) library = from.href;
+	if (from?.pathname === "/dashboard/documents" && to.pathname.startsWith("/builder/")) library = from.href;
 	if (!from || WORKSPACE.test(from.pathname) || !WORKSPACE.test(to.pathname)) return;
 	origin = { href: from.href, pathname: from.pathname };
 }
 
 /** Where "back to documents" goes from an editor: the library view it was opened from, or the library. */
-export const libraryTarget = () => library ?? "/dashboard";
+export const libraryTarget = () => library ?? "/dashboard/documents";
 
 /** Where "back" goes from an application: the page it was opened from, or the applications list. */
 export function returnTarget(): { href: string; label: string } {

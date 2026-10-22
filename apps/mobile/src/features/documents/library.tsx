@@ -9,19 +9,13 @@ import { useCallback, useState } from "react";
 import { RefreshControl, I18nManager, Platform, Pressable, ScrollView, View, useWindowDimensions } from "react-native";
 import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 import Animated from "react-native-reanimated";
+import { BaselineManager } from "./baseline-manager";
 import { DocumentSheets } from "./document-sheets";
 import { collectTags, daysLeftInTrash, documentKey, documentRef, filterDocuments } from "./filter";
 import { isNewDocument, useNewDocuments } from "./new-documents";
 import { usePendingDocuments } from "./pending";
 import { useDocumentOperations, useDocuments } from "./queries";
-import {
-	ApplicationGroupHeader,
-	BaselineSummary,
-	originLine,
-	useBaselineId,
-	useDocumentOrigins,
-	type DocumentsScope,
-} from "./scopes";
+import { ApplicationGroupHeader, originLine, useBaselineId, useDocumentOrigins, type DocumentsScope } from "./scopes";
 import { Thumbnail } from "./thumbnail";
 import { client, orpc } from "@/api/client";
 import { useSession } from "@/auth/session";
@@ -385,7 +379,7 @@ export function DocumentsLibrary({ trashed = false }: DocumentsLibraryProps) {
 									{ value: "baseline", label: t`Baseline & reusable` },
 								]}
 							/>
-							{scope === "baseline" && <BaselineSummary documents={all} />}
+							{scope === "baseline" && <BaselineManager />}
 							<Segmented
 								orientation={fontScale > 1.3 ? "vertical" : "horizontal"}
 								value={type}

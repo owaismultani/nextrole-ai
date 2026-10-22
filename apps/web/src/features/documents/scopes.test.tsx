@@ -7,7 +7,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { i18n } from "@lingui/core";
 import { I18nProvider } from "@lingui/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ApplicationGroups, BaselineSummary } from "./scopes";
+import { ApplicationGroups } from "./scopes";
 
 const api = vi.hoisted(() => ({ data: {} as Record<string, unknown> }));
 vi.mock("@/libs/orpc/client", () => {
@@ -104,22 +104,4 @@ it("groups by application, not by company name, and says where each document cam
 	if (!second) throw new Error("Expected a second group.");
 	expect(within(second).getByText("Made by you")).toBeTruthy();
 	expect(within(second).getByText("No cover letter for this application")).toBeTruthy();
-});
-
-it("pins the baseline with whether it is confirmed, edited since, and used for tailoring", async () => {
-	api.data.setup = { baseline: { resumeId: "base", name: "My baseline", confirmed: true, changedSinceConfirm: true } };
-	api.data.automation = { baselineResumeId: "base" };
-	renderWith(<BaselineSummary documents={[document({ id: "base", type: "resume", name: "My baseline" })]} />);
-	expect(await screen.findByText("My baseline")).toBeTruthy();
-	expect(screen.getByText("Confirmed")).toBeTruthy();
-	expect(screen.getByText("Edited since you confirmed it")).toBeTruthy();
-	expect(screen.getByText("Used for tailoring")).toBeTruthy();
-});
-
-it("says plainly when no baseline is chosen", async () => {
-	api.data.setup = { baseline: null };
-	api.data.automation = { baselineResumeId: null };
-	renderWith(<BaselineSummary documents={[]} />);
-	expect(await screen.findByText(/No baseline is confirmed yet/)).toBeTruthy();
-	expect(screen.getByText("Choose a baseline")).toBeTruthy();
 });

@@ -7,14 +7,15 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
+import { SwitchRow } from "../career/shared";
 import { refreshThreads, useThreads } from "./chat";
-import { ChatView, ContextChip } from "./chat-view";
+import { ChatView } from "./chat-view";
 import { ModelButton, ModelSheet, ProviderGate, useConversationProvider } from "./provider";
 import { useDeleteThread, useThreadTime, useThreadTitle } from "./threads";
 import { client, orpc } from "@/api/client";
 import { useSession } from "@/auth/session";
 import { useHasAIProvider } from "@/features/ai/providers";
-import { Button, Icon, IconButton, ListRow, Sheet, Text, TextField, showToast, useTheme } from "@/ui";
+import { Button, Chip, Icon, IconButton, ListRow, Sheet, Text, TextField, showToast, useTheme } from "@/ui";
 
 type Chips = { application: boolean; memory: boolean; web: boolean; offers: boolean };
 const DEFAULT_CHIPS: Chips = { application: true, memory: true, web: false, offers: true };
@@ -76,6 +77,10 @@ export function CoachScreen({ offerIds }: CoachScreenProps) {
 	const [chips, setChips] = useState<Chips>(DEFAULT_CHIPS);
 	const [listOpen, setListOpen] = useState(false);
 	const [modelOpen, setModelOpen] = useState(false);
+	const [contextOpen, setContextOpen] = useState(false);
+	const activeContext = [chips.application, chips.memory, chips.web, offerIds.length > 0 && chips.offers].filter(
+		Boolean,
+	).length;
 
 	const conversations = (threads.data ?? []).filter((thread) => thread.scope === "career");
 	const summary = threads.data?.find((thread) => thread.id === threadId);
@@ -204,34 +209,11 @@ export function CoachScreen({ offerIds }: CoachScreenProps) {
 						void queryClient.invalidateQueries({ queryKey: orpc.career.stories.key() });
 					}}
 					chips={
-						<>
-							<ContextChip
-								icon="briefcase"
-								label={t`Applications`}
-								pressed={chips.application}
-								onPress={() => setChips({ ...chips, application: !chips.application })}
-							/>
-							<ContextChip
-								icon="brain"
-								label={plural(knowledge.facts, { one: "Knowledge · # fact", other: "Knowledge · # facts" })}
-								pressed={chips.memory}
-								onPress={() => setChips({ ...chips, memory: !chips.memory })}
-							/>
-							<ContextChip
-								icon="globe-hemisphere-west"
-								label={t`Web research`}
-								pressed={chips.web}
-								onPress={() => setChips({ ...chips, web: !chips.web })}
-							/>
-							{offerIds.length > 0 ? (
-								<ContextChip
-									icon="hand-heart"
-									label={plural(offerIds.length, { one: "# saved offer", other: "# saved offers" })}
-									pressed={chips.offers}
-									onPress={() => setChips({ ...chips, offers: !chips.offers })}
-								/>
-							) : null}
-						</>
+						<Chip
+							icon="sliders-horizontal"
+							label={t`Context · ${activeContext}`}
+							onPress={() => setContextOpen(true)}
+						/>
 					}
 					empty={(send) => <Starters disabled={knowledgeBlocks || !providers.hasAIProvider} onPick={send} />}
 				/>
@@ -252,6 +234,29 @@ export function CoachScreen({ offerIds }: CoachScreenProps) {
 				}}
 				onRenamed={() => refreshThreads(queryClient)}
 			/>
+			<Sheet open={contextOpen} onClose={() => setContextOpen(false)} title={t`Context`} detents={["content"]}>
+				<Text color="ink2" style={{ paddingHorizontal: space.s4 }}>
+					<Trans>What this message can use. Earlier messages in this chat always go.</Trans>
+				</Text>
+				<SwitchRow
+					label={t`Applications`}
+					value={chips.application}
+					onValueChange={(application) => setChips({ ...chips, application })}
+				/>
+				<SwitchRow
+					label={plural(knowledge.facts, { one: "Knowledge · # fact", other: "Knowledge · # facts" })}
+					value={chips.memory}
+					onValueChange={(memory) => setChips({ ...chips, memory })}
+				/>
+				<SwitchRow label={t`Web research`} value={chips.web} onValueChange={(web) => setChips({ ...chips, web })} />
+				{offerIds.length > 0 ? (
+					<SwitchRow
+						label={plural(offerIds.length, { one: "# saved offer", other: "# saved offers" })}
+						value={chips.offers}
+						onValueChange={(offers) => setChips({ ...chips, offers })}
+					/>
+				) : null}
+			</Sheet>
 			<ModelSheet
 				open={modelOpen}
 				onClose={() => setModelOpen(false)}

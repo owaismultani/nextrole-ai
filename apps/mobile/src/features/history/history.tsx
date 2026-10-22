@@ -45,6 +45,8 @@ function versionTitle(version: Version) {
 			return t`AI edit`;
 		case "sent":
 			return version.name ? t`Sent to ${version.name}` : t`Sent`;
+		case "generated":
+			return version.name || t`Generated`;
 	}
 }
 

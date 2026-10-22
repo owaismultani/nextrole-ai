@@ -13,7 +13,7 @@ type Overview = RouterOutput["career"]["overview"];
 type State = Overview["stages"][number]["state"];
 
 const STATE_STYLE: Record<State, { icon: IconName; tone: string; label: () => string }> = {
-	ok: { icon: "check-circle", tone: "text-accent-text", label: () => t`Working` },
+	ok: { icon: "check-circle", tone: "text-ok-text", label: () => t`Working` },
 	running: { icon: "arrow-clockwise", tone: "text-info-text", label: () => t`Running` },
 	waiting: { icon: "clock", tone: "text-info-text", label: () => t`Waiting` },
 	warn: { icon: "warning", tone: "text-warn-text", label: () => t`Check` },

@@ -2,7 +2,7 @@ import type { RouterOutput } from "@/libs/orpc/client";
 import { t } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate, useRouteContext } from "@tanstack/react-router";
+import { Link, Outlet, useNavigate, useRouteContext } from "@tanstack/react-router";
 import { useId, useState } from "react";
 import { DAILY_LIMIT } from "@reactive-resume/schema/career";
 import { Button } from "@reactive-resume/ui/components/button";
@@ -12,8 +12,10 @@ import { NativeSelect } from "@reactive-resume/ui/components/native-select";
 import { SwitchRow } from "@reactive-resume/ui/components/switch";
 import { Textarea } from "@reactive-resume/ui/components/textarea";
 import { toast } from "@reactive-resume/ui/components/toast";
+import { AutomationProvider, useAutomation } from "./context";
 import { Schedules } from "./schedules";
 import { PageHeader } from "@/components/layout/page-header";
+import { SectionTabs } from "@/components/layout/section-tabs";
 import { DiscoveryStatus } from "@/features/career/discovery-status";
 import { HealthChecklist, StageMap } from "@/features/career/pipeline-map";
 import { PreparationList } from "@/features/career/preparation-list";
@@ -46,14 +48,14 @@ const toDraft = (data: Automation): Draft => ({
 	coverLetterPrompt: data.coverLetterPrompt,
 });
 
-type AutomationPageProps = { schedule: string | undefined };
+type AutomationLayoutProps = { schedule: string | undefined };
 
 /**
- * Automation: everything that runs in the background. Discovery and document preparation are configured here, and
- * every schedule is managed here; the search is edited in the same editor Discover opens. You apply yourself; nothing
- * is ever sent to an employer.
+ * Automation: everything that runs in the background, in three tabs: the discovery search, document preparation and
+ * every schedule. The search is edited in the same editor Discover opens. You apply yourself; nothing is ever sent to
+ * an employer.
  */
-export function AutomationPage({ schedule }: AutomationPageProps) {
+export function AutomationLayout({ schedule }: AutomationLayoutProps) {
 	const navigate = useNavigate({ from: "/dashboard/automation" });
 	const sheet = useScheduleSheet(
 		schedule,
@@ -63,42 +65,56 @@ export function AutomationPage({ schedule }: AutomationPageProps) {
 				replace,
 			}),
 	);
-	const { data, isError, refetch } = useQuery(orpc.career.automation.queryOptions({ input: {} }));
+	return (
+		<AutomationProvider value={{ onEditSearch: sheet.onScheduleChange, deleted: sheet.deleted }}>
+			<div className="mx-auto flex min-h-svh w-full max-w-[1180px] flex-col gap-5 px-8 py-8 max-sm:px-4 max-sm:py-5">
+				<PageHeader
+					title={<Trans>Automation</Trans>}
+					description={
+						<Trans>
+							Find jobs on a schedule and prepare documents for them. You apply yourself; nothing is ever sent to an
+							employer.
+						</Trans>
+					}
+				/>
+				<SectionTabs
+					label={t`Automation`}
+					tabs={[
+						{ to: "/dashboard/automation/discovery", label: <Trans>Discovery</Trans> },
+						{ to: "/dashboard/automation/documents", label: <Trans>Documents</Trans> },
+						{ to: "/dashboard/automation/schedules", label: <Trans>Schedules</Trans> },
+					]}
+				/>
+				<div className="grid max-w-[860px] gap-5">
+					<Outlet />
+				</div>
+				<ScheduleSheet schedule={schedule} onScheduleChange={sheet.onScheduleChange} onDelete={sheet.deleteSchedule} />
+			</div>
+		</AutomationProvider>
+	);
+}
+
+/** Automation → Discovery: the saved search and its state, and how each step of the pipeline is working. */
+export function DiscoveryTab() {
+	const { onEditSearch, deleted } = useAutomation();
 	const overview = useQuery({
 		...orpc.career.overview.queryOptions({ input: { days: 7 } }),
 		refetchInterval: 30_000,
 	});
 	return (
-		<div className="mx-auto flex min-h-svh w-full max-w-[860px] flex-col gap-8 px-8 py-8 max-sm:px-4 max-sm:py-5">
-			<PageHeader
-				title={<Trans>Automation</Trans>}
-				description={
-					<Trans>
-						Find jobs on a schedule and prepare documents for them. You apply yourself; nothing is ever sent to an
-						employer.
-					</Trans>
-				}
-			/>
-			{isError ? (
-				<Button variant="secondary" className="w-fit" onClick={() => void refetch()}>
-					<Trans>Try again</Trans>
-				</Button>
-			) : data ? (
-				<AutomationForm data={data} onEditSearch={sheet.onScheduleChange} deleted={sheet.deleted} />
-			) : null}
-
+		<>
 			<SettingsSection
-				id="schedules"
-				title={<Trans>Schedules</Trans>}
+				id="discovery"
+				title={<Trans>Discovery</Trans>}
 				description={
 					<Trans>
-						Discovery, interview preparation and follow-up reminders. Each links to the application it belongs to.
+						The search that finds new roles. Edit it here or from Discover; it is the same search. Results are reviewed
+						in Discover.
 					</Trans>
 				}
 			>
-				<Schedules deleted={sheet.deleted} onOpenSchedule={sheet.onScheduleChange} />
+				<DiscoverySection onEdit={onEditSearch} deleted={deleted} />
 			</SettingsSection>
-
 			<SettingsSection
 				id="status"
 				title={<Trans>How it's working</Trans>}
@@ -106,16 +122,49 @@ export function AutomationPage({ schedule }: AutomationPageProps) {
 			>
 				{overview.data && <StageMap stages={overview.data.stages} />}
 				{overview.data && <HealthChecklist checks={overview.data.checks} />}
-				<PreparationList />
 			</SettingsSection>
-			<ScheduleSheet schedule={schedule} onScheduleChange={sheet.onScheduleChange} onDelete={sheet.deleteSchedule} />
-		</div>
+		</>
 	);
 }
 
-type AutomationFormProps = { data: Automation; onEditSearch: (schedule: string) => void; deleted: string[] };
+/** Automation → Documents: what is prepared for each new job, and how the preparation is going. */
+export function DocumentsTab() {
+	const { data, isError, refetch } = useQuery(orpc.career.automation.queryOptions({ input: {} }));
+	return (
+		<>
+			{isError ? (
+				<Button variant="secondary" className="w-fit" onClick={() => void refetch()}>
+					<Trans>Try again</Trans>
+				</Button>
+			) : data ? (
+				<AutomationForm data={data} />
+			) : null}
+			<PreparationList />
+		</>
+	);
+}
 
-function AutomationForm({ data, onEditSearch, deleted }: AutomationFormProps) {
+/** Automation → Schedules: discovery, interview preparation and follow-up reminders. */
+export function SchedulesTab() {
+	const { onEditSearch, deleted } = useAutomation();
+	return (
+		<SettingsSection
+			id="schedules"
+			title={<Trans>Schedules</Trans>}
+			description={
+				<Trans>
+					Discovery, interview preparation and follow-up reminders. Each links to the application it belongs to.
+				</Trans>
+			}
+		>
+			<Schedules deleted={deleted} onOpenSchedule={onEditSearch} />
+		</SettingsSection>
+	);
+}
+
+type AutomationFormProps = { data: Automation };
+
+function AutomationForm({ data }: AutomationFormProps) {
 	const id = useId();
 	const queryClient = useQueryClient();
 	const context = useRouteContext({ strict: false });
@@ -162,25 +211,16 @@ function AutomationForm({ data, onEditSearch, deleted }: AutomationFormProps) {
 	return (
 		<div className="grid gap-8">
 			<SettingsSection
-				id="discovery"
-				title={<Trans>Discovery</Trans>}
-				description={
-					<Trans>
-						The search that finds new roles. Edit it here or from Discover; it is the same search. Results are reviewed
-						in Discover.
-					</Trans>
-				}
-			>
-				<DiscoverySection onEdit={onEditSearch} deleted={deleted} />
-			</SettingsSection>
-
-			<SettingsSection
 				id="documents"
 				title={<Trans>Document preparation</Trans>}
 				description={
 					<Trans>
 						For each new job, make a tailored copy of your baseline resume and/or a cover letter. They are drafts for
-						you to review, edit and send yourself.
+						you to review, edit and send yourself. They draw on your{" "}
+						<Link to="/dashboard/knowledge/facts" className="underline">
+							facts and stories
+						</Link>
+						.
 					</Trans>
 				}
 			>
@@ -195,7 +235,7 @@ function AutomationForm({ data, onEditSearch, deleted }: AutomationFormProps) {
 					checked={draft.lettersEnabled}
 					onCheckedChange={(lettersEnabled) => set({ lettersEnabled })}
 					label={<span className="font-semibold">{t`Generate cover letters automatically`}</span>}
-					description={t`A letter for the job, written from your baseline resume and the facts you have approved. Gaps are listed for you to fill, not invented.`}
+					description={t`A letter for the job, written from its tailored resume (or your baseline) and the facts you have approved. Gaps are listed for you to fill, not invented.`}
 					className="rounded-lg border border-line px-3 py-3"
 				/>
 				<div className="grid gap-3 sm:grid-cols-2">
@@ -244,7 +284,7 @@ function AutomationForm({ data, onEditSearch, deleted }: AutomationFormProps) {
 					<Guidance>
 						<Trans>Document generation needs an AI connection that has passed its test.</Trans>{" "}
 						<Link to="/dashboard/settings/ai" className="underline">
-							<Trans>Connect one in AI &amp; developer</Trans>
+							<Trans>Connect one in Integrations</Trans>
 						</Link>
 					</Guidance>
 				)}
@@ -324,7 +364,10 @@ function AutomationForm({ data, onEditSearch, deleted }: AutomationFormProps) {
 								placeholder={t`Example: Keep the tone warm and focus on customer impact.`}
 							/>
 							<p className="text-xs text-ink-3">
-								<Trans>This guides curation in addition to the fixed accuracy and privacy rules.</Trans>
+								<Trans>
+									This guides every letter you generate, including drafts in the letter editor, in addition to the fixed
+									accuracy and privacy rules.
+								</Trans>
 							</p>
 						</div>
 					</div>

@@ -11,6 +11,7 @@ import { useApplicationJourney, useApplicationPreparation } from "../hooks";
 import { CareerLoadError } from "../load-state";
 import { PreparationRow } from "../preparation-list";
 import { Eyebrow, useCareerTime } from "../shared";
+import { useEditDetails } from "./edit-details";
 import { getOrpcErrorMessage } from "@/libs/error-message";
 import { orpc } from "@/libs/orpc/client";
 
@@ -102,6 +103,7 @@ export function DocumentsTab({ application }: WorkspaceTabProps) {
 
 /** The resume and cover letter linked to the application, and the versions that were sent, kept apart. */
 function Linked({ application }: { application: WorkspaceTabProps["application"] }) {
+	const editDetails = useEditDetails();
 	const { date } = useCareerTime();
 	const hasSent = Boolean(application.sentResumeVersionId || application.sentCoverLetterVersionId);
 	const documents = useQuery(orpc.documents.list.queryOptions({ input: { trashed: false } }));
@@ -197,9 +199,9 @@ function Linked({ application }: { application: WorkspaceTabProps["application"]
 				))}
 			</ul>
 			<p className="text-xs text-ink-3">
-				<Link to="/dashboard/applications" search={{ applicationId: application.id }} className="underline">
+				<button type="button" onClick={editDetails} className="underline">
 					<Trans>Change linked documents</Trans>
-				</Link>
+				</button>
 			</p>
 		</section>
 	);

@@ -249,8 +249,8 @@ export function CoachThread(props: CoachThreadProps) {
 		return (
 			<div className="flex min-h-0 flex-1 flex-col">
 				{props.header([])}
-				<div className="min-h-0 flex-1 overflow-y-auto">
-					<div className={contentClass[props.variant]}>
+				<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+					<div className={cn(contentClass[props.variant], props.variant === "page" && "my-auto")}>
 						<Empty render={props.empty} send={(text) => void start(text)} />
 					</div>
 				</div>
@@ -284,7 +284,7 @@ function Empty({ render, send }: EmptyProps) {
 }
 
 const contentClass = {
-	page: "mx-auto grid w-full max-w-[720px] content-start gap-6 px-6 py-6",
+	page: "mx-auto grid w-full max-w-[820px] content-start gap-6 px-6 py-6",
 	sheet: "grid content-start gap-4 p-[18px]",
 };
 
@@ -584,7 +584,7 @@ function MessageView({ message, used, streaming, enter, knowledge, company, scop
 					<Icon name="check-circle" size={18} />
 					<Trans>Saved a story: {story.data.title}</Trans>
 					<Link
-						to="/dashboard/profile/stories/{-$storyId}"
+						to="/dashboard/knowledge/stories/{-$storyId}"
 						params={{ storyId: story.id }}
 						className="underline underline-offset-2"
 					>
@@ -627,7 +627,7 @@ function UsedChips({ used, applications, knowledge }: UsedChipsProps) {
 					return (
 						<li key={id}>
 							{fact ? (
-								<Link to="/dashboard/profile/facts" search={{ highlight: id }} className={linkClass}>
+								<Link to="/dashboard/knowledge/facts" search={{ highlight: id }} className={linkClass}>
 									{fact.text}
 								</Link>
 							) : (
@@ -652,7 +652,7 @@ function UsedChips({ used, applications, knowledge }: UsedChipsProps) {
 					return (
 						<li key={id}>
 							{story ? (
-								<Link to="/dashboard/profile/stories/{-$storyId}" params={{ storyId: id }} className={linkClass}>
+								<Link to="/dashboard/knowledge/stories/{-$storyId}" params={{ storyId: id }} className={linkClass}>
 									{story.data.title}
 								</Link>
 							) : (
@@ -768,7 +768,11 @@ function PreferencesList() {
 				</li>
 			))}
 			<li>
-				<Link to="/dashboard/profile/preferences" className="text-[13px] text-accent-text underline underline-offset-2">
+				<Link
+					to="/dashboard/discover"
+					search={{ preferences: true }}
+					className="text-[13px] text-accent-text underline underline-offset-2"
+				>
 					<Trans>Open Preferences</Trans>
 				</Link>
 			</li>
@@ -920,7 +924,11 @@ function Proposal({ items, knowledge, company }: ProposalProps) {
 								})
 							: addedAs(remembered?.category ?? "preference")}
 					{first && (
-						<Link to="/dashboard/profile/facts" search={{ highlight: first }} className="underline underline-offset-2">
+						<Link
+							to="/dashboard/knowledge/facts"
+							search={{ highlight: first }}
+							className="underline underline-offset-2"
+						>
 							<Trans>View</Trans>
 						</Link>
 					)}
@@ -953,7 +961,7 @@ function AutoRemembered({ id, text, knowledge }: AutoRememberedProps) {
 
 	return (
 		<p className="flex flex-wrap items-center gap-1.5 text-sm text-ink-2">
-			<Icon name="check-circle" size={18} className="text-accent-text" />
+			<Icon name="check-circle" size={18} className="text-ok-text" />
 			<Trans>Remembered: “{text}”</Trans>
 			<span aria-hidden="true">·</span>
 			<button type="button" className="font-medium text-ink underline underline-offset-2" onClick={() => void undo()}>
@@ -1038,8 +1046,8 @@ function Composer(props: ComposerProps) {
 	const sendLabel = props.streaming ? t`Stop` : t`Send`;
 
 	return (
-		<div className={page ? "border-t border-line px-6 py-3" : "px-3.5 pt-2 pb-3.5"}>
-			<div className={cn("grid gap-2", page && "mx-auto w-full max-w-[720px]")}>
+		<div className={page ? "px-6 pt-1 pb-4 max-sm:px-3" : "px-3.5 pt-2 pb-3.5"}>
+			<div className={cn("grid gap-2", page && "mx-auto w-full max-w-[820px]")}>
 				<div className="grid rounded-xl border border-line-2 bg-raised transition-colors duration-quick focus-within:border-accent">
 					<label htmlFor={id} className="sr-only">
 						<Trans>Message the coach</Trans>

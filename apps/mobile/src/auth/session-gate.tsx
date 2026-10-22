@@ -65,7 +65,7 @@ export function SessionGate() {
 		if (!navigationReady || atCallback) return;
 		const signedOutNow = before === "signed-in" || before === "expired";
 		if (status === "signed-out" && !inAuth && !signedOutNow) router.replace(routes.signIn());
-		else if (status === "signed-in" && inAuth) router.replace(routes.documents());
+		else if (status === "signed-in" && inAuth) router.replace(routes.overview());
 	}, [navigationReady, status, inAuth, atCallback, router]);
 
 	return status === "expired" ? <SessionExpiredSheet /> : null;

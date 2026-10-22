@@ -1,4 +1,4 @@
-// Desk & Paper tokens for React Native.
+// Desk & Paper tokens for React Native (cool indigo palette from the design handoff; same values as globals.css).
 // Screens use these and nothing else; add a missing token here rather than hard-coding a value.
 import { Easing, Platform } from "react-native";
 
@@ -6,31 +6,34 @@ export type ColorScheme = "light" | "dark";
 
 // §1 Colours and §1.1 named tints. Alpha is the last two hex digits (#RRGGBBAA).
 const light = {
-	bg: "#F8F7F3",
-	surface: "#FEFDFC",
+	bg: "#F6F7FA",
+	surface: "#FFFFFF",
 	raised: "#FFFFFF",
-	sunken: "#F0EFEB",
-	line: "#DFDEDA",
-	line2: "#C5C4BE",
+	sunken: "#EFF2F7",
+	line: "#E1E6EF",
+	line2: "#BDC7D8",
 	lineStrong: "#888680",
-	ink: "#1C1B15",
-	ink2: "#4F4D47",
-	ink3: "#6D6C65",
-	accent: "#337344",
-	accentHover: "#206133",
-	onAccent: "#F7FEF8",
-	accentSoft: "#DCF2DF",
-	accentText: "#195C2E",
+	ink: "#202B40",
+	ink2: "#5E6C83",
+	ink3: "#6E7A8F",
+	accent: "#5146D9",
+	accentHover: "#4035BD",
+	onAccent: "#FFFFFF",
+	accentSoft: "#EEEDFC",
+	accentText: "#4035BD",
+	ok: "#16724E",
+	okSoft: "#EDF7F1",
+	okText: "#16724E",
 	danger: "#BA3630",
-	dangerSoft: "#FFE7E4",
-	dangerText: "#A92321",
+	dangerSoft: "#FFF1F3",
+	dangerText: "#AD344A",
 	warn: "#D29922",
-	warnSoft: "#FCEDCD",
-	warnText: "#81520A",
-	infoSoft: "#E0F1FF",
-	infoText: "#1D5B92",
-	hover: "#1C1B150D",
-	press: "#1C1B1517",
+	warnSoft: "#FFF8E9",
+	warnText: "#865B09",
+	infoSoft: "#EDF3FD",
+	infoText: "#315E9F",
+	hover: "#202B400D",
+	press: "#202B4017",
 	scrim: "#17161152",
 	scrimSheet: "#1716112E",
 	paper: "#FFFFFF",
@@ -45,40 +48,43 @@ const light = {
 	stageInterv: "#AF8433",
 	stageOffer: "#579F68",
 	stageClosed: "#C67067",
-	pageSelectFill: "#3373441F",
-	pageSelectLine: "#337344",
+	pageSelectFill: "#5146D91F",
+	pageSelectLine: "#5146D9",
 	pageIssueFill: "#D2992238",
-	pageProposalFill: "#3373441F",
-	selectedFill: "#DCF2DF",
+	pageProposalFill: "#5146D91F",
+	selectedFill: "#EEEDFC",
 };
 
 export type ColorToken = keyof typeof light;
 export type Colors = Record<ColorToken, string>;
 
 const dark: Colors = {
-	bg: "#100F0C",
-	surface: "#171613",
-	raised: "#1F1E1A",
-	sunken: "#0B0A08",
-	line: "#2C2B27",
-	line2: "#494843",
+	bg: "#111620",
+	surface: "#1B2332",
+	raised: "#20293A",
+	sunken: "#151C29",
+	line: "#354056",
+	line2: "#59677F",
 	lineStrong: "#73726C",
-	ink: "#EFEEEB",
-	ink2: "#BCBAB5",
-	ink3: "#979590",
-	accent: "#6FC082",
-	accentHover: "#83D494",
-	onAccent: "#07150A",
-	accentSoft: "#1A3520",
-	accentText: "#8FD89E",
+	ink: "#E8EDF6",
+	ink2: "#ACB8CD",
+	ink3: "#A0ADC3",
+	accent: "#B3A6FF",
+	accentHover: "#C6BCFF",
+	onAccent: "#211A3A",
+	accentSoft: "#302B4C",
+	accentText: "#C6BCFF",
+	ok: "#88DAB2",
+	okSoft: "#203A31",
+	okText: "#88DAB2",
 	danger: "#D9544B",
-	dangerSoft: "#47211D",
-	dangerText: "#FDA297",
+	dangerSoft: "#3E2935",
+	dangerText: "#FFA5B5",
 	warn: "#E4B750",
-	warnSoft: "#3E2D10",
-	warnText: "#EFCC83",
-	infoSoft: "#192F46",
-	infoText: "#9DC9F7",
+	warnSoft: "#342E23",
+	warnText: "#ECC584",
+	infoSoft: "#25364F",
+	infoText: "#A4C4F5",
 	hover: "#FFFFFF0F",
 	press: "#FFFFFF1A",
 	scrim: "#00000080",
@@ -95,29 +101,32 @@ const dark: Colors = {
 	stageInterv: "#AF8433",
 	stageOffer: "#579F68",
 	stageClosed: "#C67067",
-	pageSelectFill: "#3373441F",
-	pageSelectLine: "#337344",
+	pageSelectFill: "#5146D91F",
+	pageSelectLine: "#5146D9",
 	pageIssueFill: "#D2992238",
-	pageProposalFill: "#3373441F",
-	selectedFill: "#1A3520",
+	pageProposalFill: "#5146D91F",
+	selectedFill: "#302B4C",
 };
 
 export const colors: Record<ColorScheme, Colors> = { light, dark };
 
-// §2 Type. Custom fonts select weight by family name (Android ignores fontWeight for them), so each weight is its
+// §2 Type: DM Sans for text and Manrope for titles (the design handoff's pairing). Custom fonts select weight by family name (Android ignores fontWeight for them), so each weight is its
 // own family, loaded under these names in src/ui/fonts.ts.
 export const fonts = {
 	ui: {
-		400: "HankenGrotesk-Regular",
-		500: "HankenGrotesk-Medium",
-		600: "HankenGrotesk-SemiBold",
-		700: "HankenGrotesk-Bold",
+		400: "DMSans-Regular",
+		500: "DMSans-Medium",
+		600: "DMSans-SemiBold",
+		700: "DMSans-Bold",
 	},
+	/** Titles and metrics (Manrope). */
 	display: {
-		400: "Newsreader-Regular",
-		500: "Newsreader-Medium",
-		600: "Newsreader-SemiBold",
+		600: "Manrope-SemiBold",
+		700: "Manrope-Bold",
+		800: "Manrope-ExtraBold",
 	},
+	/** The letter thumbnail only: a miniature of the page, which is set in a serif. */
+	paper: "Newsreader-Regular",
 	mono: Platform.select({ ios: "Menlo", default: "monospace" }),
 } as const;
 
@@ -130,11 +139,11 @@ type TextStyleToken = {
 };
 
 export const type = {
-	largeIOS: { fontFamily: fonts.display[500], fontSize: 34, lineHeight: 41, letterSpacing: -0.3 },
-	largeAnd: { fontFamily: fonts.display[500], fontSize: 28, lineHeight: 34, letterSpacing: 0 },
-	display: { fontFamily: fonts.display[500], fontSize: 28, lineHeight: 34, letterSpacing: -0.2 },
-	heading: { fontFamily: fonts.display[500], fontSize: 22, lineHeight: 28, letterSpacing: 0 },
-	title: { fontFamily: fonts.ui[600], fontSize: 17, lineHeight: 22, letterSpacing: 0 },
+	largeIOS: { fontFamily: fonts.display[700], fontSize: 34, lineHeight: 41, letterSpacing: -1.2 },
+	largeAnd: { fontFamily: fonts.display[700], fontSize: 28, lineHeight: 34, letterSpacing: -1 },
+	display: { fontFamily: fonts.display[700], fontSize: 28, lineHeight: 34, letterSpacing: -1 },
+	heading: { fontFamily: fonts.display[700], fontSize: 22, lineHeight: 28, letterSpacing: -0.8 },
+	title: { fontFamily: fonts.display[700], fontSize: 17, lineHeight: 22, letterSpacing: -0.6 },
 	bodyLarge: { fontFamily: fonts.ui[400], fontSize: 16, lineHeight: 22, letterSpacing: 0 },
 	body: { fontFamily: fonts.ui[400], fontSize: 15, lineHeight: 21, letterSpacing: 0 },
 	label: { fontFamily: fonts.ui[600], fontSize: 15, lineHeight: 20, letterSpacing: 0 },
@@ -145,7 +154,7 @@ export const type = {
 } satisfies Record<string, TextStyleToken>;
 
 /** `pageThumb`: Newsreader 400 that scales with the letter card, 3.3% of its width. */
-export const pageThumb = { fontFamily: fonts.display[400], widthRatio: 0.033 } as const;
+export const pageThumb = { fontFamily: fonts.paper, widthRatio: 0.033 } as const;
 
 // §3 Spacing, 4 pt grid.
 export const space = { s0: 2, s1: 4, s2: 8, s3: 12, s4: 16, s5: 20, s6: 24, s8: 32, s10: 40, s12: 48 } as const;

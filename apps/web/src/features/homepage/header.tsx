@@ -5,59 +5,37 @@ import { useEffect, useRef, useState } from "react";
 import { Icon } from "@reactive-resume/ui/components/icon";
 import { cn } from "@reactive-resume/utils/style";
 import { goToScene, prefersReducedMotion, SCENE, useLanding } from "./scroll";
-import { CtaLink } from "./ui";
+import { Brand, CtaLink } from "./ui";
 import { useTheme } from "@/features/theme/provider";
 import { orpc } from "@/libs/orpc/client";
 
 const githubUrl = "https://github.com/reactive-resume/reactive-resume";
 
 const getStoryScenes = () => [
-	{ scene: SCENE.write, label: t`Write` },
-	{ scene: SCENE.design, label: t`Design` },
-	{ scene: SCENE.check, label: t`Check` },
-	{ scene: SCENE.tailor, label: t`Tailor` },
-	{ scene: SCENE.share, label: t`Share` },
+	{ scene: SCENE.baseline, label: t`Resume` },
+	{ scene: SCENE.discover, label: t`Discover` },
 	{ scene: SCENE.prepare, label: t`Prepare` },
-	{ scene: SCENE.remember, label: t`Remember` },
+	{ scene: SCENE.pipeline, label: t`Interview` },
+	{ scene: SCENE.builder, label: t`Builder` },
+	{ scene: SCENE.control, label: t`Control` },
 ];
 
 export function LandingHeader() {
 	const scrolled = useLanding((state) => state.scrolled);
-	const night = useLanding((state) => state.night);
 	const activeScene = useLanding((state) => state.activeScene);
 
 	return (
-		<header
-			className={cn(
-				// The ink fades to light with Share's sky (--nt), so it never jumps against a half-dark background.
-				"night-ink fixed inset-x-0 top-0 z-70 flex h-16 items-center gap-7 ps-(--gutter) pe-[calc(var(--gutter)+30px)] whitespace-nowrap",
-			)}
-		>
+		<header className="fixed inset-x-0 top-0 z-70 flex h-16 items-center gap-7 ps-(--gutter) pe-[calc(var(--gutter)+30px)] whitespace-nowrap text-ink">
 			<div
 				aria-hidden="true"
 				className={cn(
 					"header-taper pointer-events-none absolute inset-x-0 top-0 -z-1 h-28 transition-opacity duration-[.4s]",
-					scrolled ? "opacity-[calc(1-var(--nt,0))]" : "opacity-0",
+					scrolled ? "opacity-100" : "opacity-0",
 				)}
 			/>
 
-			<a href="#top" className="flex items-center gap-2.5 rounded-md">
-				<img
-					src="/icon/light.svg"
-					alt=""
-					width={30}
-					height={30}
-					className={cn("size-[30px] dark:hidden", night && "hidden")}
-				/>
-				<img
-					src="/icon/dark.svg"
-					alt=""
-					width={30}
-					height={30}
-					className={cn("hidden size-[30px] dark:block", night && "block")}
-				/>
-				{/* The wordmark stays in the DOM for screen readers and crawlers; the logomark is what shows. */}
-				<span className="sr-only">Reactive Resume</span>
+			<a href="#top" aria-label={t`NextRole AI, back to top`} className="rounded-md">
+				<Brand />
 			</a>
 
 			<nav aria-label={t`Story`} className="mx-auto hidden items-center gap-0.5 min-[1240px]:flex">
@@ -70,14 +48,10 @@ export function LandingHeader() {
 							aria-current={active ? "step" : undefined}
 							onClick={() => goToScene(scene, 0.04)}
 							className={cn(
-								"font-martian flex h-[34px] items-center gap-[7px] rounded-full px-[11px] text-[11px] leading-none font-medium tracking-[.08em] uppercase font-stretch-[87.5%] transition-opacity duration-300",
-								!active && "opacity-65 hover:opacity-100",
+								"flex h-[34px] items-center gap-[7px] rounded-full px-3 font-ui text-[13.5px] leading-none font-semibold transition-[color,background-color] duration-standard",
+								active ? "bg-accent-soft text-accent-text" : "text-ink-2 hover:text-ink",
 							)}
 						>
-							<span
-								aria-hidden="true"
-								className={cn("size-1.5 rounded-full transition-colors duration-300", active && "bg-accent")}
-							/>
 							{label}
 						</button>
 					);
@@ -126,7 +100,7 @@ function GithubLink() {
 		<a
 			href={githubUrl}
 			aria-label={label}
-			className="font-martian hidden h-[38px] items-center gap-2 rounded-md px-2.5 text-[12px] leading-none font-medium font-stretch-[87.5%] tabular-nums transition-colors hover:bg-hover lg:flex"
+			className="hidden h-[38px] items-center gap-2 rounded-md px-2.5 font-ui text-[13px] leading-none font-semibold tabular-nums transition-colors hover:bg-hover lg:flex"
 		>
 			<svg aria-hidden="true" width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
 				<path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
@@ -171,7 +145,7 @@ export function ThemeCord() {
 			aria-label={label}
 			title={label}
 			className={cn(
-				"night-ink fixed end-[clamp(8px,1.2vw,18px)] top-0 z-72 flex w-[30px] origin-top flex-col items-center [transition:height_.45s_cubic-bezier(.3,1.7,.5,1)]",
+				"fixed end-[clamp(8px,1.2vw,18px)] top-0 z-72 flex w-[30px] origin-top flex-col items-center text-ink [transition:height_.45s_cubic-bezier(.3,1.7,.5,1)]",
 				pulling ? "h-[124px]" : "h-[92px] hover:h-[112px]",
 				!pulledOnce && "motion-safe:animate-swing",
 			)}

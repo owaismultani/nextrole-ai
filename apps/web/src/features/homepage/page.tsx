@@ -1,26 +1,25 @@
 import { t } from "@lingui/core/macro";
 import { useRef } from "react";
 import { LandingBackground } from "./background";
-import { Check } from "./check";
-import { Design } from "./design";
+import { Baseline } from "./baseline";
+import { Builder } from "./builder";
+import { Control } from "./control";
+import { Discover } from "./discover";
 import { Faq } from "./faq";
 import { LandingFooter } from "./footer";
 import { LandingHeader, ThemeCord } from "./header";
 import { Hero } from "./hero";
+import { Pipeline } from "./pipeline";
 import { Prepare } from "./prepare";
-import { Remember } from "./remember";
 import { useScrollScenes } from "./scroll";
 import { Closing, Languages, Numbers, Support } from "./sections";
-import { Share } from "./share";
-import { Tailor } from "./tailor";
-import { Write } from "./write";
 
 /**
- * The public landing page: one scroll-driven story, "Everything you've done, on one page." A single resume page is
- * assembled, written, restyled, checked, tailored and sent as the visitor scrolls. The reply that comes back turns
- * into interview day in the application's folder, and the story behind it is told once and reused. Then community
- * proof, languages, support, common questions, a closing call to action and the footer. The server prerenders it
- * (prerender.tsx), so every word is in the first response.
+ * The public landing page for NextRole AI: one scroll-driven story, "Your next role, found and prepared." A morning's
+ * Overview, then the loop it runs: one baseline resume, a scheduled search that shows its working, tailored drafts for
+ * review, and the visitor's own turn, applying and interviewing with the app's help. Then the resume builder it grew
+ * from, what stays in the visitor's control, community proof, languages, support, common questions, a closing call
+ * to action and the footer. The server prerenders it (prerender.tsx), so every word is in the first response.
  */
 export function Homepage() {
 	const root = useRef<HTMLDivElement>(null);
@@ -37,15 +36,14 @@ export function Homepage() {
 			</a>
 			<LandingHeader />
 			<ThemeCord />
-			<main id="main">
+			<main id="main" className="relative">
 				<Hero />
-				<Write />
-				<Design />
-				<Check />
-				<Tailor />
-				<Share />
+				<Baseline />
+				<Discover />
 				<Prepare />
-				<Remember />
+				<Pipeline />
+				<Builder />
+				<Control />
 				<Numbers />
 				<Languages />
 				<Support />

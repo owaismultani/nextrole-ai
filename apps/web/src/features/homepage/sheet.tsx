@@ -2,21 +2,19 @@ import type { MessageDescriptor } from "@lingui/core";
 import type { CSSProperties, ReactNode } from "react";
 import { msg, t } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
-import { Icon } from "@reactive-resume/ui/components/icon";
 
 /*
- * The demo resume page that every scene shows: Alex Morgan's resume, in one of five looks. Everything is sized in
- * cqw so a page reads the same at any width. The scenes steer it through inherited CSS variables:
- *   --chk        Check's scan progress; ticks each section heading as the scan passes it.
- *   --dw         Check's date warning; flags the second job's mixed date format.
- *   --kwa..--kwd Tailor's keyword matches; highlights each matched phrase and adds the new skill.
+ * The demo resume page the scenes show: Alex Morgan's resume, in one of five looks. Everything is sized in cqw so a
+ * page reads the same at any width. Paper keeps the serif while the landing page's headlines use the app's sans.
+ * Prepare steers it through inherited CSS variables:
+ *   --kwa..--kwd the phrases matched to the posting; highlights each one and adds the new skill.
  */
 
 const fonts = {
 	sans: "var(--font-ui)",
-	serif: "var(--font-display)",
+	serif: "var(--font-serif-display)",
 	mono: "var(--font-mono)",
-	display: "var(--font-display)",
+	display: "var(--font-serif-display)",
 };
 
 export type SheetTemplate = {
@@ -153,7 +151,7 @@ export const sheetTemplates: SheetTemplate[] = [
 
 type KeywordProps = { id: "a" | "b" | "c" | "d"; children: ReactNode };
 
-/** A phrase Tailor matches against the job posting. The scene draws a thread to it by `data-keyword`. */
+/** A phrase Prepare matches against the job posting. */
 function Keyword({ id, children }: KeywordProps) {
 	return (
 		<span data-keyword={id} className="sheet-keyword" style={{ "--k": `var(--kw${id}, 0)` } as CSSProperties}>
@@ -162,7 +160,7 @@ function Keyword({ id, children }: KeywordProps) {
 	);
 }
 
-export function ProfileSummary() {
+function ProfileSummary() {
 	return (
 		<Trans>
 			Product designer with nine years of experience building <Keyword id="a">design systems</Keyword> and research-led
@@ -171,7 +169,7 @@ export function ProfileSummary() {
 	);
 }
 
-export function ResearchBullet() {
+function ResearchBullet() {
 	return (
 		<Trans>
 			Led <Keyword id="b">user research</Keyword> for the onboarding redesign; activation rose from 31% to 44%.
@@ -179,7 +177,7 @@ export function ResearchBullet() {
 	);
 }
 
-export function AccessibilityBullet() {
+function AccessibilityBullet() {
 	return (
 		<Trans>
 			Shipped <Keyword id="c">accessible</Keyword> checkout flows for web and iOS, meeting WCAG 2.1 AA.
@@ -187,29 +185,16 @@ export function AccessibilityBullet() {
 	);
 }
 
-/** The rewritten line the assistant suggests in Write, and the line the page carries everywhere else. */
-export const designSystemBullet = () =>
+/** The design system line, the result every scene's resume leads with. */
+const designSystemBullet = () =>
 	t`Built a shared design system used by six product teams, cutting UI review time by 40%.`;
 
-type HeadingProps = {
-	template: SheetTemplate;
-	children: ReactNode /** Where in Check's scan it gets ticked. */;
-	tick: number;
-};
+type HeadingProps = { template: SheetTemplate; children: ReactNode };
 
-function Heading({ template, children, tick }: HeadingProps) {
+function Heading({ template, children }: HeadingProps) {
 	return (
-		<h3
-			className="mb-[1.2cqw] flex items-center justify-between leading-[1.3] text-(--accent-ink)"
-			style={template.heading}
-		>
+		<h3 className="mb-[1.2cqw] leading-[1.3] text-(--accent-ink)" style={template.heading}>
 			{children}
-			<Icon
-				name="check-circle"
-				filled
-				className="text-[oklch(0.5_0.12_150)] opacity-[clamp(0,calc((var(--chk,0)-var(--tick))*12),1)]"
-				style={{ fontSize: "2.5cqw", "--tick": tick } as CSSProperties}
-			/>
 		</h3>
 	);
 }
@@ -247,18 +232,14 @@ export function Sheet({ template = sheetTemplates[0] as SheetTemplate }: SheetPr
 				<div className="grid min-h-0 flex-1" style={{ gridTemplateColumns: template.columns }}>
 					<div className="order-1 flex min-w-0 flex-col gap-[3.2cqw]" style={template.main}>
 						<section>
-							<Heading template={template} tick={0.1}>
-								{t`Profile`}
-							</Heading>
+							<Heading template={template}>{t`Profile`}</Heading>
 							<p>
 								<ProfileSummary />
 							</p>
 						</section>
 
 						<section>
-							<Heading template={template} tick={0.28}>
-								{t`Experience`}
-							</Heading>
+							<Heading template={template}>{t`Experience`}</Heading>
 							<div className="flex flex-col gap-[1.8cqw]">
 								<div>
 									<div className="flex justify-between gap-[2cqw]">
@@ -276,12 +257,7 @@ export function Sheet({ template = sheetTemplates[0] as SheetTemplate }: SheetPr
 								<div>
 									<div className="flex justify-between gap-[2cqw]">
 										<b className="font-semibold">{t`Product Designer`}</b>
-										<span className="grid justify-items-end whitespace-nowrap">
-											<span className="col-start-1 row-start-1 opacity-[calc(.7*(1-var(--dw,0)))]">{t`2017 – 2021`}</span>
-											<span className="col-start-1 row-start-1 -mx-[.5cqw] rounded-[.4cqw] bg-[oklch(0.92_0.09_85)] px-[.5cqw] text-[oklch(0.4_0.09_70)] opacity-[var(--dw,0)] shadow-[0_0_0_.3cqw_oklch(0.75_0.13_80)]">
-												{t`06/2017 – 2021`}
-											</span>
-										</span>
+										<span className="whitespace-nowrap opacity-70">{t`2017 – 2021`}</span>
 									</div>
 									<div className="opacity-78">{t`Parcel & Co. · Porto`}</div>
 									<ul className="mt-[.6cqw] list-disc ps-[2.2cqw]">
@@ -294,9 +270,7 @@ export function Sheet({ template = sheetTemplates[0] as SheetTemplate }: SheetPr
 						</section>
 
 						<section>
-							<Heading template={template} tick={0.5}>
-								{t`Education`}
-							</Heading>
+							<Heading template={template}>{t`Education`}</Heading>
 							<div className="flex justify-between gap-[2cqw]">
 								<b className="font-semibold">{t`BA, Communication Design`}</b>
 								<span className="whitespace-nowrap opacity-70">{t`2013 – 2017`}</span>
@@ -307,9 +281,7 @@ export function Sheet({ template = sheetTemplates[0] as SheetTemplate }: SheetPr
 
 					<div className="grid min-w-0 content-start gap-[3.2cqw]" style={template.side}>
 						<section>
-							<Heading template={template} tick={0.66}>
-								{t`Skills`}
-							</Heading>
+							<Heading template={template}>{t`Skills`}</Heading>
 							<div className="flex flex-col gap-[.3cqw]">
 								<span>{t`Design systems`}</span>
 								<span>{t`User research`}</span>
@@ -322,9 +294,7 @@ export function Sheet({ template = sheetTemplates[0] as SheetTemplate }: SheetPr
 							</div>
 						</section>
 						<section>
-							<Heading template={template} tick={0.8}>
-								{t`Languages`}
-							</Heading>
+							<Heading template={template}>{t`Languages`}</Heading>
 							<div className="flex flex-col gap-[.3cqw]">
 								<span>{t`English (native)`}</span>
 								<span>{t`Portuguese (native)`}</span>

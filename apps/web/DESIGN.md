@@ -88,32 +88,21 @@ motion:
   exit: 70% of the entering duration
   movement-easing: cubic-bezier(0.77, 0, 0.175, 1)
 marketing:
+  brand: { name: NextRole AI, credit: "Built on Reactive Resume", mark: "N tile, accent fill, Manrope 800" }
   typography:
-    display: { fontFamily: Anybody, fontWeight: "300–400", fontStretch: "86%–112%" }
-    write-title: { fontFamily: Anybody, fontSize: "clamp(72px, 9vw, 160px)", lineHeight: 0.9, fontWeight: 300 }
-    numeral:
-      { fontFamily: Anybody, fontSize: "clamp(56px, 7.5vw, 136px)", fontWeight: 300, fontVariantNumeric: tabular-nums }
-    body: { fontFamily: Newsreader, fontSize: "16–21px", lineHeight: "1.45–1.5", fontWeight: 400 }
-    accent: { fontFamily: Newsreader, fontStyle: italic, color: accent-text }
-    label:
-      { fontFamily: Martian Mono, fontSize: 11px, fontWeight: 500, letterSpacing: 0.08em, textTransform: uppercase }
-    wordmark: { fontFamily: Anybody, fontSize: 17.5cqw, lineHeight: 0.84, fontWeight: 800, fontStretch: 78% }
+    headline: { fontFamily: Manrope, fontWeight: 800, letterSpacing: -0.045em, fontSize: "clamp(32px, 4.4vw, 68px)" }
+    hero: { fontFamily: Manrope, fontWeight: 800, fontSize: "clamp(44px, 6.2vw, 104px)", lineHeight: 0.95 }
+    lead: { fontFamily: DM Sans, fontSize: "16–19px", lineHeight: 1.55 }
+    label: { fontFamily: DM Sans, fontSize: 11.5px, fontWeight: 700, letterSpacing: 0.1em, textTransform: uppercase }
+    paper: { fontFamily: Newsreader, use: "demo resume and cover letter pages only" }
+    wordmark: { fontFamily: Manrope, fontSize: 22cqw, lineHeight: 0.84, fontWeight: 800, letterSpacing: -0.065em }
   colors:
-    graphite: { light: "oklch(0.38 0.01 95 / .3)", dark: "oklch(0.9 0.01 95 / .18)" }
-    night-1: "oklch(0.24 0.03 265)"
-    night-2: "oklch(0.15 0.02 265)"
-    night-accent: "oklch(0.8 0.13 150)"
-    star: "oklch(0.72 0.14 80)"
     receipt: "#FDFCF8"
     bulb-glass: "oklch(0.95 0.11 92)"
     bulb-filament: "oklch(0.7 0.16 60)"
-  shadow:
-    paper:
-      light: "0 1px 2px oklch(0.2 0.01 95 / 0.12), 0 40px 80px -30px oklch(0.2 0.01 95 / 0.5), 0 0 0 1px oklch(0.2 0.01 95 / 0.04)"
-      dark: "0 1px 2px oklch(0 0 0 / 0.5), 0 40px 80px -30px oklch(0 0 0 / 0.8)"
+    keyword-highlight: "oklch(0.9 0.06 280)"
   motion:
     pull-easing: cubic-bezier(0.3, 1.7, 0.5, 1)
-  doodles: { opacity: { light: 0.72, dark: 0.42 }, darkFilter: "invert(1) brightness(1.1)" }
 ---
 
 ## Overview
@@ -228,48 +217,58 @@ The shared `theme` cookie stores `light`, `dark`, or `system` (the default). Sys
 
 ## Marketing site
 
-The public homepage in `apps/web/src/features/homepage` shares app colors and themes but has its own typography, illustrations, and motion. `landing.css` defines its fonts, graphite color, paper shadows, and ambient animations. Other illustration colors in the front matter are scene values, not global app tokens.
+The public homepage in `apps/web/src/features/homepage` presents **NextRole AI**, built on Reactive Resume. It uses the app's tokens, themes and components' visual language: cards, chips and stage dots as the app draws them. Documents on paper keep Newsreader; everything else uses the app's families. `landing.css` holds only what the page adds: the receipt font, the theme cord's and language list's animations, and a few utilities.
+
+### Story
+
+One scroll-driven story: "Your next role, found and prepared."
+
+| #   | Section   | Shows                                                                                                   |
+| --- | --------- | ------------------------------------------------------------------------------------------------------- |
+| 00  | Hero      | The Overview on a morning: the search runs, a role lands, its drafts get written, an interview appears. |
+| 01  | Baseline  | The baseline resume on paper, setup's checklist ticking off, then facts and a story.                    |
+| 02  | Discover  | One run told openly: results, already known, rejected and why, then the roles kept.                     |
+| 03  | Prepare   | The tailored copy with matched phrases lit, the cover letter, and the review panel.                     |
+| 04  | Your turn | The board the visitor moves themselves, a follow-up draft, interview prep and the coach.                |
+| 05  | Builder   | The resume builder underneath: a fan of templates and the editor's features.                            |
+| 06  | Control   | The eight pipeline steps, the last two marked "Yours", and six promises.                                |
+
+Then Numbers, Languages, Support, Questions, Closing and the footer.
+
+Copy must match what the product does. The system prepares drafts and stops; it never applies or sends anything in the visitor's name. AI features use the visitor's own key, and discovery needs a web search connection. Say both plainly.
 
 ### Brand and type
 
-- **Header:** a 30px logomark from `apps/web/public/icon/{light,dark}.svg`. Keep “Reactive Resume” as visually hidden text inside the home link.
-- **Footer:** a 140px logo from `apps/web/public/logo/{light,dark}.svg`, followed by community and MIT license copy.
-- **Wordmark:** Anybody 800, at 17.5cqw and 78% width, with “Reactive” in `ink` and “Resume” in `accent-text`. A 23cqw container crops it through a gradient mask. It rises from 60% translation as the footer enters and is decorative (`aria-hidden`).
-- **Anybody:** hero and closing headlines, selected scene titles, large numerals, and the wordmark. Use weights 300–400 for main display text; reserve 800 for the wordmark.
-- **Newsreader:** body copy, italic accents, and serif title treatments in the Design scene. The app's `font-display` still maps to Newsreader; use `font-anybody` explicitly.
-- **Martian Mono:** 11px uppercase labels at weight 500, with 0.08em tracking. Use `font-martian`.
-- **Hanken Grotesk:** buttons and mock app UI. All four families are self-hosted.
+- **Mark:** an "N" in an accent tile beside the "NextRole" wordmark and an "AI" badge, as in the app's sidebar (`Brand` in `ui.tsx`). The header and footer use it; the footer and hero credit Reactive Resume.
+- **Headlines:** Manrope 800 with tight tracking (`headlineClass`). Emphasis is a phrase in `accent-text`, not italics.
+- **Body:** DM Sans (`leadClass`). **Labels:** 11.5px uppercase DM Sans at weight 700 (`labelClass`).
+- **Paper:** the demo resume (`sheet.tsx`) and cover letter use `--font-serif-display`, so documents stay in Newsreader.
+- **Wordmark:** "Next" in `ink` and "Role" in `accent-text`, Manrope 800 at 22cqw, rising out of a masked container as the footer enters. Decorative (`aria-hidden`).
 
 ### Controls
 
-- Repeat the same primary CTA, “Build your resume,” in the header, hero, and closing section. Buttons are pills in Hanken Grotesk 600, at 38px, 54px, and 56px respectively.
-- Scene navigation appears from 1240px. Martian Mono labels use `ink` when active and `ink-3` when inactive; a 6px accent dot marks the active scene. The Share night scene uses its own light inks.
-- The GitHub link appears from 1024px, with the GitHub mark, a filled gold star, and a live compact count in Martian Mono. Format counts with the locale's `Intl.NumberFormat`; include the full count in the accessible name.
-- The homepage theme control is a fixed 30px pull-cord button at the top end corner. Its height is 92px at rest, 112px on hover, and 124px during a pull. It uses a 450ms spring curve, toggles the shared theme after 170ms, and sways every seven seconds until first activated. The bulb glows in dark mode.
+- One primary CTA, "Set up your search", in the header, hero and closing section, linking to `/dashboard/overview`. Pills in DM Sans 600 at 38px, 54px and 56px.
+- Scene navigation appears from 1240px: a pill per scene, `accent-soft` with `accent-text` when active.
+- The GitHub link appears from 1024px with a live compact star count; the accessible name carries the full count.
+- The theme control is the fixed pull cord at the top end corner (92px at rest, 112px on hover, 124px during a pull, 450ms spring). It toggles the shared theme after 170ms and sways every seven seconds until first pulled. The bulb glows in dark mode.
 
 ### Motion
 
-Pinned scenes contain a sticky `100svh` stage. Scroll progress is `p = clamp(0, −top / max(1, height − viewportHeight), 1)`; `scroll.ts` writes it to `--p` through one animation-frame-throttled scroll listener. CSS derives continuous motion from progress; React receives only coarse scene and step changes.
+Pinned scenes contain a sticky `100svh` stage. Scroll progress is `p = clamp(0, −top / max(1, height − viewportHeight), 1)`; `scroll.ts` writes it to `--p` through one animation-frame-throttled scroll listener. Each pinned scene also has step thresholds (`SCENE_STEPS`); React hears only the step, and `Reveal` fades and lifts content in when its step arrives. Unpinned sections (the template fan, the pipeline line, the footer wordmark) derive motion from `--p` in CSS.
 
-| Scene  | Below 900px | From 900px |
-| ------ | ----------- | ---------- |
-| Hero   | 190vh       | 260vh      |
-| Write  | 280vh       | 330vh      |
-| Design | 380vh       | 440vh      |
-| Check  | 260vh       | 320vh      |
-| Tailor | 280vh       | 330vh      |
-| Share  | 240vh       | 300vh      |
+| Scene     | Below 900px | From 900px |
+| --------- | ----------- | ---------- |
+| Hero      | 200vh       | 240vh      |
+| Baseline  | 260vh       | 300vh      |
+| Discover  | 280vh       | 320vh      |
+| Prepare   | 280vh       | 320vh      |
+| Your turn | 280vh       | 320vh      |
 
-Light mode combines breathing window light (16 seconds), a drifting mullion shadow (90 seconds), and 18 dust motes. Dark mode adds a neutral 620px cursor glow at 6% opacity. These are decorative and must not obscure text.
+The background is a dot grid in `line`, fading down the screen, under a soft accent wash; dark mode adds an accent glow that follows the cursor. All of it is decorative.
 
-Reduced motion fixes scenes at their end state and collapses pinned sections to `100svh`. Disable scroll scrubbing, parallax, ambient movement, cord sway, and count animations. The Languages word rotation has a pause control and stays still with reduced motion.
+Reduced motion sets every scene to its end state and lets pinned sections take their content's height. Scroll scrubbing, the cord's sway and the count animations stop. The Languages rotation has a pause control and stays still with reduced motion.
 
-### Illustration
-
-- Ten graphite doodles live in `apps/web/public/doodles/` as WebP: pencil, paperclip, eraser, curve, magnifier, scissors, plane, globe, jar, and note.
-- Doodles appear through a 110° mask wipe with subtle parallax. Default opacity is 0.72 in light mode and 0.42 in dark, with inversion and a slight brightness increase. The Share plane uses a brighter treatment against the night sky.
-- Most doodles hide below 900px; pencil and plane remain. Keep them decorative, noninteractive, and clear of readable text.
-- Construction guides use `graphite` lines with an SVG turbulence filter for a pencil effect.
+Below 900px each pinned scene shows only its caption's first paragraph and drops secondary cards so the stage fits; short viewports (`short:`, under 720px tall) hide more.
 
 ### Content and delivery
 

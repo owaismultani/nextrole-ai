@@ -43,8 +43,16 @@ export function DiscoveryRuns({ className }: DiscoveryRunsProps) {
 	const { data: runs, isFetching } = useQuery({
 		...orpc.career.runs.queryOptions({ input: { limit: PAGE_SIZE, offset: page * PAGE_SIZE } }),
 		placeholderData: (previous) => previous,
-		// A run in progress finishes on the server; follow it until its row appears.
-		refetchInterval: schedule?.activeRun ? 5_000 : false,
+		// Discovery and document preparation finish independently; keep output links current while work is pending.
+		refetchInterval: (query) =>
+			schedule?.activeRun ||
+			query.state.data?.items.some((run) =>
+				run.jobs.some((job) =>
+					[job.resume, job.letter].some((step) => step?.status === "queued" || step?.status === "running"),
+				),
+			)
+				? 10_000
+				: false,
 	});
 	if (!schedule) return null;
 	const total = runs?.total ?? 0;

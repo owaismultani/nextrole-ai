@@ -1,7 +1,7 @@
 import type { RouterOutput } from "@/libs/orpc/client";
 import { t } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "@reactive-resume/ui/components/button";
@@ -122,8 +122,13 @@ export function PreparationList({ className }: PreparationListProps) {
 
 function PreparationRow({ job }: { job: PreparationJob }) {
 	const { when } = useCareerTime();
+	const queryClient = useQueryClient();
 	const retry = useMutation(orpc.career.retryPreparation.mutationOptions());
 	const regenerate = useMutation(orpc.career.regeneratePreparation.mutationOptions());
+	const refreshed = () => {
+		void queryClient.invalidateQueries({ queryKey: orpc.career.preparations.key() });
+		void queryClient.invalidateQueries({ queryKey: orpc.career.runs.key() });
+	};
 	const failed = (error: unknown) =>
 		toast.add({ type: "error", description: getOrpcErrorMessage(error, { fallback: t`That did not work.` }) });
 	const tone =
@@ -189,7 +194,7 @@ function PreparationRow({ job }: { job: PreparationJob }) {
 									variant="secondary"
 									size="sm"
 									loading={retry.isPending}
-									onClick={() => retry.mutate({ id: step.id }, { onError: failed })}
+									onClick={() => retry.mutate({ id: step.id }, { onError: failed, onSuccess: refreshed })}
 								>
 									<Trans>Retry</Trans>
 								</Button>
@@ -199,7 +204,7 @@ function PreparationRow({ job }: { job: PreparationJob }) {
 									variant="ghost"
 									size="sm"
 									loading={regenerate.isPending}
-									onClick={() => regenerate.mutate({ id: step.id }, { onError: failed })}
+									onClick={() => regenerate.mutate({ id: step.id }, { onError: failed, onSuccess: refreshed })}
 								>
 									<Trans>Regenerate</Trans>
 								</Button>

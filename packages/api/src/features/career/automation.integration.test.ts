@@ -6,7 +6,12 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as tables from "@reactive-resume/db/schema";
-import { careerAutomationInputSchema, careerScheduleInputSchema } from "@reactive-resume/schema/career";
+import {
+	careerAutomationInputSchema,
+	careerScheduleInputSchema,
+	DEFAULT_COVER_LETTER_PROMPT,
+	DEFAULT_RESUME_PROMPT,
+} from "@reactive-resume/schema/career";
 import { sampleResumeData } from "@reactive-resume/schema/resume/sample";
 
 const fixture = vi.hoisted(() => ({
@@ -328,6 +333,33 @@ describe.skipIf(!databaseUrl)("autonomous discovery and document preparation", (
 		]);
 	});
 
+	it("uses default instructions and passes saved instructions to both generators", async () => {
+		const initial = await automation.get("alice");
+		expect(initial.resumePrompt).toBe(DEFAULT_RESUME_PROMPT);
+		expect(initial.coverLetterPrompt).toBe(DEFAULT_COVER_LETTER_PROMPT);
+		const base = await baseline();
+		const resumePrompt = "Emphasize reliability work.";
+		const coverLetterPrompt = "Use a direct, warm tone.";
+		const saved = await save(
+			"alice",
+			settings({
+				resumesEnabled: true,
+				lettersEnabled: true,
+				baselineResumeId: base,
+				resumePrompt,
+				coverLetterPrompt,
+			}),
+		);
+		expect(saved).toMatchObject({ resumePrompt, coverLetterPrompt });
+		await run();
+		await runNow();
+		const calls = fixture.generate.mock.calls.map(([, request]) => request as { prompt: string; system?: string });
+		expect(calls.find(({ prompt }) => prompt.includes("Tailor this candidate"))?.prompt).toContain(resumePrompt);
+		const letter = calls.find(({ prompt }) => prompt.includes("Write the body of a cover letter"));
+		expect(letter?.prompt).toContain(coverLetterPrompt);
+		expect(letter?.system).toContain("Additional-instruction markers contain the candidate's writing preferences");
+	});
+
 	it("keeps the two toggles independent", async () => {
 		const base = await baseline();
 		await save("alice", settings({ lettersEnabled: true, baselineResumeId: base }));
@@ -545,6 +577,26 @@ describe.skipIf(!databaseUrl)("autonomous discovery and document preparation", (
 		expect(mine.filter((row) => row.tags.includes("auto"))).toHaveLength(2);
 		[job] = await automation.preparations("alice");
 		expect(job?.steps[0]).toMatchObject({ status: "done", generation: 2, stale: false });
+		expect(job?.steps[0]?.outputId).not.toBe(step?.outputId);
+	});
+
+	it("regenerates a cover letter as a new document and links the new output", async () => {
+		const base = await baseline();
+		await save("alice", settings({ lettersEnabled: true, baselineResumeId: base }));
+		await run();
+		let [job] = await automation.preparations("alice");
+		const first = job?.steps[0];
+		expect(first).toMatchObject({ kind: "letter", status: "done" });
+		await automation.regenerate("alice", first?.id ?? "");
+		[job] = await automation.preparations("alice");
+		expect(job?.steps[0]).toMatchObject({ status: "queued", outputId: null, generation: 2 });
+		await runNow();
+		[job] = await automation.preparations("alice");
+		expect(job?.steps[0]).toMatchObject({ status: "done", generation: 2 });
+		expect(job?.steps[0]?.outputId).not.toBe(first?.outputId);
+		expect((await getDb().select().from(tables.coverLetter)).map((letter) => letter.id)).toEqual(
+			expect.arrayContaining([first?.outputId, job?.steps[0]?.outputId]),
+		);
 	});
 
 	it("isolates people from each other", async () => {

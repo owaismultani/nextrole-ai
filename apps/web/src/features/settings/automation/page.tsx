@@ -1,7 +1,7 @@
 import type { RouterOutput } from "@/libs/orpc/client";
 import { t } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useRouteContext } from "@tanstack/react-router";
 import { useId, useState } from "react";
 import { DAILY_LIMIT } from "@reactive-resume/schema/career";
@@ -69,6 +69,7 @@ export function AutomationSettings() {
 
 function AutomationForm({ data }: { data: Automation }) {
 	const id = useId();
+	const queryClient = useQueryClient();
 	const context = useRouteContext({ strict: false });
 	const { timeZone, format } = useCareerTime();
 	const [draft, setDraft] = useState<Draft>(() => toDraft(data));
@@ -95,7 +96,10 @@ function AutomationForm({ data }: { data: Automation }) {
 				coverLetterPrompt: draft.coverLetterPrompt,
 			},
 			{
-				onSuccess: () => toast.add({ description: t`Automation saved` }),
+				onSuccess: (saved) => {
+					queryClient.setQueryData(orpc.career.automation.queryOptions({ input: {} }).queryKey, saved);
+					toast.add({ description: t`Automation saved` });
+				},
 				onError: (error) =>
 					toast.add({
 						type: "error",

@@ -460,6 +460,7 @@ export const careerAutomation = {
 				issues: [],
 				outputId: null,
 				completedAt: null,
+				startedAt: null,
 				nextAttemptAt: new Date(),
 				lease: null,
 				leaseUntil: null,

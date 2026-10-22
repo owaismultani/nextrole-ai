@@ -2,5 +2,5 @@ import { Redirect } from "expo-router";
 import { routes } from "@/routes";
 
 export default function CareerToday() {
-	return <Redirect href={routes.reminders()} />;
+	return <Redirect href={routes.overview()} />;
 }

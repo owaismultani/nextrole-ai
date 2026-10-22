@@ -29,7 +29,7 @@ type Plan = {
 
 /**
  * First-run setup: confirm a baseline resume, connect search and AI, set up discovery and start it. Every step can be
- * skipped, and the guide can be resumed from Career → Overview.
+ * skipped, and the guide can be resumed from Overview.
  */
 export function SetupScreen() {
 	const { t } = useLingui();

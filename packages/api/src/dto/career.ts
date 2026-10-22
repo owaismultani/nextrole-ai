@@ -192,6 +192,7 @@ export const careerOverviewSchema = z.object({
 		lastSucceededAt: z.date().nullable(),
 		nextRunAt: z.date().nullable(),
 		failing: z.boolean(),
+		latestRunId: z.string().nullable(),
 		repeating: z.boolean(),
 		totals: z.object({
 			runs: z.number(),
@@ -337,6 +338,8 @@ export const careerEventSchema = z.object({
 	level: careerEventLevelSchema,
 	runId: z.string().nullable(),
 	opportunityId: z.string().nullable(),
+	/** The application of that job, once it has one, so an event can link to it. */
+	applicationId: z.string().nullable(),
 	data: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])),
 });
 

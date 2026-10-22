@@ -24,7 +24,7 @@ const STATE_TONE = {
 	yours: "ink",
 } as const;
 
-/** Career → Pipeline: the pipeline's steps and a live checklist of what must be working. */
+/** Automation and Discover: the pipeline's steps and a live checklist of what must be working. */
 export function PipelineHealth() {
 	const session = useSession();
 	const query = useQuery({
@@ -78,7 +78,7 @@ function Health({ data }: { data: Overview }) {
 	const go = {
 		ai: () => router.push(routes.settings("ai")),
 		automation: () => router.push(routes.automation()),
-		today: () => router.push(routes.reminders()),
+		today: () => router.push(routes.automation()),
 		pipeline: () => router.push(routes.discover("activity")),
 	};
 	return (

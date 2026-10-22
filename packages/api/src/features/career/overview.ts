@@ -218,6 +218,8 @@ export async function careerOverview(userId: string, days: number) {
 			lastSucceededAt: schedule?.lastSucceededAt ?? null,
 			nextRunAt: schedule?.enabled ? schedule.nextRunAt : null,
 			failing: health.failing && Boolean(schedule?.enabled),
+			/** The newest run, so a problem links to it in Search activity. */
+			latestRunId: lastRunId,
 			repeating: health.repeating,
 			totals,
 			/** Oldest first, for a trend; at most the latest 30 runs in the window. */

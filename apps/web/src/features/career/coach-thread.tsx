@@ -119,7 +119,7 @@ const usedFor = (knowledge: Knowledge, context: MessageContext): Used => ({
 	},
 });
 
-// ---- Conversations, listed on Career → Coach and in the workspace sheet ----
+// ---- Conversations, listed on Coach and in the workspace sheet ----
 
 type ThreadSummary = RouterOutput["agent"]["threads"]["list"][number];
 
@@ -200,7 +200,7 @@ type CoachThreadProps = {
 	variant: "page" | "sheet";
 };
 
-/** The coach's chat, shared by Career → Coach and the workspace sheet: messages, writing state, composer. */
+/** The coach's chat, shared by Coach and the workspace sheet: messages, writing state, composer. */
 export function CoachThread(props: CoachThreadProps) {
 	const knowledge = useCoachKnowledge(props.applicationId);
 	const [prompt, setPrompt] = useState<Prompt | null>(null);

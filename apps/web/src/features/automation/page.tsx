@@ -88,6 +88,7 @@ export function AutomationPage({ schedule }: AutomationPageProps) {
 			) : null}
 
 			<SettingsSection
+				id="schedules"
 				title={<Trans>Schedules</Trans>}
 				description={
 					<Trans>
@@ -99,6 +100,7 @@ export function AutomationPage({ schedule }: AutomationPageProps) {
 			</SettingsSection>
 
 			<SettingsSection
+				id="status"
 				title={<Trans>How it's working</Trans>}
 				description={<Trans>Each step of the pipeline, and a checklist of what has to be working.</Trans>}
 			>
@@ -160,6 +162,7 @@ function AutomationForm({ data, onEditSearch, deleted }: AutomationFormProps) {
 	return (
 		<div className="grid gap-8">
 			<SettingsSection
+				id="discovery"
 				title={<Trans>Discovery</Trans>}
 				description={
 					<Trans>
@@ -172,6 +175,7 @@ function AutomationForm({ data, onEditSearch, deleted }: AutomationFormProps) {
 			</SettingsSection>
 
 			<SettingsSection
+				id="documents"
 				title={<Trans>Document preparation</Trans>}
 				description={
 					<Trans>

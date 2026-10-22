@@ -65,7 +65,7 @@ export function SectionLayout<Name extends string>({
 	);
 }
 
-/** A tab with a single screen under a plain title (Overview, Coach, Automation, Reminders): no switcher, no large title. */
+/** A tab with a single screen under a plain title (Overview, Coach, Automation): no switcher, no large title. */
 export function PlainLayout({ title, children }: { title: string; children?: ReactNode }) {
 	const { colors, motion, space } = useTheme();
 	const insets = useSafeAreaInsets();

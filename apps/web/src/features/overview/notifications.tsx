@@ -3,7 +3,7 @@ import type { IconName } from "@reactive-resume/ui/components/icon";
 import { t } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useRouter } from "@tanstack/react-router";
+import { useRouter } from "@tanstack/react-router";
 import { AnimatePresence } from "motion/react";
 import { useState } from "react";
 import { Button } from "@reactive-resume/ui/components/button";
@@ -11,33 +11,13 @@ import { Icon } from "@reactive-resume/ui/components/icon";
 import { IconButton } from "@reactive-resume/ui/components/icon-button";
 import { Skeleton } from "@reactive-resume/ui/components/skeleton";
 import { cn } from "@reactive-resume/utils/style";
-import { CareerLoadError } from "./load-state";
-import { failed, SectionHeading, useDayOffset } from "./section";
-import { CollapseRow, Eyebrow, Swap, useCareerTime, useNow, withUndo } from "./shared";
-import {
-	collectInterviews,
-	formatDuration,
-	interviewKindOf,
-	upcomingInterviews,
-} from "@/features/applications/interviews";
 import { applicationsListQueryOptions } from "@/features/applications/queries";
+import { CareerLoadError } from "@/features/career/load-state";
+import { failed, SectionHeading, useDayOffset } from "@/features/career/section";
+import { CollapseRow, Swap, useCareerTime, useNow, withUndo } from "@/features/career/shared";
 import { orpc } from "@/libs/orpc/client";
 
 type Notification = RouterOutput["career"]["notifications"][number];
-
-/**
- * Reminders: what needs you and the next interview. Discovered roles live in Discover and schedules in Automation;
- * Overview takes these two over and this page then goes away.
- */
-export function TodayPage() {
-	const now = useNow();
-	return (
-		<div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start xl:grid-cols-[minmax(0,1fr)_380px]">
-			<NeedsYou now={now} className="order-2 lg:order-none" />
-			<ComingUp now={now} className="order-1 lg:order-none" />
-		</div>
-	);
-}
 
 // ---- Needs you ----
 
@@ -46,12 +26,24 @@ const notificationKind = (kind: Notification["notice"]["type"]): { icon: IconNam
 	if (kind === "followup") return { icon: "envelope", tone: "bg-warn-soft text-warn-text", action: t`Review draft` };
 	if (kind === "briefing")
 		return { icon: "clipboard-text", tone: "bg-accent-soft text-accent-text", action: t`Open briefing` };
+	if (kind === "schedule-failed")
+		return { icon: "warning-circle", tone: "bg-danger-soft text-danger-text", action: t`Open schedule` };
+	if (kind === "email-failed")
+		return { icon: "warning-circle", tone: "bg-danger-soft text-danger-text", action: t`Check settings` };
+	if (kind === "briefing-paused")
+		return { icon: "clock", tone: "bg-warn-soft text-warn-text", action: t`Choose a new time` };
 	return { icon: "info", tone: "bg-warn-soft text-warn-text", action: t`Open` };
 };
 
-type NeedsYouProps = { now: Date; className?: string };
+type NotificationsProps = { className?: string };
 
-function NeedsYou({ now, className }: NeedsYouProps) {
+/**
+ * Notifications that need you: new roles to review, follow-up drafts, briefings, and anything that stopped working (a
+ * failed schedule, failed email, a paused briefing), each with the action that recovers it. Mark as read, with Undo; read
+ * ones can be shown again.
+ */
+export function Notifications({ className }: NotificationsProps) {
+	const now = useNow();
 	const queryClient = useQueryClient();
 	const router = useRouter();
 	const { time, when, locale } = useCareerTime();
@@ -115,7 +107,7 @@ function NeedsYou({ now, className }: NeedsYouProps) {
 
 	return (
 		<section aria-labelledby="needs-you" className={cn("flex flex-col gap-2.5", className)}>
-			<SectionHeading id="needs-you" title={t`Needs you`} count={data ? unread.length : undefined} />
+			<SectionHeading id="needs-you" title={t`Notifications`} count={data ? unread.length : undefined} />
 			{isError || applicationQuery.isError ? (
 				<CareerLoadError
 					onRetry={() => {
@@ -183,7 +175,7 @@ function NeedsYou({ now, className }: NeedsYouProps) {
 								<Trans>You're up to date</Trans>
 							</p>
 							<p className="max-w-[300px] text-sm text-ink-2">
-								<Trans>New roles, reminders and finished briefings appear here.</Trans>
+								<Trans>New roles, reminders, finished briefings and anything that needs fixing appear here.</Trans>
 							</p>
 							{read.length > 0 && (
 								<Button
@@ -199,89 +191,6 @@ function NeedsYou({ now, className }: NeedsYouProps) {
 					)}
 				</Swap>
 			)}
-		</section>
-	);
-}
-
-// ---- Rail ----
-
-type ComingUpProps = { now: Date; className?: string };
-
-function ComingUp({ now, className }: ComingUpProps) {
-	const { format, time, relative, locale } = useCareerTime();
-	const applicationQuery = useQuery(applicationsListQueryOptions());
-	const applications = applicationQuery.data;
-	const briefingQuery = useQuery(orpc.career.savedItems.queryOptions({ input: { kind: "briefing" } }));
-	const briefings = briefingQuery.data;
-	if (applicationQuery.isError || briefingQuery.isError)
-		return (
-			<CareerLoadError
-				onRetry={() => {
-					void applicationQuery.refetch();
-					void briefingQuery.refetch();
-				}}
-			/>
-		);
-	if (applicationQuery.isPending || briefingQuery.isPending) return <Skeleton className="h-36 rounded-xl" />;
-	const open = (applications ?? []).filter((application) => application.status !== "closed");
-	const next = upcomingInterviews(collectInterviews(open), now)[0];
-	if (!next) return null;
-
-	const { application, interview, start } = next;
-	const kind = interviewKindOf(interview.kind)?.label ?? interview.kind;
-	const ready = briefings?.some((item) => item.interviewId === interview.id);
-
-	return (
-		<section
-			aria-labelledby="coming-up"
-			className={cn("flex flex-col gap-3 rounded-xl border border-line bg-surface p-4", className)}
-		>
-			<Eyebrow>
-				<span id="coming-up">
-					<Trans>Coming up</Trans>
-				</span>
-			</Eyebrow>
-			<div className="flex items-start gap-3">
-				<span className="flex w-11 shrink-0 flex-col items-center rounded-[9px] bg-sunken py-1.5">
-					<span className="font-mono text-[11px] font-medium text-ink-3">
-						{format(start, { weekday: "short" }).toLocaleUpperCase(locale)}
-					</span>
-					<span className="font-display text-[22px] leading-[26px] font-medium">
-						{format(start, { day: "numeric" })}
-					</span>
-				</span>
-				<div className="grid min-w-0 gap-0.5">
-					<p className="flex items-center gap-1.5 text-sm font-semibold">
-						<span
-							aria-hidden="true"
-							className="size-2 shrink-0 rounded-full"
-							style={{ backgroundColor: `var(--stage-${application.status})` }}
-						/>
-						{t`${kind} interview`}
-					</p>
-					<p className="text-[13px] text-ink-2">
-						{[application.company, time(start), formatDuration(interview.durationMinutes, locale)].join(" · ")}
-					</p>
-					<p className="text-xs text-ink-3">
-						{ready ? `${relative(start, now)} · ${t`Briefing ready`}` : relative(start, now)}
-					</p>
-				</div>
-			</div>
-			<Button
-				variant="secondary"
-				nativeButton={false}
-				className="h-8 w-full text-[13px]"
-				render={
-					<Link
-						to="/dashboard/applications/$applicationId/{-$tab}"
-						params={{ applicationId: application.id, tab: "interviews" }}
-						search={{ section: "prepare", round: interview.id }}
-					/>
-				}
-			>
-				<Trans>Open workspace</Trans>
-				<Icon name="arrow-right" size={18} className="rtl:-scale-x-100" />
-			</Button>
 		</section>
 	);
 }

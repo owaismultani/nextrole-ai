@@ -5,13 +5,14 @@ import { db } from "@reactive-resume/db/client";
 import * as tables from "@reactive-resume/db/schema";
 import { canonicalOpportunityUrl } from "./scheduling";
 
-const toEvent = (row: typeof tables.careerEvent.$inferSelect) => ({
+const toEvent = (row: typeof tables.careerEvent.$inferSelect, applicationId: string | null = null) => ({
 	id: row.id,
 	at: row.createdAt,
 	kind: row.kind as CareerEventKind,
 	level: row.level as CareerEventLevel,
 	runId: row.runId,
 	opportunityId: row.opportunityId,
+	applicationId,
 	data: row.data as CareerEventData,
 });
 
@@ -27,15 +28,16 @@ export const careerActivity = {
 		);
 		const [rows, [counted]] = await Promise.all([
 			db
-				.select()
+				.select({ event: tables.careerEvent, applicationId: tables.careerOpportunity.trackedApplicationId })
 				.from(tables.careerEvent)
+				.leftJoin(tables.careerOpportunity, eq(tables.careerOpportunity.id, tables.careerEvent.opportunityId))
 				.where(where)
 				.orderBy(desc(tables.careerEvent.createdAt), desc(tables.careerEvent.id))
 				.limit(input.limit ?? 20)
 				.offset(input.offset ?? 0),
 			db.select({ total: count() }).from(tables.careerEvent).where(where),
 		]);
-		return { total: counted?.total ?? 0, items: rows.map(toEvent) };
+		return { total: counted?.total ?? 0, items: rows.map(({ event, applicationId }) => toEvent(event, applicationId)) };
 	},
 
 	/** Every search result of one run and what became of it. */
@@ -110,7 +112,7 @@ export const careerActivity = {
 			applicationId: job.trackedApplicationId,
 			foundAt: job.firstSeenAt,
 			run: run[0] ? { id: run[0].id, at: run[0].at, query: run[0].report.queries[0] ?? "" } : null,
-			events: events.map(toEvent),
+			events: events.map((event) => toEvent(event, job.trackedApplicationId)),
 		};
 	},
 

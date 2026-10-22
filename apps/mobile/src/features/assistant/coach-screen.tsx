@@ -1,4 +1,4 @@
-// Career → Coach (ported from apps/web/src/features/career/coach.tsx): conversations about the whole search, with what
+// Coach (ported from apps/web/src/features/career/coach.tsx): conversations about the whole search, with what
 // each message shares chosen in the composer.
 import type { MessageContext, ThreadSummary } from "./chat";
 import type { IconName } from "@/ui";

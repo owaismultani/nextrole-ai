@@ -21,7 +21,7 @@ const PAGE_SIZE = 5;
 type PreparationListProps = { className?: string };
 
 /**
- * Career → Today: each job's tailored resume and cover letter, with what to open, retry or regenerate. Hidden until
+ * Automation: each job's tailored resume and cover letter, with what to open, retry or regenerate. Hidden until
  * automation or an explicit request has prepared something. Ready for review is about the documents only.
  */
 export function PreparationList({ className }: PreparationListProps) {

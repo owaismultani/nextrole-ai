@@ -108,7 +108,7 @@ function TimezoneSetting({ id }: { id: string }) {
 				/>
 			</div>
 			<p className="flex flex-wrap items-center gap-x-1 text-xs text-ink-3">
-				<Trans>Interview times, reminders and schedules in Career use it.</Trans>
+				<Trans>Interview times, reminders and schedules use it.</Trans>
 				{device && device !== value && (
 					<Button variant="link" className="h-auto p-0 text-xs text-ink-2 underline" onClick={() => void save(device)}>
 						<Trans>Use this device's timezone ({device})</Trans>

@@ -19,7 +19,7 @@ import { useReducedMotion, useTheme } from "@/ui";
 
 /**
  * Overview, Discover, the raised "+" (opens New as a modal), Applications, Documents and More on the phone bar; Profile,
- * Coach, Automation, Settings and Reminders are hidden tabs reached from More. Tablet: the 240 pt sidebar lists them all. The offline strip (from the network state) sits under the status bar above every
+ * Coach, Automation and Settings are hidden tabs reached from More. Tablet: the 240 pt sidebar lists them all. The offline strip (from the network state) sits under the status bar above every
  * tab. Screens end at the top of the keyboard.
  */
 export default function TabsLayout() {
@@ -89,7 +89,6 @@ export default function TabsLayout() {
 									<Tabs.Screen name="coach" options={{ title: t`Coach`, href: null }} />
 									<Tabs.Screen name="automation" options={{ title: t`Automation`, href: null }} />
 									<Tabs.Screen name="settings" options={{ title: t`Settings`, href: null }} />
-									<Tabs.Screen name="reminders" options={{ title: t`Reminders`, href: null }} />
 									<Tabs.Screen name="career" options={{ title: t`Career`, href: null }} />
 								</Tabs>
 							</SafeAreaProvider>

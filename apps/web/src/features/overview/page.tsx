@@ -1,6 +1,7 @@
 import type { RouterOutput } from "@/libs/orpc/client";
 import type { InterviewKind } from "@reactive-resume/schema/applications/data";
 import type { IconName } from "@reactive-resume/ui/components/icon";
+import type { ReactElement, ReactNode } from "react";
 import { t } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -13,6 +14,7 @@ import { Skeleton } from "@reactive-resume/ui/components/skeleton";
 import { toast } from "@reactive-resume/ui/components/toast";
 import { getInitials } from "@reactive-resume/utils/string";
 import { cn } from "@reactive-resume/utils/style";
+import { Notifications } from "./notifications";
 import { PageHeader } from "@/components/layout/page-header";
 import { AddApplicationDialog } from "@/features/applications/components/add-application-dialog";
 import { interviewKindOf } from "@/features/applications/interviews";
@@ -61,15 +63,13 @@ export function OverviewPage() {
 				<div className={cn("grid gap-5", isFetching && "opacity-90")}>
 					<FinishSetup />
 					<DiscoveryBanner data={data} />
-					<p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-2">
-						<span>
-							{t`${data.needsYou.savedJobs} saved applications · ${data.needsYou.readyDocuments} with documents ready`}
-						</span>
-						<RemindersLink />
+					<p className="text-sm text-ink-2">
+						{t`${data.needsYou.savedJobs} saved applications · ${data.needsYou.readyDocuments} with documents ready`}
 					</p>
 					<div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
 						<div className="grid gap-5">
 							<NextActions data={data} />
+							<Notifications />
 							<RecentActivity />
 						</div>
 						<div className="grid gap-5">
@@ -107,18 +107,6 @@ function CardTitle({ icon, children }: { icon: IconName; children: React.ReactNo
 }
 
 // ---- Banners ----
-
-/** Reminders (notifications and the next interview) until Overview shows them in place. */
-function RemindersLink() {
-	const { data } = useQuery(orpc.career.notifications.queryOptions({ input: {} }));
-	const unread = data?.filter((notification) => !notification.readAt).length ?? 0;
-	return (
-		<Link to="/dashboard/career" className="ms-auto inline-flex items-center gap-1.5 text-accent-text underline">
-			<Trans>Reminders</Trans>
-			{unread > 0 && <span className="font-mono text-xs no-underline">{unread}</span>}
-		</Link>
-	);
-}
 
 /** A reminder for someone who skipped guided setup; gone once setup is finished. */
 function FinishSetup() {
@@ -176,7 +164,16 @@ function DiscoveryBanner({ data }: { data: Overview }) {
 						<Trans>Open Search activity to see why and what to do.</Trans>
 					</span>
 				</div>
-				<Button variant="secondary" nativeButton={false} render={<Link to="/dashboard/discover/activity" />}>
+				<Button
+					variant="secondary"
+					nativeButton={false}
+					render={
+						<Link
+							to="/dashboard/discover/activity"
+							{...(discovery.latestRunId ? { search: { run: discovery.latestRunId } } : {})}
+						/>
+					}
+				>
 					<Trans>See why</Trans>
 				</Button>
 			</div>
@@ -293,7 +290,7 @@ function NextActions({ data }: { data: Overview }) {
 		{ key: "all", label: t`All` },
 		{ key: "ready", label: t`Documents ready`, count: counts.ready },
 		{ key: "followups", label: t`Follow-ups`, count: counts.followUps },
-		{ key: "issues", label: t`Issues`, count: counts.issues, bad: true },
+		{ key: "issues", label: t`Needs attention`, count: counts.issues, bad: true },
 	];
 	return (
 		<Card className="grid gap-3 p-5">
@@ -413,8 +410,38 @@ type Recent = {
 	title: string;
 	sub: string;
 	at: Date;
-	action: { label: string; to: "/dashboard/discover" | "/dashboard/discover/activity" | "/dashboard/automation" };
+	/** The one action on the line, as a link to its exact destination. */
+	action: { label: string; link: (className: string, children: ReactNode) => ReactElement };
 };
+
+type EventItem = RouterOutput["career"]["activity"]["items"][number];
+
+/** Search activity, on the run the event belongs to when it names one. */
+const runLink = (event: EventItem) => (className: string, children: ReactNode) => (
+	<Link
+		to="/dashboard/discover/activity"
+		{...(event.runId ? { search: { run: event.runId } } : {})}
+		className={className}
+	>
+		{children}
+	</Link>
+);
+
+/** The job's application, on its Documents, once it has one; Automation's document list before that. */
+const documentsLink = (event: EventItem) => (className: string, children: ReactNode) =>
+	event.applicationId ? (
+		<Link
+			to="/dashboard/applications/$applicationId/{-$tab}"
+			params={{ applicationId: event.applicationId, tab: "documents" }}
+			className={className}
+		>
+			{children}
+		</Link>
+	) : (
+		<Link to="/dashboard/automation" hash="status" className={className}>
+			{children}
+		</Link>
+	);
 
 /** Turns the raw log into a few readable lines: searches, documents prepared per job, failures, and pauses. */
 function summarizeActivity(events: RouterOutput["career"]["activity"]["items"]): Recent[] {
@@ -433,7 +460,7 @@ function summarizeActivity(events: RouterOutput["career"]["activity"]["items"]):
 					title: t`Discovery run failed`,
 					sub: t`Needs attention`,
 					at: event.at,
-					action: { label: t`Resolve`, to: "/dashboard/discover/activity" },
+					action: { label: t`Resolve`, link: runLink(event) },
 				});
 			else if (matches > 0)
 				out.push({
@@ -443,7 +470,14 @@ function summarizeActivity(events: RouterOutput["career"]["activity"]["items"]):
 					title: matches === 1 ? t`1 new job saved` : t`${matches} new jobs saved`,
 					sub: t`Latest search`,
 					at: event.at,
-					action: { label: t`View jobs`, to: "/dashboard/discover" },
+					action: {
+						label: t`View jobs`,
+						link: (className, children) => (
+							<Link to="/dashboard/discover" className={className}>
+								{children}
+							</Link>
+						),
+					},
 				});
 		} else if (event.kind === "prep.done" && event.opportunityId) {
 			const existing = documents.get(event.opportunityId);
@@ -456,7 +490,7 @@ function summarizeActivity(events: RouterOutput["career"]["activity"]["items"]):
 					title: t`Documents prepared for ${company}`,
 					sub: "",
 					at: event.at,
-					action: { label: t`Review`, to: "/dashboard/automation" },
+					action: { label: t`Review`, link: documentsLink(event) },
 				};
 				documents.set(event.opportunityId, { item, kinds: [kind] });
 				out.push(item);
@@ -469,7 +503,7 @@ function summarizeActivity(events: RouterOutput["career"]["activity"]["items"]):
 				title: t`${kind} generation failed for ${company}`,
 				sub: t`Needs attention`,
 				at: event.at,
-				action: { label: t`Resolve`, to: "/dashboard/automation" },
+				action: { label: t`Resolve`, link: documentsLink(event) },
 			});
 		else if (event.kind === "setting.changed" && event.data.what === "discovery")
 			out.push({
@@ -479,7 +513,7 @@ function summarizeActivity(events: RouterOutput["career"]["activity"]["items"]):
 				title: event.data.on ? t`Discovery resumed` : t`Discovery paused`,
 				sub: event.data.on ? t`Searching again` : t`Resume anytime`,
 				at: event.at,
-				action: { label: t`Activity`, to: "/dashboard/discover/activity" },
+				action: { label: t`Activity`, link: runLink(event) },
 			});
 	}
 	for (const { item, kinds } of documents.values()) item.sub = [...new Set(kinds)].toReversed().join(` ${t`and`} `);
@@ -520,13 +554,13 @@ function RecentActivity() {
 									{item.sub ? `${item.sub} · ${relative(item.at)}` : relative(item.at)}
 								</span>
 							</span>
-							<Link
-								to={item.action.to}
-								className="flex shrink-0 items-center gap-1.5 text-[13px] text-accent-text underline"
-							>
-								{item.action.label}
-								<Icon name="arrow-right" size={14} className="rtl:-scale-x-100" />
-							</Link>
+							{item.action.link(
+								"flex shrink-0 items-center gap-1.5 text-[13px] text-accent-text underline",
+								<>
+									{item.action.label}
+									<Icon name="arrow-right" size={14} className="rtl:-scale-x-100" />
+								</>,
+							)}
 						</li>
 					))}
 				</ul>
@@ -629,25 +663,26 @@ function AutomationCard({ data }: { data: Overview }) {
 		label: string;
 		icon: IconName;
 		state: "on" | "off" | "paused";
-		to: "/dashboard/automation";
+		/** The part of Automation that configures it. */
+		hash: "discovery" | "documents";
 	}[] = [
 		{
 			label: t`Discovery`,
 			icon: "magnifying-glass",
 			state: !discovery.scheduleId ? "off" : discovery.enabled ? "on" : "paused",
-			to: "/dashboard/automation",
+			hash: "discovery",
 		},
 		{
 			label: t`Tailored resumes`,
 			icon: "file-text",
 			state: a.resumesEnabled ? "on" : "off",
-			to: "/dashboard/automation",
+			hash: "documents",
 		},
 		{
 			label: t`Cover letters`,
 			icon: "file-text",
 			state: a.lettersEnabled ? "on" : "off",
-			to: "/dashboard/automation",
+			hash: "documents",
 		},
 	];
 	const dot = { on: "bg-accent", off: "bg-line-2", paused: "bg-warn-text" } as const;
@@ -667,7 +702,8 @@ function AutomationCard({ data }: { data: Overview }) {
 				{rows.map((row) => (
 					<li key={row.label} className="border-t border-line first:border-t-0">
 						<Link
-							to={row.to}
+							to="/dashboard/automation"
+							hash={row.hash}
 							className="flex items-center gap-3 px-3.5 py-3 text-sm transition-colors duration-quick hover:bg-hover"
 						>
 							<Icon name={row.icon} size={20} className="text-ink-2" />
@@ -683,6 +719,7 @@ function AutomationCard({ data }: { data: Overview }) {
 			</ul>
 			<Link
 				to="/dashboard/automation"
+				hash="status"
 				className="flex items-center gap-3 rounded-lg border border-line px-3.5 py-3 text-sm transition-colors duration-quick hover:bg-hover"
 			>
 				<Icon name="arrow-clockwise" size={20} className="text-ink-2" />
@@ -829,6 +866,7 @@ function LatestDiscovery({ data }: { data: Overview }) {
 				</div>
 				<Link
 					to="/dashboard/discover/activity"
+					{...(data.discovery.latestRunId ? { search: { run: data.discovery.latestRunId } } : {})}
 					className="flex items-center gap-1.5 text-[13px] text-accent-text underline"
 				>
 					<Trans>View discovery activity</Trans>

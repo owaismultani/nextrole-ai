@@ -33,7 +33,7 @@ import { useDialogStore } from "@/dialogs/store";
 import { isEditableElementFocused } from "@/features/resume/builder/draft";
 import { orpc } from "@/libs/orpc/client";
 
-export type DocumentsScope = "all" | "baseline" | "applications";
+type DocumentsScope = "all" | "baseline" | "applications";
 
 export type DocumentsSearch = {
 	/** Which documents the library shows: baseline and reusable ones, those made for a job, or all. */

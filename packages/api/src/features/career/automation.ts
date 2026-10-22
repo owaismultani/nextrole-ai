@@ -153,7 +153,7 @@ export const careerAutomation = {
 
 	/** Each discovered job with its document steps, whether the documents may be out of date, and what was edited. */
 	/** Document steps for every job, or for one application's when `applicationId` is given. */
-	preparations: async (userId: string, applicationId?: string) => {
+	preparations: async (userId: string, applicationId?: string, limit = 200) => {
 		const rows = await db
 			.select({
 				step: tables.careerPreparation,
@@ -170,7 +170,7 @@ export const careerAutomation = {
 				),
 			)
 			.orderBy(desc(tables.careerPreparation.createdAt))
-			.limit(200);
+			.limit(limit);
 		const baselineIds = [
 			...new Set(rows.flatMap(({ step }) => (step.baselineResumeId ? [step.baselineResumeId] : []))),
 		];
@@ -255,6 +255,32 @@ export const careerAutomation = {
 			jobs.set(entry.step.opportunityId, job);
 		}
 		return [...jobs.values()].map((job) => ({ ...job, summary: summarizePreparation(job.steps) }));
+	},
+
+	/**
+	 * Where each prepared document came from: its application, the baseline it was made from and whether it is out of
+	 * date. Documents made by hand, or before this was recorded, are not listed, so they read as unknown rather than guessed.
+	 */
+	documentOrigins: async (userId: string) => {
+		const jobs = await careerAutomation.preparations(userId, undefined, 5000);
+		return jobs.flatMap((job) =>
+			job.steps.flatMap((step) =>
+				step.outputId
+					? [
+							{
+								documentId: step.outputId,
+								kind: step.kind,
+								applicationId: job.applicationId,
+								summary: job.summary,
+								baseline: step.baseline,
+								stale: step.stale,
+								edited: step.edited,
+								madeAt: step.completedAt,
+							},
+						]
+					: [],
+			),
+		);
 	},
 
 	/**

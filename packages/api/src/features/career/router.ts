@@ -22,6 +22,7 @@ import {
 	careerOverviewSchema,
 	careerSearchPreviewSchema,
 	careerSetupStateSchema,
+	careerDocumentOriginSchema,
 	careerPreparationJobSchema,
 	careerRunListSchema,
 	careerNotificationSchema,
@@ -291,6 +292,19 @@ export const careerRouter = {
 		.input(z.object({ applicationId: z.string().min(1).optional() }))
 		.output(z.array(careerPreparationJobSchema))
 		.handler(({ context, input }) => careerAutomation.preparations(context.user.id, input.applicationId)),
+	documentOrigins: protectedProcedure
+		.route({
+			method: "GET",
+			path: "/career/document-origins",
+			tags: ["Career"],
+			operationId: "listCareerDocumentOrigins",
+			summary: "List where prepared documents came from",
+			description:
+				"For each document made by document preparation: its application, the baseline resume it started from, and whether it is out of date. Other documents are not listed.",
+		})
+		.input(z.object({}))
+		.output(z.array(careerDocumentOriginSchema))
+		.handler(({ context }) => careerAutomation.documentOrigins(context.user.id)),
 	prepareDocuments: protectedProcedure
 		.route({
 			method: "POST",

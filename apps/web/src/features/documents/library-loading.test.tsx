@@ -12,7 +12,13 @@ import { TrashPage } from "./trash-page";
 const { loadDocuments } = vi.hoisted(() => ({ loadDocuments: vi.fn() }));
 
 vi.mock("@/libs/orpc/client", () => ({
-	orpc: { documents: { list: { queryOptions: () => ({ queryKey: ["documents"], queryFn: loadDocuments }) } } },
+	orpc: {
+		documents: { list: { queryOptions: () => ({ queryKey: ["documents"], queryFn: loadDocuments }) } },
+		career: {
+			documentOrigins: { queryOptions: () => ({ queryKey: ["origins"], queryFn: async () => [] }) },
+			setup: { queryOptions: () => ({ queryKey: ["setup"], queryFn: async () => ({ baseline: null }) }) },
+		},
+	},
 }));
 vi.mock("@tanstack/react-router", () => ({
 	Link: ({ children }: { children: ReactNode }) => <a href="/dashboard">{children}</a>,
@@ -36,7 +42,10 @@ it.each(["documents", "trash"])("keeps %s load failures distinct from empty stat
 		<I18nProvider i18n={i18n}>
 			<QueryClientProvider client={queryClient}>
 				{page === "documents" ? (
-					<DocumentsPage search={{ type: "all", q: "", tags: [], sort: "edited" }} onSearchChange={vi.fn()} />
+					<DocumentsPage
+						search={{ scope: "all", type: "all", q: "", tags: [], sort: "edited" }}
+						onSearchChange={vi.fn()}
+					/>
 				) : (
 					<TrashPage />
 				)}

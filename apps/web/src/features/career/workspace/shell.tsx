@@ -29,7 +29,6 @@ import { DocumentsTab } from "./documents";
 import { InterviewsTab } from "./interviews";
 import { MessagesTab } from "./messages";
 import { OfferDialog } from "./offer-dialog";
-import { returnTarget } from "./origin";
 import { SavedTab } from "./saved";
 import { actionLabel, preparationLabel, useWorkspaceState } from "./state";
 import { SummaryTab } from "./summary";
@@ -40,6 +39,7 @@ import { formatDuration, interviewKindOf, isInterview } from "@/features/applica
 import { describeNextStep, getNextStep } from "@/features/applications/next-step";
 import { getStageLabel, PIPELINE } from "@/features/applications/stages";
 import { D1, EASE } from "@/libs/motion";
+import { returnTarget } from "@/libs/origin";
 import { orpc } from "@/libs/orpc/client";
 
 export type WorkspaceSearch = {

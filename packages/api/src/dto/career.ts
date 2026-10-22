@@ -106,6 +106,21 @@ export const careerPreparationStepSchema = z.object({
 	edited: z.boolean(),
 });
 
+export const careerDocumentOriginSchema = z.object({
+	documentId: z.string(),
+	kind: preparationKindSchema,
+	applicationId: z.string().nullable(),
+	/** Where the job's documents stand: the same summary as the application's Documents tab. */
+	summary: z.enum(["skipped", "attention", "generating", "deferred", "queued", "ready"]),
+	/** The resume it was made from, or null when that was not recorded. */
+	baseline: z.object({ resumeId: z.string(), name: z.string().nullable() }).nullable(),
+	/** The baseline or the posting changed after it was made. */
+	stale: z.boolean(),
+	/** It was edited after it was made. */
+	edited: z.boolean(),
+	madeAt: z.date().nullable(),
+});
+
 export const careerPreparationJobSchema = z.object({
 	opportunityId: z.string(),
 	applicationId: z.string().nullable(),

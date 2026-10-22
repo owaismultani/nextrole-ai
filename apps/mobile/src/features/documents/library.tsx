@@ -14,6 +14,14 @@ import { collectTags, daysLeftInTrash, documentKey, documentRef, filterDocuments
 import { isNewDocument, useNewDocuments } from "./new-documents";
 import { usePendingDocuments } from "./pending";
 import { useDocumentOperations, useDocuments } from "./queries";
+import {
+	ApplicationGroupHeader,
+	BaselineSummary,
+	originLine,
+	useBaselineId,
+	useDocumentOrigins,
+	type DocumentsScope,
+} from "./scopes";
 import { Thumbnail } from "./thumbnail";
 import { client, orpc } from "@/api/client";
 import { useSession } from "@/auth/session";
@@ -50,7 +58,10 @@ type DocumentItemProps = {
 	selecting: boolean;
 	busy: boolean;
 	unsynced: boolean;
+	/** How this document came to be, for documents prepared for a job. */
+	origin?: string | undefined;
 	onOpen: () => void;
+	onOpenApplication: () => void;
 	onSelect: () => void;
 	onMenu: () => void;
 	onTrash: () => void;
@@ -65,7 +76,9 @@ function DocumentItem({
 	selecting,
 	busy,
 	unsynced,
+	origin,
 	onOpen,
+	onOpenApplication,
 	onSelect,
 	onMenu,
 	onTrash,
@@ -111,6 +124,11 @@ function DocumentItem({
 						{" · "}
 						{meta}
 					</Text>
+					{origin ? (
+						<Text variant="caption" color="ink3">
+							{origin}
+						</Text>
+					) : null}
 					<View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.s1 }}>
 						{unsynced && <Text variant="caption" color="warnText">{t`Unsynced on this device`}</Text>}
 						{!trashed && isNewDocument(ids, document) && <Text variant="caption" color="accentText">{t`New`}</Text>}
@@ -120,9 +138,15 @@ function DocumentItem({
 						{document.isPublic && <Text variant="caption" color="accentText">{t`Public`}</Text>}
 						{document.isLocked && <Text variant="caption" color="ink2">{t`Locked`}</Text>}
 						{document.application && (
-							<Text variant="caption" color="ink2">
-								{document.application.company}
-							</Text>
+							<Pressable
+								accessibilityRole="link"
+								accessibilityLabel={t`Open application at ${document.application.company}`}
+								onPress={onOpenApplication}
+							>
+								<Text variant="caption" color="accentText">
+									{document.application.company}
+								</Text>
+							</Pressable>
 						)}
 						{document.tags.map((tag) => (
 							<Text key={tag} variant="caption" color="ink3">
@@ -171,6 +195,7 @@ export function DocumentsLibrary({ trashed = false }: DocumentsLibraryProps) {
 	});
 	const operations = useDocumentOperations();
 	const [q, setQ] = useState("");
+	const [scope, setScope] = useState<DocumentsScope>("all");
 	const [type, setType] = useState<DocumentTypeFilter>("all");
 	const [sort, setSort] = useState<DocumentSort>("edited");
 	const [tags, setTags] = useState<string[]>([]);
@@ -194,7 +219,28 @@ export function DocumentsLibrary({ trashed = false }: DocumentsLibraryProps) {
 	const recoverable = trashed
 		? []
 		: pending.filter((document) => !all.some((saved) => documentKey(saved) === documentKey(document)));
-	const filtered = filterDocuments(all, { q, type, tags, sort, public: publicOnly });
+	const origins = useDocumentOrigins();
+	const baselineId = useBaselineId().id;
+	// Baseline and reusable: documents not made for a job (the baseline is pinned above them). By application: the
+	// documents that belong to one, kept together under it. Everything else works the same in every scope.
+	const inScope = (document: DocumentSummary) =>
+		trashed || scope === "all"
+			? true
+			: scope === "baseline"
+				? !document.application && !origins.byDocument.has(document.id) && document.id !== baselineId
+				: Boolean(document.application);
+	const found = filterDocuments(all.filter(inScope), { q, type, tags, sort, public: publicOnly });
+	const newest = (application: string) =>
+		Math.max(...found.filter((item) => item.application?.id === application).map((item) => item.updatedAt.getTime()));
+	const filtered =
+		scope === "applications" && !trashed
+			? [...found].sort(
+					(a, b) =>
+						newest(b.application?.id ?? "") - newest(a.application?.id ?? "") ||
+						(a.application?.id ?? "").localeCompare(b.application?.id ?? "") ||
+						(a.type === b.type ? 0 : a.type === "resume" ? -1 : 1),
+				)
+			: found;
 	const firstAppearance = useFirstAppearance(filtered.length > 0);
 	const selected = filtered.filter((document) => selection.includes(documentKey(document)));
 	const { refetch: refetchDocuments } = documents;
@@ -330,6 +376,18 @@ export function DocumentsLibrary({ trashed = false }: DocumentsLibraryProps) {
 						<>
 							<Segmented
 								orientation={fontScale > 1.3 ? "vertical" : "horizontal"}
+								value={scope}
+								label={t`Documents shown`}
+								onChange={setScope}
+								options={[
+									{ value: "all", label: t`All documents` },
+									{ value: "applications", label: t`By application` },
+									{ value: "baseline", label: t`Baseline & reusable` },
+								]}
+							/>
+							{scope === "baseline" && <BaselineSummary documents={all} />}
+							<Segmented
+								orientation={fontScale > 1.3 ? "vertical" : "horizontal"}
 								value={type}
 								label={t`Document type`}
 								onChange={setType}
@@ -436,7 +494,18 @@ export function DocumentsLibrary({ trashed = false }: DocumentsLibraryProps) {
 						{...listItemMotion(index, firstAppearance)}
 						style={{ flex: 1, maxWidth: Math.max(0, (width - space.s3 * (columns - 1)) / columns) }}
 					>
+						{scope === "applications" &&
+						item.application &&
+						filtered[index - 1]?.application?.id !== item.application.id ? (
+							<ApplicationGroupHeader
+								application={item.application}
+								origins={origins.byDocument}
+								documents={filtered}
+							/>
+						) : null}
 						<DocumentItem
+							origin={scope === "applications" ? originLine(origins.byDocument.get(item.id)) : undefined}
+							onOpenApplication={() => router.push(routes.application(item.application?.id ?? "", "documents"))}
 							document={item}
 							visible={visible.includes(documentKey(item))}
 							grid={grid}

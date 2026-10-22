@@ -218,10 +218,14 @@ export function DocumentCard({
 						)}
 						<span className="truncate text-xs text-ink-3">{meta}</span>
 						{document.application && (
-							<span className="flex min-w-0 items-center gap-1 text-xs text-ink-2">
+							<Link
+								to="/dashboard/applications/$applicationId/{-$tab}"
+								params={{ applicationId: document.application.id, tab: "documents" }}
+								className="flex min-w-0 items-center gap-1 text-xs text-ink-2 hover:text-ink hover:underline"
+							>
 								<Icon name="briefcase" size={14} />
 								<span className="truncate">{document.application.company}</span>
-							</span>
+							</Link>
 						)}
 					</div>
 					<DropdownMenu>
@@ -317,7 +321,19 @@ export function DocumentRow({
 				<td className="px-2 text-sm text-ink-2 max-sm:hidden">
 					{document.type === "resume" ? <Trans>Resume</Trans> : <Trans>Letter</Trans>}
 				</td>
-				<td className="truncate px-2 text-sm text-ink-2 max-sm:hidden">{document.application?.company ?? "—"}</td>
+				<td className="truncate px-2 text-sm text-ink-2 max-sm:hidden">
+					{document.application ? (
+						<Link
+							to="/dashboard/applications/$applicationId/{-$tab}"
+							params={{ applicationId: document.application.id, tab: "documents" }}
+							className="hover:text-ink hover:underline"
+						>
+							{document.application.company}
+						</Link>
+					) : (
+						"—"
+					)}
+				</td>
 				<td className="px-2 text-sm whitespace-nowrap text-ink-3">
 					{document.trashedAt ? (
 						<Trans>{daysLeftInTrash(document.trashedAt)} days left</Trans>

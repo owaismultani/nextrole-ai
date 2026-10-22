@@ -28,6 +28,7 @@ export const routes = {
 	// Modals and full-screen flows
 	new: () => "/new" as const,
 	search: () => "/search" as const,
+	setup: () => "/setup" as const,
 	atsChecker: () => "/ats-checker" as const,
 	application: (id: string, tab: ApplicationTab = "fit") => `/applications/${segment(id)}/${tab}` as const,
 	/** The application detail; it shares the dynamic `[tab]` route with the workspace tabs. */

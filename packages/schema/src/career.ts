@@ -380,3 +380,29 @@ export const preparationErrorSchema = z.enum([
 	"unknown",
 ]);
 export type PreparationError = z.infer<typeof preparationErrorSchema>;
+
+// ---- First-run setup ----
+
+export const setupIntervalSchema = z.enum(["hourly", "3h", "6h", "daily"]);
+export type SetupInterval = z.infer<typeof setupIntervalSchema>;
+
+/** The last step of setup: everything the person chose, applied at once. Discovery starts immediately. */
+export const careerSetupLaunchSchema = z.object({
+	query: z.string().trim().min(3).max(500),
+	interval: setupIntervalSchema.default("hourly"),
+	retrievalBudget: z
+		.number()
+		.int()
+		.min(RETRIEVAL_BUDGET.min)
+		.max(RETRIEVAL_BUDGET.max)
+		.default(RETRIEVAL_BUDGET.default),
+	resumesEnabled: z.boolean().default(false),
+	lettersEnabled: z.boolean().default(false),
+	/** Extra guidance for each document type; left out keeps what is saved (or the default on a first run). */
+	resumePrompt: z.string().trim().max(2000).optional(),
+	coverLetterPrompt: z.string().trim().max(2000).optional(),
+	aiProviderId: z.string().min(1).nullable().default(null),
+	dailyLimit: z.number().int().min(DAILY_LIMIT.min).max(DAILY_LIMIT.max).default(DAILY_LIMIT.default),
+	timezone: timezoneSchema,
+	locale: z.string().min(2).max(20).optional(),
+});

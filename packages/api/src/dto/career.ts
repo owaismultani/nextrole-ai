@@ -187,3 +187,56 @@ export const careerOverviewSchema = z.object({
 		}),
 	),
 });
+
+export const careerSetupStateSchema = z.object({
+	step: z.enum(["baseline", "services", "discovery", "done"]),
+	skipped: z.boolean(),
+	completed: z.boolean(),
+	needsSetup: z.boolean(),
+	baseline: z
+		.object({
+			resumeId: z.string(),
+			name: z.string(),
+			confirmed: z.boolean(),
+			changedSinceConfirm: z.boolean(),
+			suggestedQuery: z.string(),
+		})
+		.nullable(),
+	services: z.object({ search: z.boolean(), ai: z.boolean() }),
+	discovery: z.object({ scheduleId: z.string(), enabled: z.boolean(), query: z.string() }).nullable(),
+});
+
+export const careerBaselineReportSchema = z.object({
+	resumeId: z.string(),
+	name: z.string(),
+	checks: z.array(
+		z.object({
+			key: z.enum([
+				"name",
+				"email",
+				"headline",
+				"summary",
+				"experience",
+				"experience-dates",
+				"experience-detail",
+				"education",
+				"skills",
+			]),
+			ok: z.boolean(),
+			count: z.number(),
+			section: z.enum(["basics", "summary", "experience", "education", "skills"]),
+		}),
+	),
+	ats: z.object({
+		score: z.number(),
+		counts: z.object({ error: z.number(), warning: z.number(), info: z.number() }),
+		findings: z.array(
+			z.object({ code: z.string(), severity: z.enum(["error", "warning", "info"]), pointer: z.string() }),
+		),
+	}),
+	suggestedQuery: z.string(),
+});
+
+export const careerSearchPreviewSchema = z.array(
+	z.object({ title: z.string(), url: z.string(), description: z.string() }),
+);

@@ -9,6 +9,7 @@ import * as tables from "@reactive-resume/db/schema";
 import {
 	careerAutomationInputSchema,
 	careerScheduleInputSchema,
+	careerSetupLaunchSchema,
 	DEFAULT_COVER_LETTER_PROMPT,
 	DEFAULT_RESUME_PROMPT,
 } from "@reactive-resume/schema/career";
@@ -768,5 +769,110 @@ describe.skipIf(!databaseUrl)("autonomous discovery and document preparation", (
 		expect(bobs.funnel.every((step) => step.count === 0)).toBe(true);
 		expect(bobs.discovery.scheduleId).toBeNull();
 		expect(bobs.needsYou.readyDocuments).toBe(0);
+	});
+
+	describe("first-run setup", () => {
+		const launchInput = (patch: Record<string, unknown> = {}) =>
+			careerSetupLaunchSchema.parse({ query: "Reliability engineer", timezone: "Europe/Berlin", ...patch });
+
+		it("walks baseline, services and discovery in order, derived from what is configured", async () => {
+			const { careerSetup } = await import("./setup");
+			expect(await careerSetup.get("alice")).toMatchObject({ step: "baseline", baseline: null, completed: false });
+			const base = await baseline();
+			await expect(careerSetup.confirmBaseline("bob", base)).rejects.toMatchObject({ code: "NOT_FOUND" });
+			fixture.search_connection = null;
+			const confirmed = await careerSetup.confirmBaseline("alice", base);
+			expect(confirmed).toMatchObject({
+				step: "services",
+				baseline: { resumeId: base, confirmed: true, changedSinceConfirm: false },
+				services: { search: false, ai: true },
+			});
+			fixture.search_connection = { provider: "tavily", apiKey: "x" };
+			expect((await careerSetup.get("alice")).step).toBe("discovery");
+			await getDb()
+				.update(tables.resume)
+				.set({ updatedAt: new Date(Date.now() + 60_000) })
+				.where(eq(tables.resume.id, base));
+			expect((await careerSetup.get("alice")).baseline?.changedSinceConfirm).toBe(true);
+			expect((await automation.get("alice")).baselineResumeId).toBe(base);
+		});
+
+		it("checks a baseline without blocking it", async () => {
+			const { careerSetup } = await import("./setup");
+			const base = await baseline();
+			const report = await careerSetup.validateBaseline("alice", base);
+			expect(report.checks.every((check) => check.ok)).toBe(true);
+			const blank = await resumes.create({ userId: "alice", name: "Blank", tags: [], locale: "en-US" });
+			const bad = await careerSetup.validateBaseline("alice", blank);
+			expect(bad.checks.some((check) => !check.ok)).toBe(true);
+			await expect(careerSetup.confirmBaseline("alice", blank)).resolves.toMatchObject({
+				baseline: { confirmed: true },
+			});
+			await expect(careerSetup.validateBaseline("bob", base)).rejects.toMatchObject({ code: "NOT_FOUND" });
+		});
+
+		it("previews a search without saving anything, and never leaks provider errors", async () => {
+			const { careerSetup } = await import("./setup");
+			fixture.search.mockResolvedValue([hit(1), hit(2)]);
+			const results = await careerSetup.previewSearch("alice", "Reliability engineer");
+			expect(results).toHaveLength(2);
+			expect(await getDb().select().from(tables.careerOpportunity)).toHaveLength(0);
+			expect(await getDb().select().from(tables.careerRun)).toHaveLength(0);
+			fixture.search.mockRejectedValue(new Error("secret-key-123 rejected"));
+			await expect(careerSetup.previewSearch("alice", "Reliability engineer")).rejects.toMatchObject({
+				code: "BAD_GATEWAY",
+				message: expect.not.stringContaining("secret"),
+			});
+			fixture.search_connection = null;
+			await expect(careerSetup.previewSearch("alice", "Reliability engineer")).rejects.toMatchObject({
+				code: "PRECONDITION_FAILED",
+			});
+		});
+
+		it("launches only after a baseline is confirmed, starts discovery at once and reuses one schedule", async () => {
+			const { careerSetup } = await import("./setup");
+			await expect(careerSetup.launch("alice", launchInput())).rejects.toMatchObject({
+				code: "PRECONDITION_FAILED",
+			});
+			const base = await baseline();
+			await careerSetup.confirmBaseline("alice", base);
+			const done = await careerSetup.launch(
+				"alice",
+				launchInput({ resumesEnabled: true, dailyLimit: 5, resumePrompt: "Stress backend work." }),
+			);
+			expect(done).toMatchObject({ step: "done", completed: true, discovery: { enabled: true } });
+			const [schedule] = await getDb().select().from(tables.careerSchedule);
+			expect(schedule).toMatchObject({ intervalMinutes: 60, query: "Reliability engineer", enabled: true });
+			expect(schedule?.nextRunAt.getTime()).toBeLessThanOrEqual(Date.now());
+			expect(await automation.get("alice")).toMatchObject({
+				resumesEnabled: true,
+				lettersEnabled: false,
+				dailyLimit: 5,
+				resumePrompt: "Stress backend work.",
+				coverLetterPrompt: DEFAULT_COVER_LETTER_PROMPT,
+			});
+			await run();
+			expect(fixture.search).toHaveBeenCalledOnce();
+			await careerSetup.launch("alice", launchInput({ query: "Platform engineer", interval: "daily" }));
+			// A later launch without prompts keeps the ones that were saved.
+			expect((await automation.get("alice")).resumePrompt).toBe("Stress backend work.");
+			const schedules = await getDb().select().from(tables.careerSchedule);
+			expect(schedules).toHaveLength(1);
+			expect(schedules[0]).toMatchObject({ query: "Platform engineer", intervalDays: 1, intervalMinutes: null });
+		});
+
+		it("explains a missing AI connection when documents are chosen, and remembers a skip per person", async () => {
+			const { careerSetup } = await import("./setup");
+			const base = await baseline();
+			await careerSetup.confirmBaseline("alice", base);
+			fixture.ai = null;
+			await expect(careerSetup.launch("alice", launchInput({ lettersEnabled: true }))).rejects.toMatchObject({
+				data: { missing: "ai" },
+			});
+			expect((await careerSetup.get("alice")).completed).toBe(false);
+			expect((await careerSetup.get("alice")).needsSetup).toBe(true);
+			expect(await careerSetup.skip("bob")).toMatchObject({ skipped: true, needsSetup: false });
+			expect((await careerSetup.get("alice")).skipped).toBe(false);
+		});
 	});
 });

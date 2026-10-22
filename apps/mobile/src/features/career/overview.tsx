@@ -42,6 +42,7 @@ export function OverviewScreen() {
 			{query.isError ? <Banner tone="danger" message={t`Couldn't load the overview. Pull to refresh.`} /> : null}
 			{query.data ? (
 				<View style={{ gap: space.s5 }}>
+					<FinishSetup />
 					<NeedsYou data={query.data} />
 					<Funnel data={query.data} />
 					<DiscoveryHealth data={query.data} />
@@ -268,5 +269,25 @@ function Interviews({ data }: { data: Overview }) {
 				))
 			)}
 		</Section>
+	);
+}
+
+/** A reminder for someone who skipped guided setup; gone once setup is finished. */
+function FinishSetup() {
+	const { t } = useLingui();
+	const router = useRouter();
+	const session = useSession();
+	const setup = useQuery({
+		...orpc.career.setup.queryOptions({ input: {} }),
+		enabled: session.status === "signed-in",
+		queryKey: [...orpc.career.setup.key(), session.server],
+	});
+	if (!setup.data || setup.data.completed || !setup.data.skipped) return null;
+	return (
+		<Banner
+			tone="info"
+			message={t`Finish setting up your job search: confirm your baseline resume, connect services and start discovery.`}
+			action={{ label: t`Continue setup`, onPress: () => router.push(routes.setup()) }}
+		/>
 	);
 }

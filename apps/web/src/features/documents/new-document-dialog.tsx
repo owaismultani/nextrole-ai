@@ -513,7 +513,7 @@ function ChoiceTile({ icon, title, description, onClick, disabled }: ChoiceTileP
 }
 
 /** Reading the file → Finding sections → Filling in entries, each with a note once done. */
-function ImportProgress({ stage, notes }: { stage: number; notes: string[] }) {
+export function ImportProgress({ stage, notes }: { stage: number; notes: string[] }) {
 	const steps = [t`Reading the file`, t`Finding sections`, t`Filling in entries`];
 
 	return (

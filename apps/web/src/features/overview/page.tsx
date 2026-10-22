@@ -60,6 +60,7 @@ export function OverviewPage() {
 				<Skeleton className="h-64 rounded-xl" />
 			) : (
 				<div className={cn("grid gap-6", isFetching && "opacity-80")}>
+					<FinishSetup />
 					<NeedsYou data={data} />
 					<div className="grid gap-6 lg:grid-cols-2 lg:items-start">
 						<Funnel data={data} />
@@ -352,5 +353,28 @@ function UpcomingInterviews({ data }: { data: Overview }) {
 				</ul>
 			)}
 		</Card>
+	);
+}
+
+/** A reminder for someone who skipped guided setup; gone once setup is finished. */
+function FinishSetup() {
+	const { data: setup } = useQuery(orpc.career.setup.queryOptions({ input: {} }));
+	if (!setup || setup.completed || !setup.skipped) return null;
+	return (
+		<Link
+			to="/dashboard/start"
+			className="flex items-center gap-3 rounded-xl border border-accent bg-accent-soft px-4 py-3 text-sm"
+		>
+			<Icon name="compass" size={20} className="shrink-0 text-accent-text" />
+			<span className="min-w-0 flex-1">
+				<b className="font-semibold">
+					<Trans>Finish setting up your job search</Trans>
+				</b>{" "}
+				<span className="text-ink-2">
+					<Trans>Confirm your baseline resume, connect services and start discovery.</Trans>
+				</span>
+			</span>
+			<Icon name="arrow-right" size={18} className="shrink-0 rtl:-scale-x-100" />
+		</Link>
 	);
 }

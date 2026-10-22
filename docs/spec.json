@@ -39223,6 +39223,12 @@
 										"lettersEnabled": {
 											"type": "boolean"
 										},
+										"resumePrompt": {
+											"type": "string"
+										},
+										"coverLetterPrompt": {
+											"type": "string"
+										},
 										"baselineResumeId": {
 											"anyOf": [
 												{
@@ -39329,6 +39335,8 @@
 									"required": [
 										"resumesEnabled",
 										"lettersEnabled",
+										"resumePrompt",
+										"coverLetterPrompt",
 										"baselineResumeId",
 										"aiProviderId",
 										"dailyLimit",
@@ -39441,6 +39449,16 @@
 										"minimum": 1,
 										"maximum": 50,
 										"default": 10
+									},
+									"resumePrompt": {
+										"type": "string",
+										"maxLength": 2000,
+										"default": "Prioritize the experience and skills that best match this role while keeping the resume truthful and concise."
+									},
+									"coverLetterPrompt": {
+										"type": "string",
+										"maxLength": 2000,
+										"default": "Write a clear, specific letter that connects my strongest relevant experience to this role without overstating my background."
 									}
 								}
 							}
@@ -39460,6 +39478,12 @@
 										},
 										"lettersEnabled": {
 											"type": "boolean"
+										},
+										"resumePrompt": {
+											"type": "string"
+										},
+										"coverLetterPrompt": {
+											"type": "string"
 										},
 										"baselineResumeId": {
 											"anyOf": [
@@ -39567,6 +39591,8 @@
 									"required": [
 										"resumesEnabled",
 										"lettersEnabled",
+										"resumePrompt",
+										"coverLetterPrompt",
 										"baselineResumeId",
 										"aiProviderId",
 										"dailyLimit",
@@ -39625,6 +39651,1136 @@
 						"lang": "bash",
 						"label": "cURL",
 						"source": "curl --request PUT \"https://rxresu.me/api/openapi/career/automation\" --header \"x-api-key: <api-key>\" --header \"Content-Type: application/json\" --data '{}'"
+					}
+				]
+			}
+		},
+		"/career/setup": {
+			"get": {
+				"operationId": "getCareerSetup",
+				"summary": "Get first-run setup state",
+				"description": "Where guided setup stands: the confirmed baseline resume, whether a search and an AI connection exist, and the discovery schedule. Derived from what is configured.",
+				"tags": [
+					"Career"
+				],
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"step": {
+											"enum": [
+												"baseline",
+												"services",
+												"discovery",
+												"done"
+											],
+											"type": "string"
+										},
+										"skipped": {
+											"type": "boolean"
+										},
+										"completed": {
+											"type": "boolean"
+										},
+										"needsSetup": {
+											"type": "boolean"
+										},
+										"baseline": {
+											"anyOf": [
+												{
+													"type": "object",
+													"properties": {
+														"resumeId": {
+															"type": "string"
+														},
+														"name": {
+															"type": "string"
+														},
+														"confirmed": {
+															"type": "boolean"
+														},
+														"changedSinceConfirm": {
+															"type": "boolean"
+														},
+														"suggestedQuery": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"resumeId",
+														"name",
+														"confirmed",
+														"changedSinceConfirm",
+														"suggestedQuery"
+													]
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"services": {
+											"type": "object",
+											"properties": {
+												"search": {
+													"type": "boolean"
+												},
+												"ai": {
+													"type": "boolean"
+												}
+											},
+											"required": [
+												"search",
+												"ai"
+											]
+										},
+										"discovery": {
+											"anyOf": [
+												{
+													"type": "object",
+													"properties": {
+														"scheduleId": {
+															"type": "string"
+														},
+														"enabled": {
+															"type": "boolean"
+														},
+														"query": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"scheduleId",
+														"enabled",
+														"query"
+													]
+												},
+												{
+													"type": "null"
+												}
+											]
+										}
+									},
+									"required": [
+										"step",
+										"skipped",
+										"completed",
+										"needsSetup",
+										"baseline",
+										"services",
+										"discovery"
+									]
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Structured API error. See status and code; do not branch on message text.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": [
+										"defined",
+										"code",
+										"status",
+										"message"
+									],
+									"properties": {
+										"defined": {
+											"type": "boolean"
+										},
+										"code": {
+											"type": "string"
+										},
+										"status": {
+											"type": "integer"
+										},
+										"message": {
+											"type": "string"
+										},
+										"data": {}
+									}
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"apiKey": []
+					},
+					{
+						"bearerAuth": []
+					},
+					{
+						"cookieAuth": []
+					}
+				],
+				"x-codeSamples": [
+					{
+						"lang": "bash",
+						"label": "cURL",
+						"source": "curl \"https://rxresu.me/api/openapi/career/setup\" --header \"x-api-key: <api-key>\""
+					}
+				]
+			}
+		},
+		"/career/setup/baseline/check": {
+			"post": {
+				"operationId": "checkCareerBaseline",
+				"summary": "Check a resume as a baseline",
+				"description": "Completeness checks (contact, summary, dated and detailed experience, education, skills) plus the ATS score. Warnings never block confirming.",
+				"tags": [
+					"Career"
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"resumeId": {
+										"type": "string",
+										"minLength": 1
+									}
+								},
+								"required": [
+									"resumeId"
+								]
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "OK",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"resumeId": {
+											"type": "string"
+										},
+										"name": {
+											"type": "string"
+										},
+										"checks": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"key": {
+														"enum": [
+															"name",
+															"email",
+															"headline",
+															"summary",
+															"experience",
+															"experience-dates",
+															"experience-detail",
+															"education",
+															"skills"
+														],
+														"type": "string"
+													},
+													"ok": {
+														"type": "boolean"
+													},
+													"count": {
+														"type": "number"
+													},
+													"section": {
+														"enum": [
+															"basics",
+															"summary",
+															"experience",
+															"education",
+															"skills"
+														],
+														"type": "string"
+													}
+												},
+												"required": [
+													"key",
+													"ok",
+													"count",
+													"section"
+												]
+											}
+										},
+										"ats": {
+											"type": "object",
+											"properties": {
+												"score": {
+													"type": "number"
+												},
+												"counts": {
+													"type": "object",
+													"properties": {
+														"error": {
+															"type": "number"
+														},
+														"warning": {
+															"type": "number"
+														},
+														"info": {
+															"type": "number"
+														}
+													},
+													"required": [
+														"error",
+														"warning",
+														"info"
+													]
+												},
+												"findings": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"code": {
+																"type": "string"
+															},
+															"severity": {
+																"enum": [
+																	"error",
+																	"warning",
+																	"info"
+																],
+																"type": "string"
+															},
+															"pointer": {
+																"type": "string"
+															}
+														},
+														"required": [
+															"code",
+															"severity",
+															"pointer"
+														]
+													}
+												}
+											},
+											"required": [
+												"score",
+												"counts",
+												"findings"
+											]
+										},
+										"suggestedQuery": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"resumeId",
+										"name",
+										"checks",
+										"ats",
+										"suggestedQuery"
+									]
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Structured API error. See status and code; do not branch on message text.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": [
+										"defined",
+										"code",
+										"status",
+										"message"
+									],
+									"properties": {
+										"defined": {
+											"type": "boolean"
+										},
+										"code": {
+											"type": "string"
+										},
+										"status": {
+											"type": "integer"
+										},
+										"message": {
+											"type": "string"
+										},
+										"data": {}
+									}
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"apiKey": []
+					},
+					{
+						"bearerAuth": []
+					},
+					{
+						"cookieAuth": []
+					}
+				],
+				"x-codeSamples": [
+					{
+						"lang": "bash",
+						"label": "cURL",
+						"source": "curl --request POST \"https://rxresu.me/api/openapi/career/setup/baseline/check\" --header \"x-api-key: <api-key>\" --header \"Content-Type: application/json\" --data '{\n  \"resumeId\": \"<string>\"\n}'"
+					}
+				]
+			}
+		},
+		"/career/setup/baseline": {
+			"post": {
+				"operationId": "confirmCareerBaseline",
+				"summary": "Confirm the baseline resume",
+				"description": "Records the person's choice of baseline resume. Automation tailors documents from it and never changes it.",
+				"tags": [
+					"Career"
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"resumeId": {
+										"type": "string",
+										"minLength": 1
+									}
+								},
+								"required": [
+									"resumeId"
+								]
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "OK",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"step": {
+											"enum": [
+												"baseline",
+												"services",
+												"discovery",
+												"done"
+											],
+											"type": "string"
+										},
+										"skipped": {
+											"type": "boolean"
+										},
+										"completed": {
+											"type": "boolean"
+										},
+										"needsSetup": {
+											"type": "boolean"
+										},
+										"baseline": {
+											"anyOf": [
+												{
+													"type": "object",
+													"properties": {
+														"resumeId": {
+															"type": "string"
+														},
+														"name": {
+															"type": "string"
+														},
+														"confirmed": {
+															"type": "boolean"
+														},
+														"changedSinceConfirm": {
+															"type": "boolean"
+														},
+														"suggestedQuery": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"resumeId",
+														"name",
+														"confirmed",
+														"changedSinceConfirm",
+														"suggestedQuery"
+													]
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"services": {
+											"type": "object",
+											"properties": {
+												"search": {
+													"type": "boolean"
+												},
+												"ai": {
+													"type": "boolean"
+												}
+											},
+											"required": [
+												"search",
+												"ai"
+											]
+										},
+										"discovery": {
+											"anyOf": [
+												{
+													"type": "object",
+													"properties": {
+														"scheduleId": {
+															"type": "string"
+														},
+														"enabled": {
+															"type": "boolean"
+														},
+														"query": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"scheduleId",
+														"enabled",
+														"query"
+													]
+												},
+												{
+													"type": "null"
+												}
+											]
+										}
+									},
+									"required": [
+										"step",
+										"skipped",
+										"completed",
+										"needsSetup",
+										"baseline",
+										"services",
+										"discovery"
+									]
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Structured API error. See status and code; do not branch on message text.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": [
+										"defined",
+										"code",
+										"status",
+										"message"
+									],
+									"properties": {
+										"defined": {
+											"type": "boolean"
+										},
+										"code": {
+											"type": "string"
+										},
+										"status": {
+											"type": "integer"
+										},
+										"message": {
+											"type": "string"
+										},
+										"data": {}
+									}
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"apiKey": []
+					},
+					{
+						"bearerAuth": []
+					},
+					{
+						"cookieAuth": []
+					}
+				],
+				"x-codeSamples": [
+					{
+						"lang": "bash",
+						"label": "cURL",
+						"source": "curl --request POST \"https://rxresu.me/api/openapi/career/setup/baseline\" --header \"x-api-key: <api-key>\" --header \"Content-Type: application/json\" --data '{\n  \"resumeId\": \"<string>\"\n}'"
+					}
+				]
+			}
+		},
+		"/career/setup/preview": {
+			"post": {
+				"operationId": "previewCareerSearch",
+				"summary": "Preview a discovery search",
+				"description": "Runs the search once with the person's search connection and returns up to eight results. Nothing is saved.",
+				"tags": [
+					"Career"
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"query": {
+										"type": "string",
+										"minLength": 3,
+										"maxLength": 500
+									}
+								},
+								"required": [
+									"query"
+								]
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "OK",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"type": "object",
+										"properties": {
+											"title": {
+												"type": "string"
+											},
+											"url": {
+												"type": "string"
+											},
+											"description": {
+												"type": "string"
+											}
+										},
+										"required": [
+											"title",
+											"url",
+											"description"
+										]
+									}
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Structured API error. See status and code; do not branch on message text.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": [
+										"defined",
+										"code",
+										"status",
+										"message"
+									],
+									"properties": {
+										"defined": {
+											"type": "boolean"
+										},
+										"code": {
+											"type": "string"
+										},
+										"status": {
+											"type": "integer"
+										},
+										"message": {
+											"type": "string"
+										},
+										"data": {}
+									}
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"apiKey": []
+					},
+					{
+						"bearerAuth": []
+					},
+					{
+						"cookieAuth": []
+					}
+				],
+				"x-codeSamples": [
+					{
+						"lang": "bash",
+						"label": "cURL",
+						"source": "curl --request POST \"https://rxresu.me/api/openapi/career/setup/preview\" --header \"x-api-key: <api-key>\" --header \"Content-Type: application/json\" --data '{\n  \"query\": \"<string>\"\n}'"
+					}
+				]
+			}
+		},
+		"/career/setup/skip": {
+			"post": {
+				"operationId": "skipCareerSetup",
+				"summary": "Skip guided setup",
+				"tags": [
+					"Career"
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object"
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "OK",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"step": {
+											"enum": [
+												"baseline",
+												"services",
+												"discovery",
+												"done"
+											],
+											"type": "string"
+										},
+										"skipped": {
+											"type": "boolean"
+										},
+										"completed": {
+											"type": "boolean"
+										},
+										"needsSetup": {
+											"type": "boolean"
+										},
+										"baseline": {
+											"anyOf": [
+												{
+													"type": "object",
+													"properties": {
+														"resumeId": {
+															"type": "string"
+														},
+														"name": {
+															"type": "string"
+														},
+														"confirmed": {
+															"type": "boolean"
+														},
+														"changedSinceConfirm": {
+															"type": "boolean"
+														},
+														"suggestedQuery": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"resumeId",
+														"name",
+														"confirmed",
+														"changedSinceConfirm",
+														"suggestedQuery"
+													]
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"services": {
+											"type": "object",
+											"properties": {
+												"search": {
+													"type": "boolean"
+												},
+												"ai": {
+													"type": "boolean"
+												}
+											},
+											"required": [
+												"search",
+												"ai"
+											]
+										},
+										"discovery": {
+											"anyOf": [
+												{
+													"type": "object",
+													"properties": {
+														"scheduleId": {
+															"type": "string"
+														},
+														"enabled": {
+															"type": "boolean"
+														},
+														"query": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"scheduleId",
+														"enabled",
+														"query"
+													]
+												},
+												{
+													"type": "null"
+												}
+											]
+										}
+									},
+									"required": [
+										"step",
+										"skipped",
+										"completed",
+										"needsSetup",
+										"baseline",
+										"services",
+										"discovery"
+									]
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Structured API error. See status and code; do not branch on message text.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": [
+										"defined",
+										"code",
+										"status",
+										"message"
+									],
+									"properties": {
+										"defined": {
+											"type": "boolean"
+										},
+										"code": {
+											"type": "string"
+										},
+										"status": {
+											"type": "integer"
+										},
+										"message": {
+											"type": "string"
+										},
+										"data": {}
+									}
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"apiKey": []
+					},
+					{
+						"bearerAuth": []
+					},
+					{
+						"cookieAuth": []
+					}
+				],
+				"x-codeSamples": [
+					{
+						"lang": "bash",
+						"label": "cURL",
+						"source": "curl --request POST \"https://rxresu.me/api/openapi/career/setup/skip\" --header \"x-api-key: <api-key>\" --header \"Content-Type: application/json\" --data '{}'"
+					}
+				]
+			}
+		},
+		"/career/setup/launch": {
+			"post": {
+				"operationId": "launchCareerSetup",
+				"summary": "Finish guided setup and start discovery",
+				"description": "Saves document settings and the discovery schedule (reusing an existing one), starts the first search at once and marks setup done. Requires a confirmed baseline.",
+				"tags": [
+					"Career"
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"query": {
+										"type": "string",
+										"minLength": 3,
+										"maxLength": 500
+									},
+									"interval": {
+										"enum": [
+											"hourly",
+											"3h",
+											"6h",
+											"daily"
+										],
+										"type": "string",
+										"default": "hourly"
+									},
+									"retrievalBudget": {
+										"type": "integer",
+										"minimum": 5,
+										"maximum": 20,
+										"default": 15
+									},
+									"resumesEnabled": {
+										"type": "boolean",
+										"default": false
+									},
+									"lettersEnabled": {
+										"type": "boolean",
+										"default": false
+									},
+									"resumePrompt": {
+										"type": "string",
+										"maxLength": 2000
+									},
+									"coverLetterPrompt": {
+										"type": "string",
+										"maxLength": 2000
+									},
+									"aiProviderId": {
+										"anyOf": [
+											{
+												"type": "string",
+												"minLength": 1
+											},
+											{
+												"type": "null"
+											}
+										],
+										"default": null
+									},
+									"dailyLimit": {
+										"type": "integer",
+										"minimum": 1,
+										"maximum": 50,
+										"default": 10
+									},
+									"timezone": {
+										"type": "string",
+										"maxLength": 100
+									},
+									"locale": {
+										"type": "string",
+										"minLength": 2,
+										"maxLength": 20
+									}
+								},
+								"required": [
+									"query",
+									"timezone"
+								]
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "OK",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"step": {
+											"enum": [
+												"baseline",
+												"services",
+												"discovery",
+												"done"
+											],
+											"type": "string"
+										},
+										"skipped": {
+											"type": "boolean"
+										},
+										"completed": {
+											"type": "boolean"
+										},
+										"needsSetup": {
+											"type": "boolean"
+										},
+										"baseline": {
+											"anyOf": [
+												{
+													"type": "object",
+													"properties": {
+														"resumeId": {
+															"type": "string"
+														},
+														"name": {
+															"type": "string"
+														},
+														"confirmed": {
+															"type": "boolean"
+														},
+														"changedSinceConfirm": {
+															"type": "boolean"
+														},
+														"suggestedQuery": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"resumeId",
+														"name",
+														"confirmed",
+														"changedSinceConfirm",
+														"suggestedQuery"
+													]
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"services": {
+											"type": "object",
+											"properties": {
+												"search": {
+													"type": "boolean"
+												},
+												"ai": {
+													"type": "boolean"
+												}
+											},
+											"required": [
+												"search",
+												"ai"
+											]
+										},
+										"discovery": {
+											"anyOf": [
+												{
+													"type": "object",
+													"properties": {
+														"scheduleId": {
+															"type": "string"
+														},
+														"enabled": {
+															"type": "boolean"
+														},
+														"query": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"scheduleId",
+														"enabled",
+														"query"
+													]
+												},
+												{
+													"type": "null"
+												}
+											]
+										}
+									},
+									"required": [
+										"step",
+										"skipped",
+										"completed",
+										"needsSetup",
+										"baseline",
+										"services",
+										"discovery"
+									]
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Structured API error. See status and code; do not branch on message text.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": [
+										"defined",
+										"code",
+										"status",
+										"message"
+									],
+									"properties": {
+										"defined": {
+											"type": "boolean"
+										},
+										"code": {
+											"type": "string"
+										},
+										"status": {
+											"type": "integer"
+										},
+										"message": {
+											"type": "string"
+										},
+										"data": {}
+									}
+								}
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"apiKey": []
+					},
+					{
+						"bearerAuth": []
+					},
+					{
+						"cookieAuth": []
+					}
+				],
+				"x-codeSamples": [
+					{
+						"lang": "bash",
+						"label": "cURL",
+						"source": "curl --request POST \"https://rxresu.me/api/openapi/career/setup/launch\" --header \"x-api-key: <api-key>\" --header \"Content-Type: application/json\" --data '{\n  \"query\": \"<string>\",\n  \"timezone\": \"<string>\"\n}'"
 					}
 				]
 			}

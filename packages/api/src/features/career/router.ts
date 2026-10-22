@@ -4,6 +4,7 @@ import {
 	careerFactInputSchema,
 	careerProfileDataSchema,
 	careerScheduleInputSchema,
+	careerSetupLaunchSchema,
 	careerScopeSchema,
 	careerStoryInputSchema,
 	careerWorkspaceSchema,
@@ -13,7 +14,10 @@ import { protectedProcedure } from "../../context";
 import {
 	careerAutomationSchema,
 	careerFactSchema,
+	careerBaselineReportSchema,
 	careerOverviewSchema,
+	careerSearchPreviewSchema,
+	careerSetupStateSchema,
 	careerPreparationJobSchema,
 	careerRunListSchema,
 	careerNotificationSchema,
@@ -30,6 +34,7 @@ import { generateCareer } from "./generate";
 import { careerJobs } from "./jobs";
 import { careerOverview } from "./overview";
 import { careerService } from "./service";
+import { careerSetup } from "./setup";
 import { careerVoiceRouter } from "./voice";
 
 const id = z.object({ id: z.string().min(1) });
@@ -115,6 +120,83 @@ export const careerRouter = {
 		.input(careerAutomationInputSchema)
 		.output(careerAutomationSchema)
 		.handler(({ context, input }) => careerAutomation.save(context.user.id, input)),
+	setup: protectedProcedure
+		.route({
+			method: "GET",
+			path: "/career/setup",
+			tags: ["Career"],
+			operationId: "getCareerSetup",
+			summary: "Get first-run setup state",
+			description:
+				"Where guided setup stands: the confirmed baseline resume, whether a search and an AI connection exist, and the discovery schedule. Derived from what is configured.",
+		})
+		.input(z.object({}))
+		.output(careerSetupStateSchema)
+		.handler(({ context }) => careerSetup.get(context.user.id)),
+	validateBaseline: protectedProcedure
+		.route({
+			method: "POST",
+			path: "/career/setup/baseline/check",
+			tags: ["Career"],
+			operationId: "checkCareerBaseline",
+			summary: "Check a resume as a baseline",
+			description:
+				"Completeness checks (contact, summary, dated and detailed experience, education, skills) plus the ATS score. Warnings never block confirming.",
+		})
+		.input(z.object({ resumeId: z.string().min(1) }))
+		.output(careerBaselineReportSchema)
+		.handler(({ context, input }) => careerSetup.validateBaseline(context.user.id, input.resumeId)),
+	confirmBaseline: protectedProcedure
+		.route({
+			method: "POST",
+			path: "/career/setup/baseline",
+			tags: ["Career"],
+			operationId: "confirmCareerBaseline",
+			summary: "Confirm the baseline resume",
+			description:
+				"Records the person's choice of baseline resume. Automation tailors documents from it and never changes it.",
+		})
+		.input(z.object({ resumeId: z.string().min(1) }))
+		.output(careerSetupStateSchema)
+		.handler(({ context, input }) => careerSetup.confirmBaseline(context.user.id, input.resumeId)),
+	previewSearch: protectedProcedure
+		.use(aiRequestRateLimit)
+		.route({
+			method: "POST",
+			path: "/career/setup/preview",
+			tags: ["Career"],
+			operationId: "previewCareerSearch",
+			summary: "Preview a discovery search",
+			description:
+				"Runs the search once with the person's search connection and returns up to eight results. Nothing is saved.",
+		})
+		.input(z.object({ query: z.string().trim().min(3).max(500) }))
+		.output(careerSearchPreviewSchema)
+		.handler(({ context, input }) => careerSetup.previewSearch(context.user.id, input.query)),
+	skipSetup: protectedProcedure
+		.route({
+			method: "POST",
+			path: "/career/setup/skip",
+			tags: ["Career"],
+			operationId: "skipCareerSetup",
+			summary: "Skip guided setup",
+		})
+		.input(z.object({}))
+		.output(careerSetupStateSchema)
+		.handler(({ context }) => careerSetup.skip(context.user.id)),
+	launchSetup: protectedProcedure
+		.route({
+			method: "POST",
+			path: "/career/setup/launch",
+			tags: ["Career"],
+			operationId: "launchCareerSetup",
+			summary: "Finish guided setup and start discovery",
+			description:
+				"Saves document settings and the discovery schedule (reusing an existing one), starts the first search at once and marks setup done. Requires a confirmed baseline.",
+		})
+		.input(careerSetupLaunchSchema)
+		.output(careerSetupStateSchema)
+		.handler(({ context, input }) => careerSetup.launch(context.user.id, input)),
 	overview: protectedProcedure
 		.route({
 			method: "GET",

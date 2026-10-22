@@ -290,3 +290,22 @@ export const careerPreparation = pg.pgTable(
 		pg.index().on(t.userId, t.status),
 	],
 );
+
+/** Where a person is in first-run setup. Skipping or finishing it is remembered so the guide is not shown again. */
+export const careerSetup = pg.pgTable("career_setup", {
+	userId: pg
+		.text("user_id")
+		.primaryKey()
+		.references(() => user.id, { onDelete: "cascade" }),
+	/** The resume the person confirmed as their baseline, and its `updated_at` when they did. */
+	baselineResumeId: pg.text("baseline_resume_id").references(() => resume.id, { onDelete: "set null" }),
+	baselineConfirmedAt: pg.timestamp("baseline_confirmed_at", { withTimezone: true }),
+	baselineVersion: pg.text("baseline_version"),
+	skippedAt: pg.timestamp("skipped_at", { withTimezone: true }),
+	completedAt: pg.timestamp("completed_at", { withTimezone: true }),
+	updatedAt: pg
+		.timestamp("updated_at", { withTimezone: true })
+		.notNull()
+		.defaultNow()
+		.$onUpdate(() => new Date()),
+});

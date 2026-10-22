@@ -31,8 +31,8 @@ export const serializeJsonLd = (data: Record<string, unknown>) =>
 
 /** The homepage's title and description in the active locale. The prerendered page and the route share them. */
 export const getHomepageMeta = () => ({
-	title: `${appName} — ${t`A free and open-source resume builder`}`,
-	description: t`Free, open-source resume builder. Create, update, and share your resume, with PDF and Word downloads, no ads and no paywall.`,
+	title: `NextRole AI — ${t`Your next role, found and prepared`}`,
+	description: t`Free, open-source job search that finds roles on a schedule, drafts a tailored resume and cover letter for each, and preps you for interviews. Built on Reactive Resume.`,
 });
 
 /** The ATS checker's title and description in the active locale. The prerendered page and the route share them. */

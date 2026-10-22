@@ -7,7 +7,7 @@ import { templateSchema } from "@reactive-resume/schema/templates";
 import { localeSchema } from "@reactive-resume/utils/locale";
 import { cn } from "@reactive-resume/utils/style";
 import { SCENE } from "./scroll";
-import { Doodle, labelClass } from "./ui";
+import { headlineClass, labelClass, leadClass } from "./ui";
 import { serializeJsonLd } from "@/libs/seo";
 
 type Question = {
@@ -27,8 +27,28 @@ function useQuestions(): Question[] {
 	return [
 		{
 			id: "free",
-			question: t`Is Reactive Resume really free?`,
-			answer: t`Yes. Every feature is free: all ${templates} templates, PDF and Word downloads, the ATS checker, cover letters and the job tracker. There are no ads, no tracking and no paid tier. Donations pay for hosting and development.`,
+			question: t`Is NextRole AI free?`,
+			answer: t`Yes. Every feature is free: scheduled discovery, tailored resumes and cover letters, interview prep, the job tracker, all ${templates} templates and the ATS checker. There are no ads, no tracking and no paid tier. AI and web search run on your own providers, which may charge for what you use.`,
+		},
+		{
+			id: "apply",
+			question: t`Does it apply to jobs for me?`,
+			answer: t`No. It finds roles and drafts documents, then stops. You review every draft, apply yourself and move the role along your board. No application is submitted and no message is sent in your name.`,
+		},
+		{
+			id: "setup",
+			question: t`What do I need to get started?`,
+			answer: t`A resume to start from, a web search connection for discovery, and an AI provider for documents and coaching. Setup walks through all three in a few minutes, and any step can be skipped and finished later.`,
+		},
+		{
+			id: "accuracy",
+			question: t`Will it make things up about me?`,
+			answer: t`Tailored resumes keep your dates, employers, titles and education exactly as you wrote them, and a rewrite that adds a figure your resume never had is thrown out. Cover letters draw only on your resume and facts you approved; anything missing is listed for you to fill in.`,
+		},
+		{
+			id: "ai",
+			question: t`Which AI providers does it work with?`,
+			answer: t`Add your own key from OpenAI, Anthropic, Google Gemini, OpenRouter, Ollama or another provider, and set a daily limit on documents. Without a key, nothing is sent to an AI service, and the resume builder, job tracker and ATS checker still work.`,
 		},
 		{
 			id: "ats",
@@ -42,29 +62,14 @@ function useQuestions(): Question[] {
 			answer: t`Only you, until you share it. A resume can stay private, go live at a public link, or be protected with a password, and you can change that at any time. Deleting your account deletes your resumes with it.`,
 		},
 		{
-			id: "import",
-			question: t`Can I import a resume I already have?`,
-			answer: t`Yes. Import a PDF, a LinkedIn data export, a JSON Resume file or a Reactive Resume export, then pick up where it left off. With an AI provider set up, Word documents work too.`,
-		},
-		{
-			id: "export",
-			question: t`What formats can I download?`,
-			answer: t`PDF, Word (DOCX), Markdown and JSON. The JSON export imports back into any Reactive Resume, including one you host yourself, so your data is never locked in.`,
-		},
-		{
-			id: "ai",
-			question: t`Does it use AI?`,
-			answer: t`Only if you want it to. Add your own key from OpenAI, Anthropic, Google Gemini, OpenRouter, Ollama or another provider for sharper lines, tailoring to a job posting, coaching for applications and interviews, and reading Word files. Without a key, nothing is sent to an AI service.`,
-		},
-		{
-			id: "interviews",
-			question: t`Can it help me prepare for interviews?`,
-			answer: t`Yes. Every job you track gets its own workspace: check your fit against the posting, draft answers from stories you wrote once, get a short plan before the interview, practise out loud with feedback and debrief afterwards. When offers arrive, compare them side by side. The coaching uses your own AI key; the comparison doesn’t need one.`,
+			id: "portable",
+			question: t`Can I bring my resume, and take it with me?`,
+			answer: t`Yes. Import a PDF, a LinkedIn data export, a JSON Resume file or a Reactive Resume export; Word documents work with an AI provider set up. Download as PDF, Word, Markdown or JSON, and the JSON imports back into any install, including one you host yourself.`,
 		},
 		{
 			id: "self-host",
 			question: t`Can I host it myself?`,
-			answer: t`Yes. Reactive Resume is open source under the MIT License and ships as a Docker image, so it runs on your own server with your own database and storage.`,
+			answer: t`Yes. NextRole AI is built on Reactive Resume, open source under the MIT License, and ships as a Docker image, so it runs on your own server with your own database and storage.`,
 			link: { label: t`Read the self-hosting guide`, href: "https://docs.rxresu.me/self-hosting/docker" },
 		},
 		{
@@ -85,7 +90,7 @@ type FaqItemProps = { item: Question; index: number };
 function FaqItem({ item, index }: FaqItemProps) {
 	const number = String(index + 1).padStart(2, "0");
 	const linkClass =
-		"mt-3 inline-flex items-center gap-1 font-medium font-ui text-[14px] text-[oklch(0.42_0.1_150)] underline underline-offset-[3px] transition-colors hover:text-[oklch(0.32_0.1_150)]";
+		"mt-3 inline-flex items-center gap-1 font-medium font-ui text-[14px] text-[oklch(0.45_0.2_277)] underline underline-offset-[3px] transition-colors hover:text-[oklch(0.38_0.19_277)]";
 
 	return (
 		<details name="faq" className="faq-item border-b border-line">
@@ -101,7 +106,7 @@ function FaqItem({ item, index }: FaqItemProps) {
 						<path data-stroke="circle" pathLength={1} d={circlePath} strokeWidth={2.6} />
 					</svg>
 				</span>
-				<h3 className="font-anybody flex-1 text-[clamp(21px,2vw,30px)] leading-[1.2] font-light tracking-[-.015em] text-pretty text-ink">
+				<h3 className="flex-1 font-display text-[clamp(19px,1.7vw,26px)] leading-[1.25] font-bold tracking-[-.03em] text-pretty text-ink">
 					{/* Shrink-wrapped, so the underline runs under the words rather than the whole row. */}
 					<span className="relative inline-block pb-1.5">
 						{item.question}
@@ -124,10 +129,10 @@ function FaqItem({ item, index }: FaqItemProps) {
 			<div className="ps-13 pe-2 pb-8">
 				<div
 					data-note
-					className="relative rounded-[3px] bg-paper px-6 py-5 text-[oklch(0.28_0.01_95)] shadow-[0_1px_2px_oklch(0.2_0.01_95/.12),0_18px_36px_-18px_oklch(0.2_0.01_95/.4)]"
+					className="relative rounded-[3px] bg-paper px-6 py-5 text-[oklch(0.28_0.02_265)] shadow-[0_1px_2px_oklch(0.2_0.02_265/.12),0_18px_36px_-18px_oklch(0.2_0.02_265/.4)]"
 					style={{ "--tilt": `${index % 2 === 0 ? -0.5 : 0.4}deg` } as CSSProperties}
 				>
-					<p className="font-display text-[clamp(17px,1.3vw,20px)] leading-normal text-pretty">{item.answer}</p>
+					<p className="font-ui text-[clamp(15px,1.15vw,17px)] leading-[1.6] text-pretty">{item.answer}</p>
 					{item.link &&
 						("to" in item.link ? (
 							<Link to={item.link.to} className={linkClass}>
@@ -150,7 +155,9 @@ function FaqItem({ item, index }: FaqItemProps) {
  * data, so search engines and assistants can quote them.
  */
 export function Faq() {
+	const { i18n } = useLingui();
 	const questions = useQuestions();
+	const count = i18n.number(questions.length);
 	const structuredData = {
 		"@context": "https://schema.org",
 		"@type": "FAQPage",
@@ -168,28 +175,19 @@ export function Faq() {
 			aria-labelledby="faq-title"
 			className="relative mx-auto grid max-w-[1440px] items-start gap-x-16 gap-y-10 border-t border-line px-(--gutter) pt-[12vh] pb-[14vh] min-[900px]:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]"
 		>
-			<Doodle
-				name="note"
-				wipe="clamp(0, (var(--p) - .3) / .2, 1)"
-				className="start-[4vw] bottom-[8vh] w-[11vw] translate-y-[calc(var(--p)*-30px)] rotate-[-6deg] max-[900px]:hidden"
-			/>
-
 			<div className="flex flex-col gap-[22px] min-[900px]:sticky min-[900px]:top-[14vh]">
 				<span className={cn(labelClass, "text-ink-3")}>{t`Questions`}</span>
-				<h2
-					id="faq-title"
-					className="font-anybody text-[clamp(48px,5.6vw,100px)] leading-[.98] font-light tracking-[-.03em] text-ink"
-				>
+				<h2 id="faq-title" className={cn(headlineClass, "text-[clamp(44px,5.2vw,88px)] leading-[.98]")}>
 					<Trans>
-						Asked and <em className="font-display font-normal text-accent-text italic">answered.</em>
+						Asked and <span className="text-accent-text">answered.</span>
 					</Trans>
 				</h2>
-				<p className="max-w-[24em] font-display text-[clamp(17px,1.4vw,21px)] leading-normal text-pretty text-ink-2">
+				<p className={cn(leadClass, "max-w-[24em]")}>
 					<Trans>
-						9 short answers to what people ask before they start. Anything else, ask on{" "}
+						{count} short answers to what people ask before they start. Anything else, ask on{" "}
 						<a
 							href="https://discord.gg/jSVSJyWd2k"
-							className="text-accent-text italic underline underline-offset-[3px] transition-colors hover:text-accent-hover"
+							className="text-accent-text underline underline-offset-[3px] transition-colors hover:text-accent-hover"
 						>
 							Discord
 						</a>

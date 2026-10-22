@@ -77,9 +77,9 @@ const BASE_SECURITY_HEADERS = {
 const githubUrl = "https://github.com/reactive-resume/reactive-resume";
 // The English copy, for a build without prerendered pages; a prerendered page carries its own locale's title and
 // description, and the social cards reuse them.
-const ROOT_TITLE = "Reactive Resume — A free and open-source resume builder";
+const ROOT_TITLE = "NextRole AI — Your next role, found and prepared";
 const ROOT_DESCRIPTION =
-	"Free, open-source resume builder. Create, update, and share your resume, with PDF and Word downloads, no ads and no paywall.";
+	"Free, open-source job search that finds roles on a schedule, drafts a tailored resume and cover letter for each, and preps you for interviews. Built on Reactive Resume.";
 const ATS_CHECKER_TITLE = "Free ATS resume checker — Reactive Resume";
 const ATS_CHECKER_DESCRIPTION =
 	"Check whether software can read your resume PDF. Runs entirely in your browser, so your file is never uploaded.";
@@ -121,7 +121,7 @@ function homepageStructuredData(origin: string): StructuredData {
 			},
 			{
 				"@type": ["SoftwareApplication", "WebApplication"],
-				name: "Reactive Resume",
+				name: "NextRole AI",
 				url: rootUrl,
 				description: ROOT_DESCRIPTION,
 				applicationCategory: "BusinessApplication",
@@ -132,6 +132,9 @@ function homepageStructuredData(origin: string): StructuredData {
 				codeRepository: githubUrl,
 				publisher: { "@id": `${origin}/#organization` },
 				featureList: [
+					"Scheduled job discovery that shows each run's results and reasons",
+					"Tailored resume and cover letter drafts for review, using your own AI key",
+					"Interview briefings, practice and a career coach",
 					"Resume editor with a live page preview",
 					`${templateSchema.options.length} templates`,
 					"PDF, Word (DOCX), Markdown and JSON export",

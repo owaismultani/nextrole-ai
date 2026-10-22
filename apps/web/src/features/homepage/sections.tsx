@@ -10,7 +10,7 @@ import { Icon } from "@reactive-resume/ui/components/icon";
 import { localeSchema } from "@reactive-resume/utils/locale";
 import { cn } from "@reactive-resume/utils/style";
 import { prefersReducedMotion, SCENE, useLanding } from "./scroll";
-import { CtaLink, Doodle, labelClass } from "./ui";
+import { CtaLink, headlineClass, labelClass, leadClass } from "./ui";
 import { orpc } from "@/libs/orpc/client";
 
 const crowdinUrl = "https://crowdin.com/project/reactive-resume";
@@ -71,7 +71,7 @@ export function Numbers() {
 		orpc.statistics.github.getStarCount.queryOptions({ staleTime: statisticsStaleTime }),
 	);
 	const rows = [
-		{ label: t`People using it`, detail: t`writing, tailoring and sending`, value: data?.users },
+		{ label: t`People using it`, detail: t`searching, tailoring and interviewing`, value: data?.users },
 		{ label: t`Resumes created`, detail: t`and counting`, value: data?.resumes },
 		{ label: t`Stars on GitHub`, detail: t`from developers who back it`, value: stars },
 	].filter((row) => row.value == null || row.value >= smallestTotalShown);
@@ -97,11 +97,9 @@ export function Numbers() {
 					>
 						<dt className="flex flex-col gap-2">
 							<span className={cn(labelClass, "text-ink-3")}>{row.label}</span>
-							<span className="font-display text-[clamp(18px,1.6vw,24px)] leading-[1.3] text-ink-2 italic">
-								{row.detail}
-							</span>
+							<span className="font-ui text-[clamp(16px,1.3vw,19px)] leading-[1.4] text-ink-2">{row.detail}</span>
 						</dt>
-						<dd className="font-anybody text-[clamp(44px,14cqi,80px)] leading-none font-light tracking-[-.03em] text-ink tabular-nums min-[900px]:text-[clamp(40px,calc(15cqi/var(--count)),80px)]">
+						<dd className="font-display text-[clamp(44px,14cqi,80px)] leading-none font-extrabold tracking-[-.045em] text-ink tabular-nums min-[900px]:text-[clamp(40px,calc(15cqi/var(--count)),80px)]">
 							{row.value == null ? (
 								<span className="text-ink-3">
 									<span aria-hidden="true">—</span>
@@ -162,17 +160,12 @@ export function Languages() {
 			aria-labelledby="languages-title"
 			className="relative flex flex-col items-center gap-[22px] overflow-hidden px-(--gutter) py-[14vh] text-center"
 		>
-			<Doodle
-				name="globe"
-				wipe="clamp(0, (var(--p) - .25) / .2, 1)"
-				className="start-[6vw] top-[10vh] w-[11vw] translate-y-[calc(var(--p)*-40px)] rotate-[-6deg] max-[900px]:hidden"
-			/>
 			<h2 id="languages-title" className={cn(labelClass, "text-ink-3")}>
 				{t`Speaks your language`}
 			</h2>
 			<div
 				aria-hidden="true"
-				className="font-anybody h-[1.25em] w-full overflow-hidden text-[clamp(48px,7.5vw,140px)] leading-[1.25] font-light tracking-[-.03em] text-ink"
+				className="h-[1.25em] w-full overflow-hidden font-display text-[clamp(48px,7.5vw,140px)] leading-[1.25] font-extrabold tracking-[-.05em] text-ink"
 			>
 				<div
 					key={index}
@@ -191,7 +184,7 @@ export function Languages() {
 			<div className="flex items-center gap-2">
 				<span
 					lang={current?.lang}
-					className="font-martian text-[12px] leading-[1.4] font-medium tracking-[.1em] text-accent-text"
+					className="font-ui text-[13px] leading-[1.4] font-semibold tracking-[.06em] text-accent-text"
 				>
 					{current?.language}
 				</span>
@@ -204,10 +197,10 @@ export function Languages() {
 					<Icon name={paused ? "play" : "pause"} size={16} filled />
 				</button>
 			</div>
-			<p className="mt-3 max-w-[30em] font-display text-[clamp(17px,1.4vw,21px)] leading-normal text-pretty text-ink-2">
+			<p className={cn(leadClass, "mt-3 max-w-[30em]")}>
 				<a
 					href={crowdinUrl}
-					className="text-accent-text italic underline underline-offset-[3px] transition-colors hover:text-accent-hover"
+					className="text-accent-text underline underline-offset-[3px] transition-colors hover:text-accent-hover"
 				>
 					{t`Translated into ${languageCount} languages. Help translate it into yours.`}
 				</a>
@@ -233,14 +226,21 @@ export function Support() {
 		comment: "Receipt line amount for something Reactive Resume doesn't have, e.g. ads.",
 	});
 	const lineItems = [
+		[t`Scheduled discovery`, nothing],
+		[t`Tailored resumes`, nothing],
+		[t`Cover letters`, nothing],
+		[t`Interview prep and coach`, nothing],
+		[t`Job tracker`, nothing],
 		[t`Resume builder`, nothing],
 		[t`Templates × ${templates}`, nothing],
-		[t`Assistant (your key)`, nothing],
-		[t`Career coach (your key)`, nothing],
-		[t`Interview prep`, nothing],
 		[t`ATS checker`, nothing],
-		[t`Job tracker`, nothing],
-		[t`Cover letters`, nothing],
+		[
+			t`AI and web search`,
+			t({
+				message: "your key",
+				comment: "Receipt line amount: AI and web search are billed by the visitor's own provider.",
+			}),
+		],
 		[t`Ads`, none],
 		[t`Tracking`, none],
 	] as const;
@@ -257,24 +257,15 @@ export function Support() {
 			aria-labelledby="support-title"
 			className="relative mx-auto grid max-w-[1440px] grid-cols-[repeat(auto-fit,minmax(min(100%,440px),1fr))] items-start gap-16 border-t border-line px-(--gutter) pt-[12vh] pb-[16vh]"
 		>
-			<Doodle
-				name="jar"
-				wipe="clamp(0, (var(--p) - .3) / .2, 1)"
-				className="start-[3vw] bottom-[4vh] w-[9vw] translate-y-[calc(var(--p)*-30px)] rotate-[4deg] max-[900px]:hidden"
-			/>
-
 			<div className="flex flex-col gap-[22px] pt-[4vh]">
 				<span className={cn(labelClass, "text-ink-3")}>{t`Support`}</span>
-				<h2
-					id="support-title"
-					className="font-anybody text-[clamp(48px,5.6vw,100px)] leading-[.98] font-light tracking-[-.03em] text-ink"
-				>
+				<h2 id="support-title" className={cn(headlineClass, "text-[clamp(44px,5.2vw,88px)] leading-[.98]")}>
 					<Trans>
-						Keep it <em className="font-display font-normal text-accent-text italic">free.</em>
+						Free, and <span className="text-accent-text">open.</span>
 					</Trans>
 				</h2>
-				<p className="max-w-[28em] font-display text-[clamp(17px,1.4vw,21px)] leading-normal text-pretty text-ink-2">
-					{t`Reactive Resume is open source under the MIT License. Amruth Pillai and a community of contributors keep it running, and donations pay for hosting and development. There’s no paid tier.`}
+				<p className={cn(leadClass, "max-w-[28em]")}>
+					{t`NextRole AI is built on Reactive Resume, open source under the MIT License. Amruth Pillai and a community of contributors keep it running, and donations pay for hosting and development. There’s no paid tier: you pay only your own AI and search providers, if you use them.`}
 				</p>
 				<ul className="flex flex-wrap gap-2">
 					{pills.map((pill) => (
@@ -287,7 +278,7 @@ export function Support() {
 					))}
 				</ul>
 				<div className="grid max-w-[28em] gap-3 border-t border-line pt-5">
-					<h3 className="font-display text-2xl text-ink">{t`A second pair of eyes.`}</h3>
+					<h3 className="font-display text-2xl font-bold tracking-[-.03em] text-ink">{t`A second pair of eyes.`}</h3>
 					<p className="font-ui text-sm leading-normal text-ink-2">
 						{t`Exchange resume feedback, ask questions, and help shape Reactive Resume with the community.`}
 					</p>
@@ -310,8 +301,8 @@ export function Support() {
 					<div className="[transform:translateY(calc((1-clamp(0,var(--p)*1.7-.15,1))*-100%))] drop-shadow-[0_18px_24px_oklch(0.2_0.01_95/.22)] [transition:transform_.4s_linear]">
 						<div className="receipt-paper font-receipt bg-[#fdfcf8] px-[26px] pt-[30px] pb-[46px] text-[14px] leading-[1.75] font-medium text-[oklch(0.25_0.01_95)]">
 							<div className="mb-4 flex flex-col gap-0.5 text-center">
-								<b className="text-[18px] leading-[1.1] font-bold tracking-[-.01em]">REACTIVE RESUME</b>
-								<span className="text-[oklch(0.5_0.01_95)]">{t`A free and open-source resume builder`}</span>
+								<b className="text-[18px] leading-[1.1] font-bold tracking-[-.01em]">NEXTROLE AI</b>
+								<span className="text-[oklch(0.5_0.01_95)]">{t`Built on Reactive Resume`}</span>
 								<span className="text-[oklch(0.5_0.01_95)] uppercase">
 									{i18n.date(receiptDate, { day: "2-digit", month: "short", year: "numeric" })}
 								</span>
@@ -363,56 +354,21 @@ export function Support() {
 	);
 }
 
-/**
- * 12 Closing call to action. The story hands over: Alex's Fieldnote card rests at Interview on the board Tailor
- * started, and an empty card waits under Saved for the reader's own.
- */
+/** 12 Closing call to action: the story hands over to the visitor, with the same call to action as the hero. */
 export function Closing() {
-	const stages = [
-		{ label: t`Saved`, dot: "bg-stage-saved" },
-		{ label: t`Applied`, dot: "bg-stage-applied" },
-		{ label: t`Interview`, dot: "bg-stage-interview" },
-		{ label: t`Offer`, dot: "bg-stage-offer" },
-	];
-
 	return (
 		<section
 			aria-labelledby="closing-title"
 			className="relative mx-auto flex max-w-[1440px] flex-col items-center gap-7 border-t border-line px-(--gutter) pt-[16vh] pb-[18vh] text-center"
 		>
-			<div
-				aria-hidden="true"
-				className="mb-4 w-[min(100%,560px)] rounded-[14px] border border-dashed border-line-2 px-3.5 py-3"
-			>
-				<div className="font-martian grid grid-cols-4 gap-2 text-[10px] leading-none font-medium tracking-[.06em] text-ink-3 uppercase">
-					{stages.map((stage) => (
-						<span key={stage.label} className="flex min-w-0 items-center gap-[5px]">
-							<span className={cn("size-[7px] shrink-0 rounded-full", stage.dot)} />
-							{stage.label}
-						</span>
-					))}
-				</div>
-				<div className="mt-2.5 grid grid-cols-4 gap-2 text-start">
-					<span className="flex h-11 items-center justify-center rounded-[9px] border-[1.5px] border-dashed border-accent font-display text-[15px] text-accent-text italic">
-						{t`Yours`}
-					</span>
-					<span className="col-start-3 flex h-11 min-w-0 flex-col justify-center rounded-[9px] border border-line bg-raised px-2 font-ui text-[11.5px] leading-[1.2] font-semibold text-ink shadow-e2">
-						{t`Fieldnote`}
-						<span className="truncate text-[10.5px] font-normal text-ink-3">{t`Interview done`}</span>
-					</span>
-				</div>
-			</div>
-			<span className={cn(labelClass, "text-ink-3")}>{t`Your turn`}</span>
-			<h2
-				id="closing-title"
-				className="font-anybody text-[clamp(48px,6vw,108px)] leading-none font-light tracking-[-.03em] text-balance text-ink"
-			>
+			<span className={cn(labelClass, "text-accent-text")}>{t`Your turn`}</span>
+			<h2 id="closing-title" className={cn(headlineClass, "max-w-[14em] text-[clamp(44px,6vw,104px)] leading-[.98]")}>
 				<Trans>
-					Put it all on <em className="font-display font-normal text-accent-text italic">one page.</em>
+					Let the search run. <span className="text-accent-text">Keep the final say.</span>
 				</Trans>
 			</h2>
-			<p className="max-w-[28em] font-display text-[clamp(17px,1.4vw,21px)] leading-normal text-pretty text-ink-2">
-				{t`Start from scratch or import what you have. It takes a few minutes, and you can come back to it anytime.`}
+			<p className={cn(leadClass, "max-w-[30em]")}>
+				{t`Bring the resume you have and set up one search. It takes a few minutes, and you can pause it whenever you like.`}
 			</p>
 			<CtaLink size="closing" />
 		</section>

@@ -4,23 +4,24 @@ import { Trans } from "@lingui/react/macro";
 import { Link } from "@tanstack/react-router";
 import { cn } from "@reactive-resume/utils/style";
 import { SCENE } from "./scroll";
-import { labelClass } from "./ui";
+import { Brand, labelClass } from "./ui";
 
 const githubUrl = "https://github.com/reactive-resume/reactive-resume";
 const licenseUrl = `${githubUrl}/blob/main/LICENSE`;
 const linkClass = "text-ink transition-colors hover:text-accent-text";
 
-type FooterLink = { label: string; href: string } | { label: string; to: "/ats-checker" | "/dashboard" };
+type FooterLink = { label: string; href: string } | { label: string; to: "/ats-checker" | "/dashboard/overview" };
 
 const getColumns = (): { id: string; title: string; links: FooterLink[] }[] => [
 	{
 		id: "product",
 		title: t`Product`,
 		links: [
-			{ label: t`Templates`, href: "#design" },
-			{ label: t`Features`, href: "#write" },
+			{ label: t`Discover`, href: "#discover" },
+			{ label: t`How it works`, href: "#control" },
+			{ label: t`Templates`, href: "#builder" },
 			{ label: t`ATS checker`, to: "/ats-checker" },
-			{ label: t`Get started`, to: "/dashboard" },
+			{ label: t`Get started`, to: "/dashboard/overview" },
 		],
 	},
 	{
@@ -72,30 +73,26 @@ function FooterLinkItem({ link }: { link: FooterLink }): ReactNode {
 	);
 }
 
-/** 13 Footer, ending on the wordmark rising into view, cropped by the page's edge. */
+/** 13 Footer, ending on the NextRole wordmark rising into view, cropped by the page's edge. */
 export function LandingFooter() {
 	return (
 		<footer data-scene={SCENE.footer} className="relative overflow-hidden border-t border-line">
 			<div className="mx-auto grid max-w-[1440px] grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-x-8 gap-y-10 px-(--gutter) pt-16">
 				<div className="col-span-2 flex min-w-0 flex-col gap-3.5">
-					<img
-						loading="lazy"
-						src="/logo/light.svg"
-						alt="Reactive Resume"
-						width={140}
-						height={140}
-						className="-ms-[18px] -mt-[22px] -mb-[18px] size-[140px] dark:hidden"
-					/>
-					<img
-						loading="lazy"
-						src="/logo/dark.svg"
-						alt="Reactive Resume"
-						width={140}
-						height={140}
-						className="-ms-[18px] -mt-[22px] -mb-[18px] hidden size-[140px] dark:block"
-					/>
+					<Brand size="footer" />
 					<div className="flex flex-col gap-1 font-ui text-[13px] leading-normal text-ink-3">
-						<p>{t`By the community, for the community.`}</p>
+						<p>
+							<Trans>
+								Built on{" "}
+								<a
+									href={githubUrl}
+									className="text-accent-text underline underline-offset-[3px] transition-colors hover:text-accent-hover"
+								>
+									Reactive Resume
+								</a>
+								, by the community, for the community.
+							</Trans>
+						</p>
 						<p>
 							<Trans>
 								Licensed under{" "}
@@ -133,10 +130,9 @@ export function LandingFooter() {
 
 			{/* It fades in by sliding up out of the mask's faded bottom; an opacity fade would fail contrast checks. */}
 			<div aria-hidden="true" className="@container mx-auto mt-14 max-w-[1440px] px-(--gutter)">
-				<div className="h-[27cqw] overflow-hidden [mask-image:linear-gradient(to_bottom,#000_35%,transparent_100%)]">
-					<div className="font-anybody [transform:translateY(calc((1-clamp(0,(var(--p)-.1)/.8,1))*60%))] pt-[.12em] pb-[.06em] text-[17.5cqw] leading-[.84] font-extrabold tracking-[-.035em] whitespace-nowrap text-ink font-stretch-[78%] select-none [transition:transform_.35s_var(--ease)]">
-						<span className="block">Reactive</span>
-						<span className="block text-accent-text">Resume</span>
+				<div className="h-[19cqw] overflow-hidden [mask-image:linear-gradient(to_bottom,#000_45%,transparent_100%)]">
+					<div className="[transform:translateY(calc((1-clamp(0,(var(--p)-.1)/.8,1))*60%))] pt-[.1em] font-display text-[22cqw] leading-[.84] font-extrabold tracking-[-.065em] whitespace-nowrap text-ink select-none [transition:transform_.35s_var(--ease)]">
+						Next<span className="text-accent-text">Role</span>
 					</div>
 				</div>
 			</div>

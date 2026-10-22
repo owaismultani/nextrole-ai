@@ -1,5 +1,5 @@
 import type { SearchOptions } from "../web-access/contracts";
-import type { CareerRunReport, careerScheduleInputSchema } from "@reactive-resume/schema/career";
+import type { CareerRunReport, careerScheduleInputSchema, RunItemDecision } from "@reactive-resume/schema/career";
 import type z from "zod";
 import { ORPCError } from "@orpc/client";
 import { and, asc, desc, eq, inArray, isNull, lte, or, sql } from "drizzle-orm";
@@ -13,6 +13,7 @@ import { aiProvidersService } from "../ai-providers/service";
 import { jobSearchQuery, readOpenPosting, searchJobPostings } from "../applications/posting";
 import { webAccessService } from "../web-access/credentials";
 import { enqueueAutomatedPreparation, retrievalFor } from "./automation";
+import { purgeOldActivity, recordEvent, recordEventIn } from "./events";
 import { generateCareer } from "./generate";
 import { matchPosting } from "./matching";
 import { noticeText } from "./notices";
@@ -198,6 +199,8 @@ export const careerJobs = {
 						? new Date()
 						: advanceRun(schedule.nextRunAt, schedule)
 					: schedule.nextRunAt;
+			if (schedule.enabled !== enabled)
+				await recordEventIn(tx, { userId, kind: "setting.changed", data: { what: "discovery", on: enabled } });
 			const [row] = await tx
 				.update(tables.careerSchedule)
 				.set({ enabled, nextRunAt })
@@ -358,7 +361,21 @@ async function discover(userId: string, query: string, trigger: Trigger, started
 				? { outcome: "partial" as const }
 				: {}),
 	};
-	return { results, report };
+	// What became of each result, for the run's detail view. First sighting of each address only, capped.
+	const items: { url: string; host: string; title: string; decision: RunItemDecision }[] = [];
+	const decide = (result: (typeof results)[number]): RunItemDecision =>
+		result.read === "failed" ? "unreadable" : result.posting === null ? "rejected" : result.existing ? "known" : "new";
+	for (const result of results)
+		items.push({
+			url: result.url.slice(0, 1000),
+			host: hostOf(result.url) ?? "",
+			title: result.hit.title.replace(/\s+/g, " ").trim().slice(0, 200),
+			decision: decide(result),
+		});
+	for (const hit of hits)
+		if (!canonicalOpportunityUrl(hit.url))
+			items.push({ url: hit.url.slice(0, 1000), host: "", title: hit.title.slice(0, 200), decision: "invalid" });
+	return { results, report, items: items.slice(0, 50) };
 }
 
 async function enqueue() {
@@ -541,8 +558,12 @@ async function execute(job: typeof tables.careerJob.$inferSelect) {
 			await tx
 				.insert(tables.careerRun)
 				.values({ id: runId, userId: job.userId, scheduleId: schedule.id, report: discovery.report });
+		if (discovery?.items.length)
+			await tx
+				.insert(tables.careerRunItem)
+				.values(discovery.items.map((item) => ({ ...item, runId, userId: job.userId })));
 		let changed = 0;
-		const added: string[] = [];
+		const added: { id: string; role: string; company: string }[] = [];
 		for (const { url, hit, posting, existing } of results) {
 			// Seen before, or unreadable this run.
 			if (posting === undefined) {
@@ -590,7 +611,7 @@ async function execute(job: typeof tables.careerJob.$inferSelect) {
 				.returning();
 			if (inserted && posting && !existing) {
 				changed++;
-				added.push(inserted.id);
+				added.push({ id: inserted.id, role: values.role, company: values.company });
 			}
 		}
 		// New roles all wait in one list, so the newest "new roles" notice replaces older unread ones.
@@ -625,10 +646,51 @@ async function execute(job: typeof tables.careerJob.$inferSelect) {
 				.onConflictDoNothing();
 		// New roles become applications with their requested documents queued, in this same transaction; the documents
 		// themselves are made later by the preparation worker, so discovery never waits for AI.
-		if (schedule.kind === "discovery") await enqueueAutomatedPreparation(tx, job.userId, added);
+		const queuedKinds =
+			schedule.kind === "discovery"
+				? await enqueueAutomatedPreparation(
+						tx,
+						job.userId,
+						added.map((item) => item.id),
+					)
+				: [];
 		// A run that read nothing is not a success; partial ones still count, and say so in `lastRun`.
 		const report = discovery && { ...discovery.report, matches: changed };
 		if (report) await tx.update(tables.careerRun).set({ report }).where(eq(tables.careerRun.id, runId));
+		if (report)
+			await recordEventIn(tx, [
+				{
+					userId: job.userId,
+					kind: "run.finished",
+					level: report.outcome === "failed" ? "error" : report.outcome === "partial" ? "warn" : "info",
+					runId,
+					data: {
+						outcome: report.outcome,
+						failure: report.failure,
+						trigger: report.trigger,
+						found: report.found,
+						matches: report.matches,
+						duplicates: report.duplicates,
+						rejected: report.rejected,
+						readFailures: report.readFailures,
+					},
+				},
+				...added.map((item) => ({
+					userId: job.userId,
+					kind: "job.saved" as const,
+					runId,
+					opportunityId: item.id,
+					data: { role: item.role.slice(0, 120), company: item.company.slice(0, 120) },
+				})),
+				...added.flatMap((item) =>
+					queuedKinds.map((kind) => ({
+						userId: job.userId,
+						kind: "prep.queued" as const,
+						opportunityId: item.id,
+						data: { kind, role: item.role.slice(0, 120), company: item.company.slice(0, 120) },
+					})),
+				),
+			]);
 		await tx
 			.update(tables.careerSchedule)
 			.set({
@@ -665,7 +727,17 @@ async function recordFailure(job: typeof tables.careerJob.$inferSelect, error?: 
 						failure: "unknown" as const,
 					};
 		await db.update(tables.careerSchedule).set({ lastRun }).where(eq(tables.careerSchedule.id, job.scheduleId));
-		await db.insert(tables.careerRun).values({ userId: job.userId, scheduleId: job.scheduleId, report: lastRun });
+		const [failedRun] = await db
+			.insert(tables.careerRun)
+			.values({ userId: job.userId, scheduleId: job.scheduleId, report: lastRun })
+			.returning({ id: tables.careerRun.id });
+		await recordEvent({
+			userId: job.userId,
+			kind: "run.finished",
+			level: "error",
+			runId: failedRun?.id ?? null,
+			data: { outcome: "failed", failure: lastRun.failure, trigger: lastRun.trigger, found: 0, matches: 0 },
+		});
 	} catch {
 		// Reporting must never stop the scheduler.
 	}
@@ -768,6 +840,7 @@ export async function runCareerJobs() {
 			.onConflictDoNothing();
 	}
 	await enqueue();
+	await purgeOldActivity();
 	let processed = 0;
 	for (let i = 0; i < 2; i++) {
 		const job = await claim();

@@ -1,4 +1,5 @@
 import type {
+	CareerEventData,
 	CareerNotice,
 	CareerProfileData,
 	CareerRunReport,
@@ -309,3 +310,53 @@ export const careerSetup = pg.pgTable("career_setup", {
 		.defaultNow()
 		.$onUpdate(() => new Date()),
 });
+
+/** What the pipeline did, newest last. Append-only and short-lived; see ACTIVITY_RETENTION_DAYS. */
+export const careerEvent = pg.pgTable(
+	"career_event",
+	{
+		id: pg
+			.text("id")
+			.primaryKey()
+			.$defaultFn(() => generateId()),
+		userId: pg
+			.text("user_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		createdAt: pg.timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+		kind: pg.text("kind").notNull(),
+		level: pg.text("level").notNull().default("info"),
+		runId: pg.text("run_id").references(() => careerRun.id, { onDelete: "cascade" }),
+		opportunityId: pg.text("opportunity_id").references(() => careerOpportunity.id, { onDelete: "cascade" }),
+		data: pg.jsonb("data").notNull().$type<CareerEventData>().default({}),
+	},
+	(t) => [
+		pg.index().on(t.userId, t.createdAt.desc(), t.id.desc()),
+		pg.index().on(t.opportunityId, t.createdAt),
+		pg.index().on(t.createdAt),
+	],
+);
+
+/** One search result of a run and what became of it, so "why wasn't this found" has an answer. */
+export const careerRunItem = pg.pgTable(
+	"career_run_item",
+	{
+		id: pg
+			.text("id")
+			.primaryKey()
+			.$defaultFn(() => generateId()),
+		runId: pg
+			.text("run_id")
+			.notNull()
+			.references(() => careerRun.id, { onDelete: "cascade" }),
+		userId: pg
+			.text("user_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		url: pg.text("url").notNull(),
+		host: pg.text("host").notNull().default(""),
+		title: pg.text("title").notNull().default(""),
+		decision: pg.text("decision").notNull(),
+	},
+	(t) => [pg.index().on(t.runId)],
+);

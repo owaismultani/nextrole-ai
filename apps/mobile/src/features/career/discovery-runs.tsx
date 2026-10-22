@@ -8,6 +8,7 @@ import { View } from "react-native";
 import { diagnose } from "./discovery-run";
 import { DiscoveryStatus } from "./discovery-status";
 import { useCareerTime, useTodayQueries } from "./hooks";
+import { RunResults } from "./pipeline-detail";
 import { summaryLabel } from "./preparation";
 import { Section } from "./shared";
 import { orpc } from "@/api/client";
@@ -112,6 +113,7 @@ function RunCard({ run, open, onToggle }: { run: Run; open: boolean; onToggle: (
 							.filter(Boolean)
 							.join("\n")}
 					</Text>
+					<RunResults runId={run.id} />
 					{run.jobs.map((job) => (
 						<View key={job.opportunityId} style={{ gap: space.s1 }}>
 							<Text>{[job.company, job.role].filter(Boolean).join(" · ")}</Text>

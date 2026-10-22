@@ -3,11 +3,14 @@ import z from "zod";
 import * as tables from "@reactive-resume/db/schema";
 import {
 	careerIntervalMinutesSchema,
+	careerEventKindSchema,
+	careerEventLevelSchema,
 	careerNoticeSchema,
 	careerRunReportSchema,
 	careerSourceSchema,
 	careerStoryInputSchema,
 	preparationErrorSchema,
+	runItemDecisionSchema,
 	preparationKindSchema,
 	preparationStatusSchema,
 	savedItemDataSchema,
@@ -131,12 +134,24 @@ export const careerOverviewSchema = z.object({
 		upcomingInterviews: z.number(),
 		unreadReminders: z.number(),
 		newRoles: z.number(),
+		savedJobs: z.number(),
 		discoveryFailing: z.boolean(),
 	}),
-	funnel: z.array(
+	stages: z.array(
 		z.object({
-			key: z.enum(["discovered", "saved", "documents", "applied", "screening", "interview", "offer"]),
-			count: z.number(),
+			key: z.enum(["schedule", "search", "read", "filter", "save", "prepare", "review", "apply"]),
+			state: z.enum(["ok", "running", "waiting", "warn", "failed", "off", "idle", "yours"]),
+			code: z.string(),
+			count: z.number().nullable(),
+			at: z.date().nullable(),
+		}),
+	),
+	checks: z.array(
+		z.object({
+			key: z.enum(["schedule", "next-run", "search", "ai", "baseline", "limit", "last-run", "repeating"]),
+			status: z.enum(["ok", "warn", "fail", "info"]),
+			at: z.date().nullable(),
+			value: z.number().nullable(),
 		}),
 	),
 	discovery: z.object({
@@ -174,6 +189,7 @@ export const careerOverviewSchema = z.object({
 		used: z.number(),
 		limit: z.number(),
 		resetsAt: z.date(),
+		generating: z.number(),
 		deferred: z.number(),
 		stale: z.number(),
 	}),
@@ -186,6 +202,48 @@ export const careerOverviewSchema = z.object({
 			kind: z.string(),
 		}),
 	),
+	actions: z.object({
+		counts: z.object({ ready: z.number(), followUps: z.number(), issues: z.number() }),
+		items: z.array(
+			z.object({
+				kind: z.enum(["issue", "followup", "stale", "ready"]),
+				applicationId: z.string(),
+				company: z.string(),
+				role: z.string(),
+				location: z.string(),
+				code: z.enum(["failed", "overdue", "due", "stale", "ready"]),
+				done: z.array(z.enum(["resume", "letter"])),
+				failed: z.array(z.enum(["resume", "letter"])),
+				appliedDaysAgo: z.number().nullable(),
+				followUpInDays: z.number().nullable(),
+			}),
+		),
+	}),
+	nextInterview: z
+		.object({
+			applicationId: z.string(),
+			interviewId: z.string().nullable(),
+			company: z.string(),
+			role: z.string(),
+			at: z.date(),
+			kind: z.string(),
+			durationMinutes: z.number(),
+			timezone: z.string(),
+			briefing: z.boolean(),
+			practice: z.boolean(),
+		})
+		.nullable(),
+	outcomes: z.object({ submitted: z.number(), firstResponses: z.number(), interviews: z.number(), offers: z.number() }),
+	latestDiscovery: z
+		.object({
+			at: z.date(),
+			outcome: z.enum(["success", "partial", "failed"]),
+			found: z.number(),
+			matches: z.number(),
+			readFailures: z.number(),
+			job: z.object({ role: z.string(), company: z.string(), location: z.string() }).nullable(),
+		})
+		.nullable(),
 });
 
 export const careerSetupStateSchema = z.object({
@@ -240,3 +298,33 @@ export const careerBaselineReportSchema = z.object({
 export const careerSearchPreviewSchema = z.array(
 	z.object({ title: z.string(), url: z.string(), description: z.string() }),
 );
+
+export const careerEventSchema = z.object({
+	id: z.string(),
+	at: z.date(),
+	kind: careerEventKindSchema,
+	level: careerEventLevelSchema,
+	runId: z.string().nullable(),
+	opportunityId: z.string().nullable(),
+	data: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])),
+});
+
+export const careerActivityListSchema = z.object({ total: z.number(), items: z.array(careerEventSchema) });
+
+export const careerRunDetailSchema = z.object({
+	id: z.string(),
+	createdAt: z.date(),
+	report: careerRunReportSchema,
+	items: z.array(z.object({ url: z.string(), host: z.string(), title: z.string(), decision: runItemDecisionSchema })),
+});
+
+export const careerJourneySchema = z.object({
+	opportunityId: z.string(),
+	role: z.string(),
+	company: z.string(),
+	url: z.string(),
+	applicationId: z.string().nullable(),
+	foundAt: z.date(),
+	run: z.object({ id: z.string(), at: z.date(), query: z.string() }).nullable(),
+	events: z.array(careerEventSchema),
+});

@@ -1,10 +1,11 @@
 import type { RouterOutput } from "@/api/client";
 import { useLingui } from "@lingui/react/macro";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
-import { useCareerTime } from "./hooks";
+import { client, useCareerTime } from "./hooks";
+import { describeAction, interviewKindLabel, summarizeRecent } from "./overview-words";
 import { Section } from "./shared";
 import { orpc } from "@/api/client";
 import { useSession } from "@/auth/session";
@@ -12,9 +13,10 @@ import { routes } from "@/routes";
 import { Banner, Button, Card, Screen, SelectSheet, Text, useTheme } from "@/ui";
 
 type Overview = RouterOutput["career"]["overview"];
-type Days = "7" | "30" | "90";
+type Days = "7" | "14" | "30";
+type Tab = "all" | "ready" | "followups" | "issues";
 
-/** Career → Overview: what needs you, how far jobs get, how discovery and automation are doing, what is coming up. */
+/** Career → Overview: your next actions, what is coming up, how automation and discovery are doing, and your outcomes. */
 export function OverviewScreen() {
 	const { t } = useLingui();
 	const { space } = useTheme();
@@ -22,257 +24,33 @@ export function OverviewScreen() {
 	const queryClient = useQueryClient();
 	const [days, setDays] = useState<Days>("30");
 	const query = useQuery({
-		...orpc.career.overview.queryOptions({ input: { days: Number(days) as 7 | 30 | 90 } }),
+		...orpc.career.overview.queryOptions({ input: { days: Number(days) as 7 | 14 | 30 } }),
 		enabled: session.status === "signed-in",
 		queryKey: [...orpc.career.overview.key(), session.server, days],
 		placeholderData: (previous) => previous,
 	});
 	return (
 		<Screen onRefresh={() => Promise.allSettled([queryClient.invalidateQueries({ queryKey: orpc.career.key() })])}>
-			<SelectSheet
-				label={t`Time window`}
-				value={days}
-				onChange={setDays}
-				options={[
-					{ value: "7" as const, label: t`7 days` },
-					{ value: "30" as const, label: t`30 days` },
-					{ value: "90" as const, label: t`90 days` },
-				]}
-			/>
 			{query.isError ? <Banner tone="danger" message={t`Couldn't load the overview. Pull to refresh.`} /> : null}
 			{query.data ? (
 				<View style={{ gap: space.s5 }}>
 					<FinishSetup />
-					<NeedsYou data={query.data} />
-					<Funnel data={query.data} />
-					<DiscoveryHealth data={query.data} />
-					<AutomationUse data={query.data} />
-					<Interviews data={query.data} />
+					<DiscoveryBanner data={query.data} />
+					<Text color="ink2">{t`${query.data.needsYou.savedJobs} saved applications · ${query.data.needsYou.readyDocuments} with documents ready`}</Text>
+					<NextActions data={query.data} />
+					<ComingUp data={query.data} />
+					<RecentActivity />
+					<AutomationCard data={query.data} />
+					<Outcomes data={query.data} days={days} onDays={setDays} />
+					<LatestDiscovery data={query.data} />
 				</View>
 			) : null}
 		</Screen>
 	);
 }
 
-function NeedsYou({ data }: { data: Overview }) {
-	const { t } = useLingui();
-	const { space } = useTheme();
-	const router = useRouter();
-	const n = data.needsYou;
-	const rows: { count: number; label: string; open: () => void; bad?: boolean }[] = [
-		{
-			count: n.readyDocuments,
-			label: t`Documents ready for review`,
-			open: () => router.push(routes.career("pipeline")),
-		},
-		{
-			count: n.attentionDocuments,
-			label: t`Documents need attention`,
-			open: () => router.push(routes.career("pipeline")),
-			bad: true,
-		},
-		{
-			count: n.upcomingInterviews,
-			label: t`Interviews in the next 7 days`,
-			open: () => router.push(routes.applications()),
-		},
-		{ count: n.unreadReminders, label: t`Reminders and briefings`, open: () => router.push(routes.career("today")) },
-		{ count: n.newRoles, label: t`New roles to review`, open: () => router.push(routes.career("today")) },
-	];
-	const open = rows.filter((row) => row.count > 0);
-	return (
-		<Section title={t`Needs you now`}>
-			{n.discoveryFailing ? (
-				<Banner tone="danger" message={t`The last discovery run failed. Open Pipeline to see why.`} />
-			) : null}
-			{open.length === 0 && !n.discoveryFailing ? (
-				<Text color="ink3">{t`You are up to date. Nothing is waiting for you.`}</Text>
-			) : (
-				open.map((row) => (
-					<Card key={row.label} style={{ gap: space.s1 }}>
-						<Text variant="title" color={row.bad ? "dangerText" : "ink"}>{`${row.count}`}</Text>
-						<Text color="ink2">{row.label}</Text>
-						<Button variant="ghost" label={t`Open`} onPress={row.open} />
-					</Card>
-				))
-			)}
-		</Section>
-	);
-}
+// ---- Banners ----
 
-function Funnel({ data }: { data: Overview }) {
-	const { t } = useLingui();
-	const { space, colors } = useTheme();
-	const labels = {
-		discovered: t`Found`,
-		saved: t`Saved`,
-		documents: t`Documents ready`,
-		applied: t`Applied`,
-		screening: t`Screening`,
-		interview: t`Interview`,
-		offer: t`Offer`,
-	} as const;
-	const max = Math.max(1, ...data.funnel.map((step) => step.count));
-	return (
-		<Section title={t`Pipeline, last ${data.windowDays} days`}>
-			<Card style={{ gap: space.s3 }}>
-				{data.funnel.map((step) => (
-					<View key={step.key} style={{ gap: space.s1 }}>
-						<View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-							<Text color="ink2">{labels[step.key]}</Text>
-							<Text weight={600}>{`${step.count}`}</Text>
-						</View>
-						<View style={{ height: 8, borderRadius: 4, backgroundColor: colors.sunken, overflow: "hidden" }}>
-							<View
-								style={{
-									height: 8,
-									borderRadius: 4,
-									backgroundColor: colors.accent,
-									width: `${Math.max(step.count > 0 ? 3 : 0, (step.count / max) * 100)}%`,
-								}}
-							/>
-						</View>
-					</View>
-				))}
-				<Text
-					variant="callout"
-					color="ink3"
-				>{t`Each step counts jobs that reached it in this window, so later steps can include jobs found earlier.`}</Text>
-			</Card>
-		</Section>
-	);
-}
-
-function DiscoveryHealth({ data }: { data: Overview }) {
-	const { t } = useLingui();
-	const { space, colors } = useTheme();
-	const router = useRouter();
-	const time = useCareerTime();
-	const d = data.discovery;
-	const max = Math.max(1, ...d.runs.map((run) => run.found));
-	return (
-		<Section title={t`Discovery`}>
-			<Card style={{ gap: space.s2 }}>
-				{!d.scheduleId ? (
-					<Text color="ink3">{t`No discovery schedule yet. Set one up in Career → Today.`}</Text>
-				) : (
-					<>
-						<Text color="ink2">{`${d.enabled ? t`On` : t`Paused`} · ${t`Last success`}: ${d.lastSucceededAt ? time.when(d.lastSucceededAt) : t`Never`}`}</Text>
-						<Text color="ink2">{`${t`Next run`}: ${d.nextRunAt ? time.when(d.nextRunAt) : t`Paused`}`}</Text>
-						{d.runs.length > 0 ? (
-							<View style={{ flexDirection: "row", alignItems: "flex-end", gap: 3, height: 56 }}>
-								{d.runs.map((run) => (
-									<View
-										key={run.at.toISOString()}
-										style={{
-											flex: 1,
-											minWidth: 3,
-											borderRadius: 2,
-											height: `${Math.max(8, (run.found / max) * 100)}%`,
-											backgroundColor:
-												run.outcome === "failed" ? colors.danger : run.matches > 0 ? colors.accent : colors.line2,
-										}}
-									/>
-								))}
-							</View>
-						) : (
-							<Text color="ink3">{t`No runs in this window.`}</Text>
-						)}
-						<Text color="ink3">
-							{t`Runs ${d.totals.runs} · New ${d.totals.matches} · Duplicates ${d.totals.duplicates} · Rejected ${d.totals.rejected} · Read failures ${d.totals.readFailures} · Failed ${d.totals.failed}`}
-						</Text>
-						{d.failing ? (
-							<Banner tone="danger" message={t`The latest run failed. Open Pipeline for the reason.`} />
-						) : null}
-						{d.repeating ? (
-							<Banner
-								tone="warn"
-								message={t`The last five runs found nothing new but kept seeing jobs you already have. Scheduling is working; try changing what you look for.`}
-							/>
-						) : null}
-						<Button
-							variant="secondary"
-							label={t`Open Pipeline`}
-							onPress={() => router.push(routes.career("pipeline"))}
-						/>
-					</>
-				)}
-			</Card>
-		</Section>
-	);
-}
-
-function AutomationUse({ data }: { data: Overview }) {
-	const { t } = useLingui();
-	const { space, colors } = useTheme();
-	const router = useRouter();
-	const time = useCareerTime();
-	const a = data.automation;
-	const off = !a.resumesEnabled && !a.lettersEnabled;
-	const pct = Math.min(100, Math.round((a.used / Math.max(1, a.limit)) * 100));
-	return (
-		<Section title={t`Document automation`}>
-			<Card style={{ gap: space.s2 }}>
-				<Text color="ink2">
-					{off
-						? t`Automatic documents are off.`
-						: [a.resumesEnabled ? t`Tailored resumes on` : null, a.lettersEnabled ? t`Cover letters on` : null]
-								.filter(Boolean)
-								.join(" · ")}
-				</Text>
-				<Text weight={600}>{t`${a.used} of ${a.limit} documents today`}</Text>
-				<View style={{ height: 8, borderRadius: 4, backgroundColor: colors.sunken, overflow: "hidden" }}>
-					<View
-						style={{
-							height: 8,
-							borderRadius: 4,
-							width: `${pct}%`,
-							backgroundColor: pct >= 100 ? colors.warnText : colors.accent,
-						}}
-					/>
-				</View>
-				<Text variant="callout" color="ink3">{t`Resets ${time.when(a.resetsAt)}`}</Text>
-				{a.deferred > 0 ? <Text color="ink2">{t`${a.deferred} waiting for the daily limit to reset`}</Text> : null}
-				{a.stale > 0 ? (
-					<Text color="ink2">{t`${a.stale} out of date after your resume or a posting changed`}</Text>
-				) : null}
-				<Button
-					variant="ghost"
-					label={t`Automation settings`}
-					onPress={() => router.push(routes.settings("automation"))}
-				/>
-			</Card>
-		</Section>
-	);
-}
-
-function Interviews({ data }: { data: Overview }) {
-	const { t } = useLingui();
-	const { space } = useTheme();
-	const router = useRouter();
-	const time = useCareerTime();
-	return (
-		<Section title={t`Interviews in the next 7 days`}>
-			{data.interviews.length === 0 ? (
-				<Text color="ink3">{t`No interviews coming up.`}</Text>
-			) : (
-				data.interviews.map((interview) => (
-					<Card key={`${interview.applicationId}-${interview.at.toISOString()}`} style={{ gap: space.s1 }}>
-						<Text variant="title">{[interview.company, interview.role].filter(Boolean).join(" · ")}</Text>
-						<Text color="ink3">{time.when(interview.at)}</Text>
-						<Button
-							variant="ghost"
-							label={t`Open application`}
-							onPress={() => router.push(routes.application(interview.applicationId))}
-						/>
-					</Card>
-				))
-			)}
-		</Section>
-	);
-}
-
-/** A reminder for someone who skipped guided setup; gone once setup is finished. */
 function FinishSetup() {
 	const { t } = useLingui();
 	const router = useRouter();
@@ -289,5 +67,288 @@ function FinishSetup() {
 			message={t`Finish setting up your job search: confirm your baseline resume, connect services and start discovery.`}
 			action={{ label: t`Continue setup`, onPress: () => router.push(routes.setup()) }}
 		/>
+	);
+}
+
+/** Discovery paused or failing: said once, at the top, with the one action that fixes it. */
+function DiscoveryBanner({ data }: { data: Overview }) {
+	const { t } = useLingui();
+	const router = useRouter();
+	const queryClient = useQueryClient();
+	const resume = useMutation({
+		mutationFn: () => client.career.setScheduleEnabled({ id: data.discovery.scheduleId ?? "", enabled: true }),
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: orpc.career.key() }),
+	});
+	const { discovery } = data;
+	if (!discovery.scheduleId) return null;
+	if (discovery.failing)
+		return (
+			<Banner
+				tone="danger"
+				title={t`The last discovery run failed`}
+				message={t`Open Pipeline to see why and what to do.`}
+				action={{ label: t`See why`, onPress: () => router.push(routes.career("pipeline")) }}
+			/>
+		);
+	if (discovery.enabled) return null;
+	return (
+		<View style={{ gap: 8 }}>
+			<Banner
+				tone="warn"
+				title={t`Discovery is paused`}
+				message={t`Your saved applications and documents are available.`}
+			/>
+			<Button label={t`Resume discovery`} loading={resume.isPending} onPress={() => resume.mutate()} />
+		</View>
+	);
+}
+
+// ---- Your next actions ----
+
+function NextActions({ data }: { data: Overview }) {
+	const { t } = useLingui();
+	const { space } = useTheme();
+	const router = useRouter();
+	const [tab, setTab] = useState<Tab>("all");
+	const { counts, items } = data.actions;
+	const shown = items.filter((action) =>
+		tab === "all"
+			? true
+			: tab === "ready"
+				? action.kind === "ready" || action.kind === "stale"
+				: tab === "followups"
+					? action.kind === "followup"
+					: action.kind === "issue",
+	);
+	return (
+		<Section title={t`Your next actions`}>
+			<Text color="ink3">{t`Review applications and resolve what needs you.`}</Text>
+			<SelectSheet
+				label={t`Show`}
+				value={tab}
+				onChange={setTab}
+				options={[
+					{ value: "all" as const, label: t`All` },
+					{ value: "ready" as const, label: t`Documents ready (${counts.ready})` },
+					{ value: "followups" as const, label: t`Follow-ups (${counts.followUps})` },
+					{ value: "issues" as const, label: t`Issues (${counts.issues})` },
+				]}
+			/>
+			{shown.length === 0 ? <Text color="ink3">{t`You are up to date. Nothing needs you right now.`}</Text> : null}
+			{shown.map((action) => {
+				const info = describeAction(action);
+				return (
+					<Card key={`${action.kind}-${action.applicationId}`} style={{ gap: space.s1 }}>
+						<Text variant="title">{action.role}</Text>
+						<Text color="ink3">{[action.company, action.location].filter(Boolean).join(" · ")}</Text>
+						<Text color={info.tone} weight={600}>
+							{info.chip}
+						</Text>
+						<Text variant="callout" color="ink3">
+							{info.line}
+						</Text>
+						<Button
+							variant="secondary"
+							label={info.button}
+							onPress={() =>
+								router.push(
+									info.to === "pipeline" ? routes.career("pipeline") : routes.application(action.applicationId),
+								)
+							}
+						/>
+					</Card>
+				);
+			})}
+			<Button variant="ghost" label={t`View all applications`} onPress={() => router.push(routes.applications())} />
+		</Section>
+	);
+}
+
+// ---- Coming up ----
+
+function ComingUp({ data }: { data: Overview }) {
+	const { t } = useLingui();
+	const { space } = useTheme();
+	const router = useRouter();
+	const time = useCareerTime();
+	const next = data.nextInterview;
+	return (
+		<Section title={t`Coming up`}>
+			{!next ? (
+				<Text color="ink3">{t`No interviews scheduled. Your interviews will appear here.`}</Text>
+			) : (
+				<Card style={{ gap: space.s2 }}>
+					<Text variant="title">{interviewKindLabel(next.kind)}</Text>
+					<Text color="ink2">{`${next.company} · ${time.when(next.at)}`}</Text>
+					<Text variant="callout" color="ink3">{`${t`${next.durationMinutes} min`} · ${next.timezone}`}</Text>
+					<Text color={next.briefing ? "accentText" : "ink3"}>
+						{`${next.briefing ? "✓" : "○"} ${next.briefing ? t`Briefing available` : t`Briefing not ready`}`}
+					</Text>
+					<Text color={next.practice ? "accentText" : "ink3"}>
+						{`${next.practice ? "✓" : "○"} ${next.practice ? t`Practice started` : t`Practice not started`}`}
+					</Text>
+					<Button
+						label={t`Prepare interview`}
+						onPress={() => router.push(routes.application(next.applicationId, "prepare"))}
+					/>
+				</Card>
+			)}
+		</Section>
+	);
+}
+
+// ---- Recent activity ----
+
+function RecentActivity() {
+	const { t } = useLingui();
+	const { space } = useTheme();
+	const router = useRouter();
+	const session = useSession();
+	const time = useCareerTime();
+	const query = useQuery({
+		...orpc.career.activity.queryOptions({ input: { limit: 30 } }),
+		enabled: session.status === "signed-in",
+		queryKey: [...orpc.career.activity.key(), session.server, "recent"],
+		refetchInterval: 60_000,
+	});
+	const items = query.data ? summarizeRecent(query.data.items) : [];
+	return (
+		<Section title={t`Recent activity`}>
+			{query.data && items.length === 0 ? (
+				<Text color="ink3">{t`Nothing yet. Activity appears here after the first run.`}</Text>
+			) : null}
+			{items.map((item) => (
+				<Card key={item.key} style={{ gap: space.s1 }}>
+					<Text weight={600}>{item.title}</Text>
+					<Text variant="callout" color="ink3">
+						{item.sub ? `${item.sub} · ${time.when(item.at)}` : time.when(item.at)}
+					</Text>
+					<Button
+						variant="ghost"
+						label={item.label}
+						onPress={() => router.push(item.open === "pipeline" ? routes.career("pipeline") : routes.applications())}
+					/>
+				</Card>
+			))}
+			<Button variant="ghost" label={t`See all`} onPress={() => router.push(routes.career("pipeline"))} />
+		</Section>
+	);
+}
+
+// ---- Automation ----
+
+function AutomationCard({ data }: { data: Overview }) {
+	const { t } = useLingui();
+	const { space, colors } = useTheme();
+	const router = useRouter();
+	const { automation: a, discovery } = data;
+	const pct = Math.min(100, Math.round((a.used / Math.max(1, a.limit)) * 100));
+	const state = (on: boolean) => (on ? t`On` : t`Off`);
+	const working = [
+		a.generating > 0 ? t`${a.generating} generating` : null,
+		a.deferred > 0 ? t`${a.deferred} deferred` : null,
+	]
+		.filter(Boolean)
+		.join(" · ");
+	return (
+		<Section title={t`Automation`}>
+			<Card style={{ gap: space.s2 }}>
+				<Text>{`${t`Discovery`}: ${!discovery.scheduleId ? t`Off` : discovery.enabled ? t`On` : t`Paused`}`}</Text>
+				<Text>{`${t`Tailored resumes`}: ${state(a.resumesEnabled)}`}</Text>
+				<Text>{`${t`Cover letters`}: ${state(a.lettersEnabled)}`}</Text>
+				<Text>{`${t`Preparation`}: ${working || t`Idle`}`}</Text>
+				<Text weight={600}>{t`Documents today: ${a.used} / ${a.limit}`}</Text>
+				<View style={{ height: 8, borderRadius: 4, backgroundColor: colors.sunken, overflow: "hidden" }}>
+					<View
+						style={{
+							height: 8,
+							borderRadius: 4,
+							width: `${pct}%`,
+							backgroundColor: pct >= 100 ? colors.warnText : colors.accent,
+						}}
+					/>
+				</View>
+				<Button
+					variant="ghost"
+					label={t`Manage automation`}
+					onPress={() => router.push(routes.settings("automation"))}
+				/>
+			</Card>
+		</Section>
+	);
+}
+
+// ---- Application outcomes ----
+
+function Outcomes({ data, days, onDays }: { data: Overview; days: Days; onDays: (days: Days) => void }) {
+	const { t } = useLingui();
+	const { space } = useTheme();
+	const router = useRouter();
+	const o = data.outcomes;
+	return (
+		<Section title={t`Application outcomes`}>
+			<SelectSheet
+				label={t`Time window`}
+				value={days}
+				onChange={onDays}
+				options={[
+					{ value: "7" as const, label: t`Last 7 days` },
+					{ value: "14" as const, label: t`Last 14 days` },
+					{ value: "30" as const, label: t`Last 30 days` },
+				]}
+			/>
+			<Card style={{ gap: space.s1 }}>
+				<Text>{`${o.submitted} ${t`Submitted`}`}</Text>
+				<Text>{`${o.firstResponses} ${t`First responses`}`}</Text>
+				<Text>{`${o.interviews} ${t`Applications reached interview`}`}</Text>
+				<Text>{`${o.offers} ${t`Offers`}`}</Text>
+				<Text variant="callout" color="ink3">{t`Based on recorded application activity.`}</Text>
+			</Card>
+			<Button variant="ghost" label={t`View insights`} onPress={() => router.push(routes.applications("insights"))} />
+		</Section>
+	);
+}
+
+// ---- Latest discovery ----
+
+function LatestDiscovery({ data }: { data: Overview }) {
+	const { t } = useLingui();
+	const { space } = useTheme();
+	const router = useRouter();
+	const time = useCareerTime();
+	const latest = data.latestDiscovery;
+	if (!latest) return null;
+	const status =
+		latest.outcome === "failed"
+			? t`Failed. Open discovery activity to see why.`
+			: latest.outcome === "partial"
+				? latest.readFailures === 1
+					? t`Partial — 1 page could not be read`
+					: t`Partial — ${latest.readFailures} pages could not be read`
+				: t`Completed`;
+	const summary =
+		latest.matches === 1 ? t`1 new job` : latest.matches === 0 ? t`No new jobs` : t`${latest.matches} new jobs`;
+	return (
+		<Section title={t`Latest discovery`}>
+			<Card style={{ gap: space.s1 }}>
+				<Text color="ink2">{`${summary} · ${t`${latest.found} results checked`} · ${time.when(latest.at)}`}</Text>
+				{latest.job ? (
+					<Text weight={600}>{`${latest.job.role} · ${latest.job.location || latest.job.company}`}</Text>
+				) : (
+					<Text color="ink3">{t`This search found nothing new.`}</Text>
+				)}
+				<Text
+					color={latest.outcome === "failed" ? "dangerText" : latest.outcome === "partial" ? "warnText" : "accentText"}
+				>
+					{status}
+				</Text>
+				<Button
+					variant="ghost"
+					label={t`View discovery activity`}
+					onPress={() => router.push(routes.career("pipeline"))}
+				/>
+				<Button variant="secondary" label={t`Edit search`} onPress={() => router.push(routes.career("today"))} />
+			</Card>
+		</Section>
 	);
 }

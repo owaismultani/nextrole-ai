@@ -406,3 +406,30 @@ export const careerSetupLaunchSchema = z.object({
 	timezone: timezoneSchema,
 	locale: z.string().min(2).max(20).optional(),
 });
+
+// ---- Activity: what the pipeline did, in order ----
+
+/** How long runs, results and events are kept. Short on purpose: this is a recent-history view, not an archive. */
+export const ACTIVITY_RETENTION_DAYS = 30;
+
+export const careerEventKindSchema = z.enum([
+	"run.finished",
+	"job.saved",
+	"prep.queued",
+	"prep.started",
+	"prep.done",
+	"prep.retry",
+	"prep.deferred",
+	"prep.failed",
+	"prep.canceled",
+	"setting.changed",
+]);
+export type CareerEventKind = z.infer<typeof careerEventKindSchema>;
+export const careerEventLevelSchema = z.enum(["info", "warn", "error"]);
+export type CareerEventLevel = z.infer<typeof careerEventLevelSchema>;
+/** Small, plain facts only: counts, codes, job titles. Never resume text, keys or provider messages. */
+export type CareerEventData = Record<string, string | number | boolean | null>;
+
+/** What happened to one search result in a run. */
+export const runItemDecisionSchema = z.enum(["new", "known", "rejected", "unreadable", "invalid"]);
+export type RunItemDecision = z.infer<typeof runItemDecisionSchema>;

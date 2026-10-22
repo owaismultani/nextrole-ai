@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Button } from "@reactive-resume/ui/components/button";
 import { toast } from "@reactive-resume/ui/components/toast";
 import { cn } from "@reactive-resume/utils/style";
+import { JobJourney } from "./job-journey";
 import { stepMessage, summaryLabel } from "./preparation";
 import { Eyebrow, useCareerTime } from "./shared";
 import { getOrpcErrorMessage } from "@/libs/error-message";
@@ -122,6 +123,7 @@ export function PreparationList({ className }: PreparationListProps) {
 
 function PreparationRow({ job }: { job: PreparationJob }) {
 	const { when } = useCareerTime();
+	const [journeyOpen, setJourneyOpen] = useState(false);
 	const queryClient = useQueryClient();
 	const retry = useMutation(orpc.career.retryPreparation.mutationOptions());
 	const regenerate = useMutation(orpc.career.regeneratePreparation.mutationOptions());
@@ -241,6 +243,15 @@ function PreparationRow({ job }: { job: PreparationJob }) {
 					</div>
 				);
 			})}
+			<details
+				className="border-t border-line pt-2 text-[13px]"
+				onToggle={(event) => setJourneyOpen(event.currentTarget.open)}
+			>
+				<summary className="cursor-pointer text-ink-3">
+					<Trans>What happened for this job</Trans>
+				</summary>
+				<div className="mt-2">{journeyOpen && <JobJourney opportunityId={job.opportunityId} />}</div>
+			</details>
 		</li>
 	);
 }

@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 import { client, useCareerAction, useCareerTime } from "./hooks";
+import { JobJourney } from "./pipeline-detail";
 import { stepMessage, summaryLabel } from "./preparation";
 import { Section } from "./shared";
 import { orpc } from "@/api/client";
@@ -123,6 +124,7 @@ export function PreparationList() {
 								</View>
 							);
 						})}
+						<JobJourney opportunityId={job.opportunityId} />
 					</Card>
 				))}
 				{matching.length > PAGE_SIZE ? (

@@ -1,3 +1,4 @@
+import type { CompareSource } from "./compare-dialog";
 import type { VersionSummary } from "./format";
 import type { Resume } from "@/features/resume/builder/draft";
 import { t } from "@lingui/core/macro";
@@ -17,6 +18,7 @@ import { IconButton } from "@reactive-resume/ui/components/icon-button";
 import { Input } from "@reactive-resume/ui/components/input";
 import { toast } from "@reactive-resume/ui/components/toast";
 import { cn } from "@reactive-resume/utils/style";
+import { BASELINE, CompareDialog, NOW } from "./compare-dialog";
 import { formatVersionMoment, formatVersionTime, getVersionDetail, getVersionTitle } from "./format";
 import { savePendingChanges, useCurrentResume, useResumeStore } from "@/features/resume/builder/draft";
 import { useEditorStore } from "@/features/resume/editor/store";
@@ -43,6 +45,8 @@ export type HistorySource = {
 	remove: (versionId: string) => Promise<void>;
 	/** How a failure reads. */
 	errorMessage: (error: unknown) => string;
+	/** Reads the document at a version, or now, to compare two of them. */
+	compare: CompareSource;
 };
 
 /** History for the resume in the editor. */
@@ -58,6 +62,13 @@ function useResumeHistory(): HistorySource {
 		orpc.resume.listVersions.queryOptions({ input: { resumeId: resume.id } }),
 	);
 	const refresh = () => queryClient.invalidateQueries({ queryKey: listKey });
+	// A tailored copy can be compared with the baseline it was made from.
+	const tailored = resume.tags.includes("tailored");
+	const { data: automation } = useQuery({
+		...orpc.career.automation.queryOptions({ input: {} }),
+		enabled: tailored,
+	});
+	const baselineId = tailored && automation?.baselineResumeId !== resume.id ? automation?.baselineResumeId : null;
 
 	return {
 		versions,
@@ -65,6 +76,16 @@ function useResumeHistory(): HistorySource {
 		locked: resume.isLocked,
 		nowDetail: t`The resume as it is`,
 		errorMessage: getResumeErrorMessage,
+		compare: {
+			kind: "resume",
+			documentId: resume.id,
+			extras: baselineId ? [{ id: BASELINE, label: t`Baseline resume` }] : [],
+			load: async (side) => {
+				if (side === NOW) return useResumeStore.getState().resume?.data ?? resume.data;
+				if (side === BASELINE && baselineId) return (await orpc.resume.getById.call({ id: baselineId })).data;
+				return (await orpc.resume.getVersion.call({ resumeId: resume.id, versionId: side })).data;
+			},
+		},
 		save: async (name) => {
 			if (!(await savePendingChanges(resume.id)))
 				throw new Error(t`Couldn't save your changes. Try again before continuing.`);
@@ -103,7 +124,10 @@ export function HistoryTimeline({ source }: { source: HistorySource }) {
 	const setVersion = useEditorStore((state) => state.setHistoryVersion);
 	const [name, setName] = useState("");
 	const [busy, setBusy] = useState(false);
+	const [comparing, setComparing] = useState<{ from: string; to: string } | null>(null);
 	const { versions, loading } = source;
+	// Compare starts from the baseline when there is one, else from the latest version.
+	const compareFrom = source.compare.extras[0]?.id ?? versions?.[0]?.id;
 
 	const selected = versions?.find((version) => version.id === selectedId) ?? null;
 	const when = (version: HistoryVersion) => formatVersionTime(version.createdAt, i18n.locale);
@@ -171,6 +195,9 @@ export function HistoryTimeline({ source }: { source: HistorySource }) {
 						<Button size="sm" disabled={source.locked || busy} onClick={() => restore(selected)}>
 							<Trans>Restore this version</Trans>
 						</Button>
+						<Button size="sm" variant="secondary" onClick={() => setComparing({ from: selected.id, to: NOW })}>
+							<Trans>Compare with now</Trans>
+						</Button>
 						<Button
 							size="sm"
 							variant="ghost"
@@ -181,6 +208,29 @@ export function HistoryTimeline({ source }: { source: HistorySource }) {
 						</Button>
 					</span>
 				</div>
+			)}
+
+			{compareFrom && (
+				<Button
+					size="sm"
+					variant="ghost"
+					className="justify-self-start text-ink-2"
+					onClick={() => setComparing({ from: compareFrom, to: NOW })}
+				>
+					<Icon name="arrows-left-right" />
+					{source.compare.extras.length ? <Trans>Compare with baseline</Trans> : <Trans>Compare versions</Trans>}
+				</Button>
+			)}
+
+			{comparing && (
+				<CompareDialog
+					open
+					onOpenChange={(open) => !open && setComparing(null)}
+					source={source.compare}
+					versions={versions ?? []}
+					from={comparing.from}
+					to={comparing.to}
+				/>
 			)}
 
 			<ol className="grid" aria-label={t`Versions`}>

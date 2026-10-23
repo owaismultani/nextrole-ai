@@ -1,0 +1,1 @@
+ALTER TABLE "career_preparation" ADD COLUMN "focus" text;

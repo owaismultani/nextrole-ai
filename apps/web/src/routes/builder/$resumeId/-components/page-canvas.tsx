@@ -21,6 +21,8 @@ import { useEditorStore } from "@/features/resume/editor/store";
 import { useEditorMode } from "@/features/resume/editor/use-editor-mode";
 import { revealSelectionInPanel } from "@/features/resume/editor/write/reveal";
 import { ResumePreview } from "@/features/resume/preview/preview";
+import { NOW } from "@/features/resume/share/compare-dialog";
+import { DocumentCompareDialog } from "@/features/resume/share/document-compare";
 import { formatVersionTime, getVersionTitle } from "@/features/resume/share/format";
 import { orpc } from "@/libs/orpc/client";
 
@@ -56,6 +58,7 @@ export function PageCanvas() {
 		enabled: historyVersionId !== null,
 	});
 	const viewing = historyVersionId !== null && version?.id === historyVersionId ? version : null;
+	const [comparing, setComparing] = useState(false);
 
 	// Check → Writing's and the assistant's proposed edits show on the page, the old text struck through and the new
 	// highlighted.
@@ -127,6 +130,7 @@ export function PageCanvas() {
 							mode={mode}
 							format={format}
 							overflow={overflow}
+							onCompare={() => setComparing(true)}
 						/>
 					)}
 					renderPageOverlay={({ pageIndex, pageMap }) =>
@@ -143,6 +147,16 @@ export function PageCanvas() {
 
 			{mode === "check" && !viewing && <PageViewToggle />}
 			{!parser && <ZoomBar fitScale={fitScale} pageCount={Math.max(1, rendered.pageCount)} />}
+			{comparing && viewing && (
+				<DocumentCompareDialog
+					kind="resume"
+					documentId={resumeId}
+					current={data}
+					from={viewing.id}
+					to={NOW}
+					onClose={() => setComparing(false)}
+				/>
+			)}
 		</div>
 	);
 }
@@ -155,11 +169,13 @@ type ResumePageCaptionProps = {
 	mode: string;
 	format: "a4" | "letter" | "free-form";
 	overflow: ReturnType<typeof measureOverflow>;
+	/** Opens Compare for the version being viewed against now. */
+	onCompare: () => void;
 };
 
 /** Above the first page: the version or template being previewed, else the page label with proposals and overflow. */
 function ResumePageCaption(props: ResumePageCaptionProps) {
-	const { pageNumber, viewing, previewTemplate, pendingOnPage, mode, format, overflow } = props;
+	const { pageNumber, viewing, previewTemplate, pendingOnPage, mode, format, overflow, onCompare } = props;
 	const { i18n } = useLingui();
 	const formatLabel = {
 		a4: "A4",
@@ -171,11 +187,16 @@ function ResumePageCaption(props: ResumePageCaptionProps) {
 		return (
 			<figcaption className="mb-2.5 flex flex-wrap items-center justify-center gap-2.5 text-center text-xs font-medium text-ink-3">
 				{viewing ? (
-					<CanvasStatusPill icon="clock-counter-clockwise">
-						<Trans>
-							Viewing {formatVersionTime(viewing.createdAt, i18n.locale)} · {getVersionTitle(viewing)} · read-only
-						</Trans>
-					</CanvasStatusPill>
+					<>
+						<CanvasStatusPill icon="clock-counter-clockwise">
+							<Trans>
+								Viewing {formatVersionTime(viewing.createdAt, i18n.locale)} · {getVersionTitle(viewing)} · read-only
+							</Trans>
+						</CanvasStatusPill>
+						<button type="button" onClick={onCompare} className="text-ink-2 underline underline-offset-[3px]">
+							<Trans>Compare with now</Trans>
+						</button>
+					</>
 				) : previewTemplate ? (
 					<CanvasStatusPill icon="eye">
 						<Trans>Previewing {templates[previewTemplate].name} · click to apply</Trans>

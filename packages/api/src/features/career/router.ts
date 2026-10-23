@@ -339,11 +339,11 @@ export const careerRouter = {
 			operationId: "regenerateCareerPreparation",
 			summary: "Regenerate a document",
 			description:
-				"Writes a new generation from the current baseline and posting over the same document. The generation it replaces, including any edits, is kept in the document's version history. A trashed or locked document gets a new one instead.",
+				"Writes a new generation from the current baseline and posting over the same document. The generation it replaces, including any edits, is kept in the document's version history. A trashed or locked document gets a new one instead. `focus` says what this job's document should lead with; left out, the last focus is kept, and an empty string clears it.",
 		})
-		.input(id)
+		.input(id.extend({ focus: z.string().trim().max(500).optional() }))
 		.output(z.void())
-		.handler(({ context, input }) => careerAutomation.regenerate(context.user.id, input.id)),
+		.handler(({ context, input }) => careerAutomation.regenerate(context.user.id, input.id, input.focus)),
 	deleteSchedule: protectedProcedure
 		.route({
 			method: "DELETE",

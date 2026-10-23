@@ -226,6 +226,7 @@ export const careerAutomation = {
 				issues: step.issues,
 				manual: step.manual,
 				generation: step.generation,
+				focus: step.focus,
 				outputId: done ? step.outputId : null,
 				replacedVersionId: done ? step.replacedVersionId : null,
 				/** When a waiting step may start again (a daily limit or a retry delay). */
@@ -501,10 +502,12 @@ export const careerAutomation = {
 	 * replaces, edited or not, is kept in the document's History; a trashed or locked document gets a new one instead.
 	 * The output and when it was made stay recorded, so the worker can tell what it replaces.
 	 */
-	regenerate: async (userId: string, id: string) => {
+	/** `focus` steers this job's next generation; left out keeps the last one, empty clears it. */
+	regenerate: async (userId: string, id: string, focus?: string) => {
 		const [row] = await db
 			.update(tables.careerPreparation)
 			.set({
+				...(focus === undefined ? {} : { focus: focus.trim() || null }),
 				status: "queued",
 				manual: true,
 				generation: sql`${tables.careerPreparation.generation} + 1`,

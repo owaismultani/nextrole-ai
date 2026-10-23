@@ -5,11 +5,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "@reactive-resume/ui/components/button";
+import { Textarea } from "@reactive-resume/ui/components/textarea";
 import { toast } from "@reactive-resume/ui/components/toast";
 import { cn } from "@reactive-resume/utils/style";
 import { JobJourney } from "./job-journey";
 import { stepMessage, summaryLabel } from "./preparation";
 import { Eyebrow, useCareerTime } from "./shared";
+import { BASELINE, NOW } from "@/features/resume/share/compare-dialog";
+import { DocumentCompareDialog } from "@/features/resume/share/document-compare";
 import { getOrpcErrorMessage } from "@/libs/error-message";
 import { orpc } from "@/libs/orpc/client";
 
@@ -121,6 +124,22 @@ export function PreparationList({ className }: PreparationListProps) {
 	);
 }
 
+/** A document's comparison opened from its row: against now, from an earlier generation or its baseline. */
+type Comparing = {
+	kind: "resume" | "letter";
+	documentId: string;
+	baselineId: string | null | undefined;
+	from: string;
+};
+
+function CompareLink({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+	return (
+		<button type="button" onClick={onClick} className="underline">
+			{children}
+		</button>
+	);
+}
+
 type PreparationRowProps = {
 	job: PreparationJob;
 	/** On an application's own page the job's name, its link and its history are already there. */
@@ -131,6 +150,9 @@ type PreparationRowProps = {
 export function PreparationRow({ job, scope = "all" }: PreparationRowProps) {
 	const { when } = useCareerTime();
 	const [journeyOpen, setJourneyOpen] = useState(false);
+	const [comparing, setComparing] = useState<Comparing | null>(null);
+	// The step being regenerated, with what its next version should focus on.
+	const [steering, setSteering] = useState<{ id: string; focus: string } | null>(null);
 	const queryClient = useQueryClient();
 	const retry = useMutation(orpc.career.retryPreparation.mutationOptions());
 	const regenerate = useMutation(orpc.career.regeneratePreparation.mutationOptions());
@@ -150,6 +172,7 @@ export function PreparationRow({ job, scope = "all" }: PreparationRowProps) {
 					: "text-ink-3";
 	return (
 		<li className="grid gap-2 rounded-lg border border-line p-3">
+			{comparing && <DocumentCompareDialog {...comparing} to={NOW} onClose={() => setComparing(null)} />}
 			<div className="flex flex-wrap items-center gap-2">
 				<div className="grid min-w-0 flex-1 gap-0.5">
 					{scope === "all" && (
@@ -216,19 +239,93 @@ export function PreparationRow({ job, scope = "all" }: PreparationRowProps) {
 								<Button
 									variant="ghost"
 									size="sm"
-									loading={regenerate.isPending}
-									onClick={() => regenerate.mutate({ id: step.id }, { onError: failed, onSuccess: refreshed })}
+									aria-expanded={steering?.id === step.id}
+									onClick={() =>
+										setSteering(steering?.id === step.id ? null : { id: step.id, focus: step.focus ?? "" })
+									}
 								>
 									<Trans>Regenerate</Trans>
 								</Button>
 							)}
 						</div>
+						{steering?.id === step.id && (
+							<form
+								className="grid gap-2 rounded-lg bg-sunken p-2.5"
+								onSubmit={(event) => {
+									event.preventDefault();
+									regenerate.mutate(
+										{ id: step.id, focus: steering.focus },
+										{
+											onError: failed,
+											onSuccess: () => {
+												setSteering(null);
+												refreshed();
+											},
+										},
+									);
+								}}
+							>
+								<label htmlFor={`focus-${step.id}`} className="text-xs font-medium text-ink-2">
+									<Trans>What should this version focus on? (optional)</Trans>
+								</label>
+								<Textarea
+									id={`focus-${step.id}`}
+									rows={2}
+									maxLength={500}
+									value={steering.focus}
+									onChange={(event) => setSteering({ id: step.id, focus: event.target.value })}
+									placeholder={
+										step.kind === "resume"
+											? t`Example: Lead with the front-end and React work; keep the AI work brief.`
+											: t`Example: Open with the payments project and keep it under 250 words.`
+									}
+								/>
+								<p className="text-xs text-ink-3">
+									<Trans>
+										Used with your saved instructions for this job only, and kept for its next regenerate. Leave empty
+										to use only your saved instructions.
+									</Trans>
+								</p>
+								<span className="flex gap-2">
+									<Button type="submit" size="sm" loading={regenerate.isPending}>
+										<Trans>Regenerate</Trans>
+									</Button>
+									<Button type="button" variant="ghost" size="sm" onClick={() => setSteering(null)}>
+										<Trans>Cancel</Trans>
+									</Button>
+								</span>
+							</form>
+						)}
 						{message && <p className="text-ink-3">{message}</p>}
+						{step.focus && steering?.id !== step.id && (
+							<p className="text-ink-3">
+								<Trans>Focus: {step.focus}</Trans>
+							</p>
+						)}
 						{step.status === "done" && (
 							<p className="text-ink-3">
 								{step.baseline ? (
 									step.baseline.name ? (
-										<Trans>Made from your baseline “{step.baseline.name}”.</Trans>
+										<>
+											<Trans>Made from your baseline “{step.baseline.name}”.</Trans>
+											{step.kind === "resume" && step.outputId && (
+												<>
+													{" "}
+													<CompareLink
+														onClick={() =>
+															setComparing({
+																kind: "resume",
+																documentId: step.outputId ?? "",
+																baselineId: step.baseline?.resumeId,
+																from: BASELINE,
+															})
+														}
+													>
+														<Trans>See what tailoring changed</Trans>
+													</CompareLink>
+												</>
+											)}
+										</>
 									) : (
 										<Trans>Made from a baseline resume that has since been removed.</Trans>
 									)
@@ -240,6 +337,19 @@ export function PreparationRow({ job, scope = "all" }: PreparationRowProps) {
 						{step.outputId && step.replacedVersionId && (
 							<p className="text-ink-3">
 								<Trans>Generation {step.generation}. The one it replaced is kept in History.</Trans>{" "}
+								<CompareLink
+									onClick={() =>
+										setComparing({
+											kind: step.kind === "resume" ? "resume" : "letter",
+											documentId: step.outputId ?? "",
+											baselineId: step.kind === "resume" ? step.baseline?.resumeId : null,
+											from: step.replacedVersionId ?? NOW,
+										})
+									}
+								>
+									<Trans>See what changed</Trans>
+								</CompareLink>
+								{" · "}
 								{step.kind === "resume" ? (
 									<Link
 										to="/builder/$resumeId"

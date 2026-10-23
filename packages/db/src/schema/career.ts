@@ -267,6 +267,8 @@ export const careerPreparation = pg.pgTable(
 		status: pg.text("status").notNull().default("queued"),
 		/** Bumped by an explicit regenerate; each generation is written over the same document, the last kept in History. */
 		generation: pg.integer("generation").notNull().default(1),
+		/** What a regenerate asked this job's document to focus on ("lead with the front-end work"); null for none. */
+		focus: pg.text("focus"),
 		attempts: pg.integer("attempts").notNull().default(0),
 		nextAttemptAt: pg.timestamp("next_attempt_at", { withTimezone: true }).notNull().defaultNow(),
 		lease: pg.text("lease"),

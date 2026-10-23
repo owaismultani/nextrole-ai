@@ -97,6 +97,8 @@ export const careerPreparationStepSchema = z.object({
 	issues: z.array(z.string()),
 	manual: z.boolean(),
 	generation: z.number(),
+	/** What the last regenerate asked this document to focus on, if anything. */
+	focus: z.string().nullable(),
 	outputId: z.string().nullable(),
 	/** The document's History version holding the generation the last regenerate wrote over, if there was one. */
 	replacedVersionId: z.string().nullable(),

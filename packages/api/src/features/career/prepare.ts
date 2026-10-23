@@ -267,6 +267,9 @@ async function work(row: Row) {
 	});
 	const signal = AbortSignal.timeout(GENERATION_TIMEOUT_MS);
 	const job = { role: application.role, company: application.company, description };
+	// A regenerate can steer this one job ("lead with the front-end work") on top of the saved instruction.
+	const withFocus = (instruction: string) =>
+		row.focus ? `${instruction}\n\nFor this job, focus on: ${row.focus}` : instruction;
 
 	const outcome =
 		row.kind === "resume"
@@ -277,7 +280,7 @@ async function work(row: Row) {
 					baseline,
 					job,
 					applicationId: application.id,
-					instruction: automation.resumePrompt,
+					instruction: withFocus(automation.resumePrompt),
 				})
 			: await prepareLetter({
 					row,
@@ -287,7 +290,7 @@ async function work(row: Row) {
 					resume: await letterResume(row.userId, application.resumeId, baseline),
 					job,
 					applicationId: application.id,
-					instruction: automation.coverLetterPrompt,
+					instruction: withFocus(automation.coverLetterPrompt),
 				});
 
 	await settle(row, {

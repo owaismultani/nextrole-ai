@@ -465,6 +465,8 @@ describe.skipIf(!databaseUrl)("autonomous discovery and document preparation", (
 	it("applies the daily limit once per generation even under concurrent workers, and defers the rest", async () => {
 		const base = await baseline();
 		await save("alice", settings({ resumesEnabled: true, baselineResumeId: base, dailyLimit: 2 }));
+		// Usage is read in the person's own day, so they live where the slots are counted.
+		await getDb().update(tables.user).set({ timezone: "Europe/Berlin" }).where(eq(tables.user.id, "alice"));
 		fixture.search.mockResolvedValue([hit(1), hit(2), hit(3), hit(4), hit(5)]);
 		await discoverOnly();
 		const rows = await steps();
@@ -624,6 +626,33 @@ describe.skipIf(!databaseUrl)("autonomous discovery and document preparation", (
 			.where(eq(tables.resumeVersion.id, job?.steps[0]?.replacedVersionId ?? ""));
 		expect(replaced?.name).toBe("Generation 1 · your edits");
 		expect((await steps())[0]).toMatchObject({ outputId, outputGeneration: 2 });
+	});
+
+	it("steers a regenerate with a focus for that job, keeps it for the next one, and clears it when emptied", async () => {
+		const base = await baseline();
+		await save("alice", settings({ resumesEnabled: true, baselineResumeId: base, resumePrompt: "Stay truthful." }));
+		await run();
+		const [step] = await steps();
+		const tailoringPrompts = () =>
+			fixture.generate.mock.calls
+				.map(([, request]) => (request as { prompt: string }).prompt)
+				.filter((prompt) => prompt.includes("Tailor this candidate"));
+
+		await automation.regenerate("alice", step?.id ?? "", "  Lead with the front-end work.  ");
+		await settle(2);
+		expect(tailoringPrompts().at(-1)).toContain(
+			"Stay truthful.\n\nFor this job, focus on: Lead with the front-end work.",
+		);
+		expect((await automation.preparations("alice"))[0]?.steps[0]?.focus).toBe("Lead with the front-end work.");
+
+		// Left out, the focus is kept; empty, it is cleared.
+		await automation.regenerate("alice", step?.id ?? "");
+		await settle(2);
+		expect(tailoringPrompts().at(-1)).toContain("For this job, focus on: Lead with the front-end work.");
+		await automation.regenerate("alice", step?.id ?? "", "");
+		await settle(2);
+		expect(tailoringPrompts().at(-1)).not.toContain("For this job, focus on");
+		expect((await automation.preparations("alice"))[0]?.steps[0]?.focus).toBeNull();
 	});
 
 	it("regenerates a cover letter over the same letter and keeps the earlier one in History", async () => {

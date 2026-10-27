@@ -11,7 +11,9 @@
   </p>
 
   <p>
-    <a href="#quick-start"><strong>Run it</strong></a>
+    <a href="https://nextroleai.owaism.xyz"><strong>Try the live app</strong></a>
+    ·
+    <a href="#quick-start"><strong>Self-host it</strong></a>
     ·
     <a href="docs/getting-started.mdx"><strong>Read the docs</strong></a>
     ·
@@ -26,6 +28,8 @@
 </div>
 
 ---
+
+Try the live app at **[nextroleai.owaism.xyz](https://nextroleai.owaism.xyz)**, or self-host it with Docker.
 
 NextRole AI is a free, open-source job search app. It finds roles, drafts the documents and prepares you for each
 step, then hands everything back to you. **Nothing is submitted or sent in your name.** AI features use a provider you

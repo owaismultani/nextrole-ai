@@ -196,11 +196,12 @@ export function describeEvent(event: ActivityEvent, when: When) {
 	}
 }
 
-export const decisionLabel = (decision: "new" | "known" | "rejected" | "unreadable" | "invalid") =>
+export const decisionLabel = (decision: "new" | "known" | "rejected" | "unreadable" | "invalid" | "filtered") =>
 	({
 		new: t`New job`,
 		known: t`Already known`,
 		rejected: t`Not an open posting`,
 		unreadable: t`Could not be read`,
 		invalid: t`Unusable address`,
+		filtered: t`Left out by your filters`,
 	})[decision];

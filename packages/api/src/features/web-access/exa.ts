@@ -14,7 +14,7 @@ export async function searchExa(query: string, { connection, signal, search }: P
 			},
 			{
 				query,
-				numResults: searchLimit(search),
+				numResults: searchLimit(search, "exa"),
 				type: "auto",
 				...(search?.since ? { startPublishedDate: search.since.toISOString() } : {}),
 			},

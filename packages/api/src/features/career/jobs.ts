@@ -1,5 +1,11 @@
-import type { SearchOptions } from "../web-access/contracts";
-import type { CareerRunReport, careerScheduleInputSchema, RunItemDecision } from "@reactive-resume/schema/career";
+import type { JobPosting } from "../job-sources/types";
+import type {
+	CareerRunReport,
+	careerScheduleInputSchema,
+	DiscoverySources,
+	RunItemDecision,
+	SourceRunReport,
+} from "@reactive-resume/schema/career";
 import type z from "zod";
 import { ORPCError } from "@orpc/client";
 import { and, asc, desc, eq, inArray, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
@@ -7,10 +13,16 @@ import { db } from "@reactive-resume/db/client";
 import * as tables from "@reactive-resume/db/schema";
 import { sendCareerNotification } from "@reactive-resume/email/transport";
 import { env } from "@reactive-resume/env/server";
+import { defaultDiscoveryFilters, discoveryFiltersSchema } from "@reactive-resume/schema/career";
 import { generateId } from "@reactive-resume/utils/string";
 import { STALE_AGENT_RUN_TTL_MS } from "../agent/runs";
 import { aiProvidersService } from "../ai-providers/service";
 import { jobSearchQuery, readOpenPosting, searchJobPostings } from "../applications/posting";
+import { boardOf, nameFromSlug } from "../job-sources/boards";
+import { collectJobs, readDetails } from "../job-sources/collect";
+import { jobSourceKeys } from "../job-sources/credentials";
+import { applyFilters } from "../job-sources/filter";
+import { workplaceOf } from "../job-sources/normalize";
 import { webAccessService } from "../web-access/credentials";
 import { enqueueAutomatedPreparation, retrievalFor } from "./automation";
 import { purgeOldActivity, recordEvent, recordEventIn } from "./events";
@@ -67,11 +79,20 @@ export const careerJobs = {
 			input.nextRunAt = prepareRunAt(new Date(interview.at), input.lead ?? "24h", input.timezone);
 		if (input.kind === "discovery" && !input.query)
 			throw new ORPCError("BAD_REQUEST", { message: "Supply a public job-search query." });
-		if (input.kind === "discovery" && input.enabled && !(await webAccessService.resolve(userId)))
+		// Web search needs a connection; job sources and company boards need none. Something must be able to search.
+		const searchesElsewhere = Boolean(input.sources?.apis.length || input.sources?.companies.length);
+		if (
+			input.kind === "discovery" &&
+			input.enabled &&
+			!searchesElsewhere &&
+			(input.sources?.web === false || !(await webAccessService.resolve(userId)))
+		)
 			throw new ORPCError("PRECONDITION_FAILED", {
-				message: "Set up a web search connection in Settings → AI & developer first.",
+				message: "Choose a job source, follow a company, or set up web search in Settings → AI & developer.",
 				data: { missing: "search" },
 			});
+		if ((input.sources || input.filters) && input.kind !== "discovery")
+			throw new ORPCError("BAD_REQUEST", { message: "Only discovery schedules have sources and filters." });
 		if (input.retrievalBudget && input.kind !== "discovery")
 			throw new ORPCError("BAD_REQUEST", { message: "Only discovery schedules have a results budget." });
 		if (input.intervalMinutes && (input.kind !== "discovery" || input.intervalDays))
@@ -241,6 +262,8 @@ export const careerJobs = {
 					and(
 						eq(tables.careerOpportunity.userId, userId),
 						dismissed ? isNotNull(tables.careerOpportunity.dismissedAt) : isNull(tables.careerOpportunity.dismissedAt),
+						// A role gone from its company's board has closed; dismissed ones stay findable either way.
+						dismissed ? undefined : isNull(tables.careerOpportunity.closedAt),
 					),
 				)
 				.orderBy(desc(tables.careerOpportunity.lastSeenAt)),
@@ -306,6 +329,8 @@ const emptyReport = (trigger: Trigger, at: Date, queries: string[], provider: st
 	rejected: 0,
 	matches: 0,
 	readFailures: 0,
+	filtered: 0,
+	bySource: [],
 });
 
 const hostOf = (url: string) => {
@@ -316,32 +341,37 @@ const hostOf = (url: string) => {
 	}
 };
 
+/** Schedules saved before job sources existed search the web alone, unfiltered. */
+const WEB_ONLY: DiscoverySources = { web: true, apis: [], companies: [], followFromSearch: false };
+
+/** Run detail keeps every new role, but only this many known or filtered ones, so busy feeds don't bloat history. */
+const ITEMS_PER_DECISION = 100;
+
 /**
- * A discovery search's hits, each read once: by the built-in reader, then by the web connection (which renders
- * script-built pages). Only one open role's posting is kept as a role; anything else is remembered as not one, so it is
- * never read again. Untracked roles are rechecked weekly so saved descriptions do not remain stale forever.
- *
- * Also tallies what happened to every hit (see `careerRunReportSchema`); `matches` is filled in once roles are saved.
+ * One role a run came across, from the web or a job source. `unread` was skipped or couldn't be read this run (it
+ * stays as it is); `not-posting` is remembered as not one open role, so it is never read again.
  */
-async function discover(userId: string, query: string, trigger: Trigger, startedAt: Date, search?: SearchOptions) {
-	const connection = await webAccessService.resolve(userId);
-	const signal = AbortSignal.timeout(90_000);
-	const queries = [jobSearchQuery(query)];
-	const provider = connection?.provider ?? "builtin";
-	const hits = await searchJobPostings(query, { userId, connection, signal }, search).catch((error: unknown) => {
-		throw new DiscoveryFailure(
-			{ ...emptyReport(trigger, startedAt, queries, provider), outcome: "failed", failure: "search" },
-			error,
-		);
-	});
-	const found = new Map<string, (typeof hits)[number]>();
-	let invalid = 0;
-	for (const hit of hits) {
-		const url = canonicalOpportunityUrl(hit.url);
-		if (!url) invalid++;
-		else if (!found.has(url)) found.set(url, hit);
-	}
-	const known = found.size
+type Found = {
+	url: string;
+	role: string;
+	company: string;
+	location: string;
+	snippet: string;
+	description: string;
+	source: string;
+	board: string | null;
+	postedAt: Date | null;
+	/** Web roles only: the search connection that found it, and what read its page. */
+	searchedVia: string | null;
+	readVia: string | null;
+	existing: boolean;
+	kind: "role" | "not-posting" | "unread";
+};
+
+type Item = { url: string; host: string; title: string; decision: RunItemDecision; source: string };
+
+async function knownRoles(userId: string, urls: string[]) {
+	const rows = urls.length
 		? await db
 				.select({
 					url: tables.careerOpportunity.url,
@@ -350,13 +380,47 @@ async function discover(userId: string, query: string, trigger: Trigger, started
 					trackedApplicationId: tables.careerOpportunity.trackedApplicationId,
 				})
 				.from(tables.careerOpportunity)
-				.where(
-					and(eq(tables.careerOpportunity.userId, userId), inArray(tables.careerOpportunity.url, [...found.keys()])),
-				)
+				.where(and(eq(tables.careerOpportunity.userId, userId), inArray(tables.careerOpportunity.url, urls)))
 		: [];
-	const seen = new Map(known.map((row) => [row.url, row]));
+	return new Map(rows.map((row) => [row.url, row]));
+}
+
+/** A web role as the filters see it: what its page said, with workplace read from its title and place. */
+const asPosting = (found: Found): JobPosting => ({
+	source: "web" as JobPosting["source"],
+	board: null,
+	url: found.url,
+	title: found.role,
+	company: found.company,
+	location: found.location,
+	workplace: workplaceOf({}, found.role, found.location),
+	employment: null,
+	salary: null,
+	postedAt: null,
+	description: found.description,
+});
+
+/**
+ * Web search's hits, each read once: by the built-in reader, then by the web connection (which renders script-built
+ * pages). Only one open role's posting is kept as a role; anything else is remembered as not one, so it is never read
+ * again. Untracked roles are rechecked weekly so saved descriptions do not remain stale forever.
+ */
+async function readWebHits(
+	userId: string,
+	hits: Awaited<ReturnType<typeof searchJobPostings>>,
+	connection: NonNullable<Awaited<ReturnType<typeof webAccessService.resolve>>>,
+	signal: AbortSignal,
+) {
+	const unique = new Map<string, (typeof hits)[number]>();
+	let invalid = 0;
+	for (const hit of hits) {
+		const url = canonicalOpportunityUrl(hit.url);
+		if (!url) invalid++;
+		else if (!unique.has(url)) unique.set(url, hit);
+	}
+	const seen = await knownRoles(userId, [...unique.keys()]);
 	const results = await Promise.all(
-		[...found].map(async ([url, hit]) => {
+		[...unique].map(async ([url, hit]) => {
 			const prior = seen.get(url);
 			if (
 				prior &&
@@ -365,8 +429,8 @@ async function discover(userId: string, query: string, trigger: Trigger, started
 				return { url, hit, posting: undefined, existing: true, read: "skipped" as const };
 			// A failed read is undefined: skipped this run and tried again on the next, never taken for "not a posting".
 			let failed = false;
-			const read = (via: typeof connection) =>
-				readOpenPosting(url, { userId, connection: via, signal }).catch((): Posting | undefined => {
+			const read = (via: typeof connection | null) =>
+				readOpenPosting(url, { userId, connection: via, signal, unmetered: true }).catch((): Posting | undefined => {
 					failed = true;
 					return undefined;
 				});
@@ -377,41 +441,240 @@ async function discover(userId: string, query: string, trigger: Trigger, started
 			return { url, hit, posting, existing: Boolean(prior), read: failed ? ("failed" as const) : ("read" as const) };
 		}),
 	);
-	const readFailures = results.filter((result) => result.read === "failed").length;
-	const sources = [...new Set(hits.map((hit) => hostOf(hit.url)).filter((host): host is string => Boolean(host)))];
+	const found = results.map((result): Found => {
+		// Titles keep their separators ("Role - Company | Board") for parsing; only markup goes.
+		const title = parseListingTitle(
+			result.hit.title
+				.replace(/[*_`#\\]+/g, "")
+				.replace(/\s+/g, " ")
+				.trim(),
+		);
+		return {
+			url: result.url,
+			role: (result.posting?.page?.role || title.role).slice(0, 200),
+			company: (result.posting?.page?.company || result.posting?.company || title.company).slice(0, 200),
+			location: (result.posting?.page?.location ?? "").slice(0, 200),
+			snippet: result.hit.description,
+			description: result.posting?.text ?? "",
+			source: "web",
+			board: null,
+			postedAt: null,
+			searchedVia: connection.provider,
+			readVia: result.posting?.method ?? null,
+			existing: result.existing,
+			kind: result.posting === undefined ? "unread" : result.posting === null ? "not-posting" : "role",
+		};
+	});
+	return { found, results, invalid };
+}
+
+/**
+ * One discovery run: web search (when the schedule uses it and a connection exists) and the schedule's job sources
+ * and followed company boards, side by side. Every new role passes the same filters before it is kept.
+ *
+ * Also tallies what happened to every result (see `careerRunReportSchema`); `matches` is filled in once roles are saved.
+ */
+async function discover(
+	userId: string,
+	schedule: typeof tables.careerSchedule.$inferSelect,
+	trigger: Trigger,
+	startedAt: Date,
+) {
+	const query = schedule.query;
+	const sources = schedule.sources ?? WEB_ONLY;
+	// Old web-only schedules stay unfiltered; a schedule with sources and no filters of its own uses Preferences.
+	const filters =
+		schedule.filters ?? (schedule.sources ? defaultDiscoveryFilters(await careerService.profile(userId)) : null);
+	const others = sources.apis.length > 0 || sources.companies.length > 0;
+	const signal = AbortSignal.timeout(others ? 150_000 : 90_000);
+	const connection = sources.web ? await webAccessService.resolve(userId) : null;
+	const queries = [jobSearchQuery(query)];
+	// Names the web search connection; a run without web search has none.
+	const provider = connection?.provider ?? (others ? "" : "builtin");
+	const searchFailed = (error: unknown): never => {
+		throw new DiscoveryFailure(
+			{ ...emptyReport(trigger, startedAt, queries, provider), outcome: "failed", failure: "search" },
+			error,
+		);
+	};
+	const webReport: SourceRunReport = {
+		source: "web",
+		found: 0,
+		kept: 0,
+		status: "ok",
+		reason: null,
+	};
+
+	const web = async () => {
+		if (!sources.web) return null;
+		if (!connection) {
+			// Without other sources this is the old web-only search, which fails the way it always has.
+			if (!others) searchFailed(new Error("No web search connection."));
+			Object.assign(webReport, { status: "skipped", reason: "needs-key" });
+			return null;
+		}
+		let hits: Awaited<ReturnType<typeof searchJobPostings>>;
+		try {
+			hits = await searchJobPostings(query, { userId, connection, signal }, retrievalFor(schedule));
+		} catch (error) {
+			if (!others) searchFailed(error);
+			Object.assign(webReport, { status: "failed", reason: "search" });
+			return null;
+		}
+		webReport.found = hits.length;
+		return { hits, ...(await readWebHits(userId, hits, connection, signal)) };
+	};
+	const feeds = async () =>
+		others
+			? collectJobs({
+					query,
+					sources,
+					filters: filters ?? discoveryFiltersSchema.parse({}),
+					keys: await jobSourceKeys.resolve(userId),
+					limit: retrievalFor(schedule).limit,
+					signal,
+				})
+			: null;
+	const [fromWeb, collected] = await Promise.all([web(), feeds()]);
+
+	const found: Found[] = [];
+	const items: Item[] = [];
+	const shown = { known: 0, filtered: 0 };
+	const note = (url: string, title: string, decision: RunItemDecision, source = "web") => {
+		if (decision === "known" || decision === "filtered") {
+			if (shown[decision] >= ITEMS_PER_DECISION) return;
+			shown[decision]++;
+		}
+		items.push({
+			url: url.slice(0, 1000),
+			host: hostOf(url) ?? "",
+			title: title.replace(/\s+/g, " ").trim().slice(0, 200),
+			decision,
+			source,
+		});
+	};
+
+	let filtered = 0;
+	const webResults = fromWeb?.results ?? [];
+	for (const [index, result] of (fromWeb?.found ?? []).entries()) {
+		const read = webResults[index];
+		const title = read?.hit.title ?? result.role;
+		// Filters judge what a read found; unread pages and non-postings stay as they are.
+		if (
+			result.kind === "role" &&
+			!result.existing &&
+			filters &&
+			!applyFilters(asPosting(result), filters, query, true).ok
+		) {
+			filtered++;
+			note(result.url, title, "filtered");
+			continue;
+		}
+		found.push(result);
+		if (result.kind === "role" && !result.existing) webReport.kept++;
+		note(
+			result.url,
+			title,
+			read?.read === "failed"
+				? "unreadable"
+				: result.kind === "not-posting"
+					? "rejected"
+					: result.existing
+						? "known"
+						: "new",
+		);
+	}
+	for (const hit of fromWeb?.hits ?? []) if (!canonicalOpportunityUrl(hit.url)) note(hit.url, hit.title, "invalid");
+
+	// Job sources: drop what the web already found, then keep new roles the filters pass, reading their full text.
+	const webUrls = new Set((fromWeb?.found ?? []).map((result) => result.url));
+	const fromSources = (collected?.postings ?? []).filter(({ posting }) => !webUrls.has(posting.url));
+	const known = await knownRoles(
+		userId,
+		fromSources.filter(({ decision }) => decision.ok).map(({ posting }) => posting.url),
+	);
+	await readDetails(
+		fromSources.filter(({ posting, decision }) => decision.ok && !known.has(posting.url)).map(({ posting }) => posting),
+		signal,
+	);
+	for (const { posting, decision } of fromSources) {
+		const from = posting.board ?? posting.source;
+		if (!decision.ok) {
+			filtered++;
+			note(posting.url, posting.title, "filtered", from);
+			continue;
+		}
+		const existing = known.has(posting.url);
+		note(posting.url, posting.title, existing ? "known" : "new", from);
+		found.push({
+			url: posting.url,
+			role: posting.title.slice(0, 200),
+			company: posting.company.slice(0, 200),
+			location: posting.location.slice(0, 200),
+			snippet: posting.description,
+			description: posting.description,
+			source: posting.source,
+			board: posting.board,
+			postedAt: posting.postedAt,
+			searchedVia: null,
+			readVia: null,
+			existing,
+			kind: existing ? "unread" : "role",
+		});
+	}
+	const bySource = [...(sources.web ? [webReport] : []), ...(collected?.bySource ?? [])];
+
+	const readFailures = webResults.filter((result) => result.read === "failed").length;
+	const fromSourcesRaw = (collected?.bySource ?? []).reduce((sum, report) => sum + report.found, 0);
+	const hosts = [
+		...new Set(
+			[...(fromWeb?.hits ?? []).map((hit) => hit.url), ...fromSources.map(({ posting }) => posting.url)]
+				.map(hostOf)
+				.filter((host): host is string => Boolean(host)),
+		),
+	];
+	const failedSources = bySource.filter((report) => report.status === "failed").length;
+	const ranSources = bySource.filter((report) => report.status !== "skipped").length;
 	const report: CareerRunReport = {
 		...emptyReport(trigger, startedAt, queries, provider),
-		sources: sources.slice(0, 25),
-		found: hits.length,
+		sources: hosts.slice(0, 25),
+		found: (fromWeb?.hits.length ?? 0) + fromSourcesRaw,
 		duplicates:
-			hits.length -
-			invalid -
-			found.size +
-			results.filter((result) => result.existing && result.posting !== null && result.read !== "failed").length,
-		rejected: invalid + results.filter((result) => result.posting === null).length,
+			(fromWeb?.hits.length ?? 0) -
+			(fromWeb?.invalid ?? 0) -
+			webResults.length +
+			webResults.filter((result) => result.existing && result.posting !== null && result.read !== "failed").length +
+			(fromSourcesRaw - fromSources.length) +
+			fromSources.filter(({ posting, decision }) => decision.ok && known.has(posting.url)).length,
+		rejected: (fromWeb?.invalid ?? 0) + webResults.filter((result) => result.posting === null).length,
 		readFailures,
-		// All unreadable: nothing was learned, so say that rather than report a quiet success.
-		...(results.length > 0 && readFailures === results.length
+		filtered,
+		bySource,
+		// Nothing usable from anywhere: say that rather than report a quiet success.
+		...(webResults.length > 0 && readFailures === webResults.length && fromSources.length === 0
 			? { outcome: "failed" as const, failure: "extraction" as const }
-			: readFailures > 0
-				? { outcome: "partial" as const }
-				: {}),
+			: ranSources > 0 && failedSources === ranSources
+				? { outcome: "failed" as const, failure: "search" as const }
+				: readFailures > 0 || failedSources > 0
+					? { outcome: "partial" as const }
+					: {}),
 	};
-	// What became of each result, for the run's detail view. First sighting of each address only, capped.
-	const items: { url: string; host: string; title: string; decision: RunItemDecision }[] = [];
-	const decide = (result: (typeof results)[number]): RunItemDecision =>
-		result.read === "failed" ? "unreadable" : result.posting === null ? "rejected" : result.existing ? "known" : "new";
-	for (const result of results)
-		items.push({
-			url: result.url.slice(0, 1000),
-			host: hostOf(result.url) ?? "",
-			title: result.hit.title.replace(/\s+/g, " ").trim().slice(0, 200),
-			decision: decide(result),
-		});
-	for (const hit of hits)
-		if (!canonicalOpportunityUrl(hit.url))
-			items.push({ url: hit.url.slice(0, 1000), host: "", title: hit.title.slice(0, 200), decision: "invalid" });
-	return { results, report, items: items.slice(0, 50) };
+	// Company boards web search turned up are followed from now on, so their other roles are found too.
+	const follow = sources.followFromSearch
+		? [
+				...new Map(
+					(fromWeb?.hits ?? [])
+						.map((hit) => boardOf(hit.url))
+						.filter((board): board is NonNullable<typeof board> => board !== null)
+						.filter(
+							(board) =>
+								!sources.companies.some((company) => company.kind === board.kind && company.slug === board.slug),
+						)
+						.map((board) => [`${board.kind}:${board.slug}`, { ...board, name: nameFromSlug(board.slug) }]),
+				).values(),
+			]
+		: [];
+	return { found, report, items, boards: collected?.boards ?? [], follow };
 }
 
 async function enqueue() {
@@ -539,15 +802,9 @@ async function execute(job: typeof tables.careerJob.$inferSelect) {
 		.where(eq(tables.careerSchedule.id, schedule.id));
 	const discovery =
 		schedule.kind === "discovery"
-			? await discover(
-					job.userId,
-					schedule.query,
-					job.trigger === "manual" ? "manual" : "schedule",
-					startedAt,
-					retrievalFor(schedule),
-				)
+			? await discover(job.userId, schedule, job.trigger === "manual" ? "manual" : "schedule", startedAt)
 			: null;
-	const results = discovery?.results ?? [];
+	const results = discovery?.found ?? [];
 	if (schedule.kind === "prepare") {
 		if (!application || !schedule.interviewId) throw new Error("Preparation application unavailable.");
 		const [saved] = await db
@@ -600,30 +857,34 @@ async function execute(job: typeof tables.careerJob.$inferSelect) {
 				.values(discovery.items.map((item) => ({ ...item, runId, userId: job.userId })));
 		let changed = 0;
 		const added: { id: string; role: string; company: string }[] = [];
-		for (const { url, hit, posting, existing } of results) {
-			// Seen before, or unreadable this run.
-			if (posting === undefined) {
-				await tx
-					.update(tables.careerOpportunity)
-					.set({ lastSeenAt: new Date(), updatedAt: sql`${tables.careerOpportunity.updatedAt}` })
-					.where(and(eq(tables.careerOpportunity.userId, job.userId), eq(tables.careerOpportunity.url, url)));
-				continue;
-			}
-			// Titles keep their separators ("Role - Company | Board") for parsing; only markup goes.
-			const title = parseListingTitle(
-				hit.title
-					.replace(/[*_`#\\]+/g, "")
-					.replace(/\s+/g, " ")
-					.trim(),
-			);
+		// Seen before, or unreadable this run: still listed, so still open.
+		const seenAgain = results.filter((result) => result.kind === "unread").map((result) => result.url);
+		for (let at = 0; at < seenAgain.length; at += 500)
+			await tx
+				.update(tables.careerOpportunity)
+				.set({ lastSeenAt: new Date(), closedAt: null, updatedAt: sql`${tables.careerOpportunity.updatedAt}` })
+				.where(
+					and(
+						eq(tables.careerOpportunity.userId, job.userId),
+						inArray(tables.careerOpportunity.url, seenAgain.slice(at, at + 500)),
+					),
+				);
+		for (const result of results) {
+			if (result.kind === "unread") continue;
+			const posting = result.kind === "role";
 			const values = {
 				userId: job.userId,
-				url,
-				role: (posting?.page?.role || title.role).slice(0, 200),
-				company: (posting?.page?.company || posting?.company || title.company).slice(0, 200),
-				location: (posting?.page?.location ?? "").slice(0, 200),
-				snippet: plainSnippet(hit.description || posting?.text || ""),
-				description: posting?.text ?? "",
+				url: result.url,
+				role: result.role,
+				company: result.company,
+				location: result.location,
+				snippet: plainSnippet(result.snippet || result.description),
+				description: result.description,
+				source: result.source,
+				board: result.board,
+				postedAt: result.postedAt,
+				searchedVia: result.searchedVia,
+				readVia: result.readVia,
 				...(discovery ? { runId } : {}),
 				// Not a posting: kept out of New roles, and never read again.
 				...(posting ? {} : { dismissedAt: new Date() }),
@@ -639,17 +900,48 @@ async function execute(job: typeof tables.careerJob.$inferSelect) {
 						location: values.location,
 						snippet: values.snippet,
 						description: values.description,
+						readVia: values.readVia,
 						lastSeenAt: new Date(),
+						closedAt: null,
 						...(posting ? {} : { dismissedAt: new Date() }),
 					},
 					setWhere: sql`${tables.careerOpportunity.dismissedAt} is null and ${tables.careerOpportunity.trackedApplicationId} is null`,
 				})
 				.returning();
-			if (inserted && posting && !existing) {
+			if (inserted && posting && !result.existing) {
 				changed++;
 				added.push({ id: inserted.id, role: values.role, company: values.company });
 			}
 		}
+		// A followed board read in full no longer lists these roles: they closed.
+		for (const { board, urls } of discovery?.boards ?? []) {
+			const open = await tx
+				.select({ id: tables.careerOpportunity.id, url: tables.careerOpportunity.url })
+				.from(tables.careerOpportunity)
+				.where(
+					and(
+						eq(tables.careerOpportunity.userId, job.userId),
+						eq(tables.careerOpportunity.board, board),
+						isNull(tables.careerOpportunity.closedAt),
+					),
+				);
+			const gone = open.filter((row) => !urls.has(row.url)).map((row) => row.id);
+			if (gone.length)
+				await tx
+					.update(tables.careerOpportunity)
+					.set({ closedAt: new Date() })
+					.where(inArray(tables.careerOpportunity.id, gone));
+		}
+		if (discovery?.follow.length && schedule.sources)
+			await tx
+				.update(tables.careerSchedule)
+				.set({
+					sources: {
+						...schedule.sources,
+						companies: [...schedule.sources.companies, ...discovery.follow].slice(0, 500),
+					},
+				})
+				.where(eq(tables.careerSchedule.id, schedule.id));
 		// New roles all wait in one list, so the newest "new roles" notice replaces older unread ones.
 		if (schedule.kind === "discovery" && changed)
 			await tx

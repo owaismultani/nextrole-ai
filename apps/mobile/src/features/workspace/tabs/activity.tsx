@@ -6,6 +6,7 @@ import { useLingui } from "@lingui/react/macro";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
+import { foundVia } from "../../career/discovery-sources";
 import { useApplicationJourney } from "../hooks";
 import { Block } from "../parts";
 import { WorkspaceScreen } from "../shell";
@@ -81,7 +82,9 @@ function Activity({ application }: WorkspaceTabProps) {
 			id: "found",
 			at: new Date(found.foundAt),
 			kind: "discovery",
-			text: found.run ? t`Found by the search “${found.run.query}”` : t`Found by discovery`,
+			text: found.run
+				? t`Found by the search “${found.run.query}” via ${foundVia(found)}`
+				: t`Found by discovery via ${foundVia(found)}`,
 			...(found.run ? { run: found.run.id } : {}),
 		});
 		for (const event of found.events) {

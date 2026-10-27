@@ -6,10 +6,17 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Platform, View } from "react-native";
-import { careerScheduleInputSchema, RETRIEVAL_BUDGET } from "@reactive-resume/schema/career";
+import {
+	careerScheduleInputSchema,
+	defaultDiscoveryFilters,
+	discoverySourcesSchema,
+	RETRIEVAL_BUDGET,
+	RETRIEVAL_BUDGET_CHOICES,
+} from "@reactive-resume/schema/career";
 import { cadenceOf, EVERY_VALUES, everyOf } from "@reactive-resume/schema/career-run";
 import { fromZonedDateTime } from "@reactive-resume/utils/timezone";
 import { everyLabel } from "./discovery-run";
+import { FiltersEditor, SearchPreview, SourcesEditor } from "./discovery-sources";
 import { client, useCareerAction, useCareerQueries, useCareerTime, useNow } from "./hooks";
 import { collectInterviews, nextCareerRun, prepareRunAt, rollForwardRepeat, toZoned } from "./scheduling";
 import { EditorSheet, LoadState, SwitchRow } from "./shared";
@@ -108,6 +115,11 @@ function ScheduleForm({
 			query: schedule?.query || [...profile.targetRoles, ...profile.locations].join(" · "),
 			every: schedule ? everyOf(schedule) : "m60",
 			budget: String(schedule?.retrievalBudget ?? RETRIEVAL_BUDGET.default),
+			// A search saved before sources existed searched the web alone; a new one starts with the free sources too.
+			sources:
+				schedule?.sources ??
+				(schedule ? { web: true, apis: [], companies: [], followFromSearch: false } : discoverySourcesSchema.parse({})),
+			filters: schedule?.filters ?? defaultDiscoveryFilters(profile),
 			...toZoned(at, timezone),
 			time: schedule ? toZoned(at, timezone).time : "08:00",
 			interviewId: schedule?.interviewId ?? upcoming[0]?.interview.id ?? "",
@@ -140,7 +152,8 @@ function ScheduleForm({
 			? !interview || !ai.hasAIProvider
 			: draft.kind === "follow-up"
 				? !open.some((row) => row.id === draft.applicationId)
-				: !search);
+				: // Job sources and followed companies need no connection; only a web-search-only search does.
+					!search && !draft.sources.apis.length && !draft.sources.companies.length);
 	const save = () => {
 		if (draft.kind === "discovery" && draft.query.trim().length < 3)
 			return setValidation(t`Add a role or company to look for.`);
@@ -166,6 +179,8 @@ function ScheduleForm({
 			nextRunAt: runAt,
 			...(draft.kind === "discovery" ? cadenceOf(draft.every) : { intervalDays: null, intervalMinutes: null }),
 			retrievalBudget: draft.kind === "discovery" ? Number(draft.budget) : null,
+			sources: draft.kind === "discovery" ? draft.sources : null,
+			filters: draft.kind === "discovery" ? draft.filters : null,
 			aiProviderId: draft.kind === "prepare" ? (provider?.id ?? null) : null,
 		};
 		if (!careerScheduleInputSchema.safeParse(input).success) return setValidation(t`Check the fields and try again.`);
@@ -218,15 +233,30 @@ function ScheduleForm({
 							)}
 						/>
 						<SelectSheet
-							label={t`Results per search`}
+							label={t`Results per source`}
 							value={draft.budget}
 							onChange={(budget) => set({ budget })}
-							options={["5", "10", "15", "20"].map((value) => ({ value, label: value }))}
+							options={[...new Set([...RETRIEVAL_BUDGET_CHOICES.map(String), draft.budget])].map((value) => ({
+								value,
+								label: value,
+							}))}
 						/>
-						<Text color="ink3">{t`The most one run retrieves. Search services rank results, so this finds relevant postings but cannot promise to list every job.`}</Text>
+						<Text color="ink3">{t`Roughly the most each job-search source and web search return per run. Followed company boards are always read in full.`}</Text>
 						<Text color="ink3">{t`Hourly runs keep a fixed gap. Daily and longer keep the same time of day in ${timezone}.`}</Text>
-						<Text color="ink3">{t`Uses web search set up in Settings. Results wait in Today. Applications and documents are never created for you.`}</Text>
-						{!search ? <Banner tone="warn" message={t`Set up web search in Settings to find roles.`} /> : null}
+						<SourcesEditor
+							sources={draft.sources}
+							country={draft.filters.country}
+							onChange={(sources) => set({ sources })}
+						/>
+						<FiltersEditor filters={draft.filters} locale={locale} onChange={(filters) => set({ filters })} />
+						<SearchPreview query={draft.query} sources={draft.sources} filters={draft.filters} />
+						<Text color="ink3">{t`New roles wait in Today. Applications and documents are never created for you.`}</Text>
+						{!search && !draft.sources.apis.length && !draft.sources.companies.length ? (
+							<Banner
+								tone="warn"
+								message={t`Choose a job source, follow a company, or set up web search in Settings.`}
+							/>
+						) : null}
 					</>
 				) : draft.kind === "prepare" ? (
 					<>

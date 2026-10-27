@@ -5,7 +5,7 @@ description: "Set a discovery schedule, review open postings and track only the 
 
 You have a job already and little time to scroll job boards. Set up a search once, then review new roles in **Discover** when you have time.
 
-Discovery reads new search results to check that they are individual open job postings. It skips results it cannot confirm as postings, including recognized closed roles. A posting can close after that check, so read it before applying. The number of new roles varies; there is no promised daily quota.
+Discovery searches job sources, the company job boards you follow and, when connected, the web. It keeps only individual open postings that pass your filters. A posting can close after that check, so read it before applying. The number of new roles varies; there is no promised daily quota.
 
 ## Set what you are looking for
 
@@ -22,16 +22,48 @@ Enter salary as a full amount, such as **95000**, rather than **95k**. Invalid s
 
 Set your timezone in **Settings → Preferences**. Schedule times use that timezone.
 
-Discovery needs a web search connection. Check **Settings → Integrations → Web access**, or ask your installation's administrator if services are configured centrally. AI text coaching is a separate connection; it is not required just to schedule a discovery search.
+Discovery works without any connection: free job sources and company job boards need no setup. Web search is optional and adds results from across the web; check **Settings → Integrations → Web access**. Some job-search services need a free key, added under **Settings → Integrations → Job sources**. Your installation's administrator may configure these centrally. AI text coaching is a separate connection; it is not required just to schedule a discovery search.
+
+## Where discovery looks
+
+Each search chooses its sources in **Where to look**:
+
+| Source                                         | Covers                                | Setup                                                           |
+| ---------------------------------------------- | ------------------------------------- | --------------------------------------------------------------- |
+| Bundesagentur für Arbeit                       | Germany's public job exchange         | None. Runs when the country is Germany.                         |
+| Himalayas, Jobicy, Remote OK, We Work Remotely | Remote roles worldwide                | None                                                            |
+| Arbeitnow                                      | Europe, mostly Germany                | None                                                            |
+| The Muse                                       | Mostly US companies, by place         | None; a key raises its limits                                   |
+| Adzuna                                         | About 20 countries, every kind of job | Free key. Runs once a country is chosen.                        |
+| Reed                                           | United Kingdom                        | Free key. Runs when the country is the United Kingdom.          |
+| Jooble                                         | Worldwide                             | Key                                                             |
+| USAJOBS                                        | US federal government                 | Free key and email. Runs when the country is the United States. |
+| Web search                                     | The whole web                         | Firecrawl, Tavily or Exa connection                             |
+
+**Companies you follow** read a company's own job board in full, so nothing it posts is missed. Paste a careers page or any job link from Greenhouse, Lever, Ashby, SmartRecruiters, Recruitee, Personio, Workable or Workday and select **Follow**. With **Follow companies web search finds** on, a company board that web search turns up is followed automatically. When a followed company removes a role from its board, the role closes and leaves Discover.
+
+## Filter what you keep
+
+**What to keep** applies to every source's postings, so each search obeys the same rules. Filters start from your preferences:
+
+- **Job titles**: a title must match one. Leave empty to use what you look for.
+- **Leave out titles with**: words such as _intern_ or _principal_.
+- **Places**, **Country** and **Within**: places match any part, so _Berlin, Germany_ keeps roles in Berlin or Germany. Remote roles open worldwide are kept. The country also decides which country-bound sources run.
+- **Workplace**, **Employment** and **Posted within**.
+- **Minimum salary**, compared a year in the same currency, and **Leave out postings that don't say**.
+- **Leave out companies**.
+
+A posting that doesn't state something (no salary, no place, no workplace) is kept unless you ask otherwise. Select **Preview results** to run the search once without saving: it lists the roles kept, the roles filtered out and why, and each source's outcome.
 
 ## Schedule the search
 
 1. Open **Discover** and select **Set up discovery** (or **Edit search** when you already have one). The same editor opens from **Automation → Discovery**, and **Automation → Schedules** lists every schedule.
 2. Edit **Look for**. It starts from your preferences; include roles, places or companies to focus the search.
 3. Choose **How often**: **Every hour**, **Every 3 hours**, **Every 6 hours**, **Every day**, **Every 3 days** or **Every week**.
-4. Choose **Results per search** (5 to 20), the most one run retrieves.
-5. For hourly schedules, the first search starts as soon as you save. For daily and longer ones, set **First run** and **Time**. For morning results, choose a morning time such as 08:00.
-6. Leave **Turn this schedule on** enabled and select **Save schedule**.
+4. Choose **Results per source** (5 to 100), roughly the most each job-search source and web search return per run. Followed company boards are always read in full. Tavily returns at most 20.
+5. Choose sources in **Where to look** and set **What to keep** (see above), then **Preview results** to check them.
+6. For hourly schedules, the first search starts as soon as you save. For daily and longer ones, set **First run** and **Time**. For morning results, choose a morning time such as 08:00.
+7. Leave **Turn this schedule on** enabled and select **Save schedule**.
 
 <Frame caption="A focused search and a recurring time are enough to start. Results wait for your review; the schedule does not apply for jobs.">
   <img

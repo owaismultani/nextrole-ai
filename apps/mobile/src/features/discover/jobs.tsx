@@ -6,6 +6,7 @@ import { openBrowserAsync } from "expo-web-browser";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import Animated from "react-native-reanimated";
+import { foundVia, sourceCredit } from "../career/discovery-sources";
 import { client, useCareerAction, useCareerTime, useTodayQueries, useUndoRows } from "../career/hooks";
 import { Actions, LoadState, SwitchRow } from "../career/shared";
 import { useDiscover } from "./context";
@@ -305,7 +306,9 @@ function JobCard({ row, open, onToggle, undo, action }: JobCardProps) {
 					</View>
 					<View style={{ gap: space.s1 }}>
 						<Text weight={600}>{t`Where it came from`}</Text>
-						<Text color="ink2">{hostOf(row.url)}</Text>
+						<Text color="ink2">
+							{`${hostOf(row.url)} · ${row.source === "web" ? foundVia(row) : sourceCredit(row.board ?? row.source)}`}
+						</Text>
 						{detail.data?.run ? (
 							<>
 								<Text color="ink2">

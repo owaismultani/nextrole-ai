@@ -49,21 +49,29 @@ export const stateLabel = (state: RunState) =>
 /** Says what a run's numbers mean, so a quiet schedule can be told apart from a broken one. */
 export function diagnose(report: RunReport): string | null {
 	const { found, duplicates, rejected, readFailures } = report;
+	const filtered = report.filtered ?? 0;
+	const failedSources = (report.bySource ?? []).filter((source) => source.status === "failed").length;
 	switch (diagnoseRun(report)) {
 		case "search":
-			return t`The search did not run. Check the web search connection in Settings, then run it again.`;
+			return failedSources > 1
+				? t`None of the sources answered. They're tried again on the next run; if this keeps happening, check their keys in Settings.`
+				: t`The search did not run. Check the web search connection in Settings, then run it again.`;
 		case "extraction":
 			return t`The search found results, but none of their pages could be read. The sites may block automated reading.`;
 		case "stopped":
 			return t`The run stopped before it finished. It tries again on its own; if this keeps happening, check your search connection.`;
 		case "partial":
-			return t`${readFailures} of ${found} results could not be read, so they were skipped and will be tried again. The rest were processed.`;
+			return readFailures > 0
+				? t`${readFailures} of ${found} results could not be read, so they were skipped and will be tried again. The rest were processed.`
+				: t`Some sources didn't answer this run; the others were searched. They're tried again next time.`;
 		case "empty":
 			return t`The search returned no results. Try broader roles or places.`;
 		case "repeats":
 			return t`Every result was already known. Scheduling is working; the search keeps returning the same roles, so try changing what you look for.`;
 		case "quiet":
-			return t`Nothing new this run: ${duplicates} already known and ${rejected} not open postings.`;
+			return filtered > 0
+				? t`Nothing new this run: ${duplicates} already known, ${filtered} left out by your filters and ${rejected} not open postings.`
+				: t`Nothing new this run: ${duplicates} already known and ${rejected} not open postings.`;
 		default:
 			return null;
 	}
@@ -75,5 +83,7 @@ export function runSummary(row: Schedule): string | null {
 	if (!report) return null;
 	if (report.outcome === "failed") return t`Last run failed`;
 	const fresh = plural(report.matches, { zero: "No new roles", one: "# new role", other: "# new roles" });
-	return report.outcome === "partial" ? t`${fresh} · ${report.readFailures} unreadable` : fresh;
+	return report.outcome === "partial" && report.readFailures > 0
+		? t`${fresh} · ${report.readFailures} unreadable`
+		: fresh;
 }

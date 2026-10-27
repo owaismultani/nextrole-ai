@@ -202,7 +202,8 @@ export async function careerOverview(userId: string, days: number) {
 			schedule: scheduleState,
 			lastRun,
 			repeating: health.repeating,
-			searchConnected: Boolean(connection),
+			// Job sources and followed companies search without any connection; web search needs one.
+			searchConnected: Boolean(connection || schedule?.sources?.apis.length || schedule?.sources?.companies.length),
 			aiConnected: Boolean(provider),
 			documents: {
 				...documents,

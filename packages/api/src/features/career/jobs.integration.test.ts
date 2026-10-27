@@ -81,6 +81,7 @@ const posting = {
 	},
 	text: "Maintain reliable services.",
 	company: "",
+	method: "builtin" as const,
 };
 
 describe.skipIf(!databaseUrl)("durable career scheduling", () => {

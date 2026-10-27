@@ -6,6 +6,8 @@ import type {
 	CareerSource,
 	CareerStoryData,
 	CareerWorkspace,
+	DiscoveryFilters,
+	DiscoverySources,
 	SavedItemData,
 } from "@reactive-resume/schema/career";
 import * as pg from "drizzle-orm/pg-core";
@@ -109,6 +111,10 @@ export const careerSchedule = pg.pgTable(
 		lastRun: pg.jsonb("last_run").$type<CareerRunReport>(),
 		/** Discovery only: results one run may retrieve from the search provider; null uses the default. */
 		retrievalBudget: pg.integer("retrieval_budget"),
+		/** Discovery only: where to look; null is web search alone. */
+		sources: pg.jsonb("sources").$type<DiscoverySources>(),
+		/** Discovery only: what to keep; null uses Preferences. */
+		filters: pg.jsonb("filters").$type<DiscoveryFilters>(),
 		aiProviderId: pg.text("ai_provider_id").references(() => aiProvider.id, { onDelete: "set null" }),
 	},
 	(t) => [pg.index().on(t.enabled, t.nextRunAt)],
@@ -180,8 +186,19 @@ export const careerOpportunity = pg.pgTable(
 		runId: pg.text("run_id").references(() => careerRun.id, { onDelete: "set null" }),
 		/** Set when tracked in Applications; a tracked role never returns in later runs. */
 		trackedApplicationId: pg.text("tracked_application_id").references(() => application.id, { onDelete: "set null" }),
+		/** Where it was found: "web", or a job source such as "adzuna" or "greenhouse". */
+		source: pg.text("source").notNull().default("web"),
+		/** The followed company board it came from ("greenhouse:acme"), so a role gone from that board can be closed. */
+		board: pg.text("board"),
+		/** Web roles only: the search connection that found it ("tavily", "exa", "firecrawl"). */
+		searchedVia: pg.text("searched_via"),
+		/** Web roles only: what read its page, the built-in reader ("builtin") or the search connection. */
+		readVia: pg.text("read_via"),
+		postedAt: pg.timestamp("posted_at", { withTimezone: true }),
+		/** Set when the role disappeared from its company's board; closed roles leave New roles. */
+		closedAt: pg.timestamp("closed_at", { withTimezone: true }),
 	},
-	(t) => [pg.uniqueIndex().on(t.userId, t.url)],
+	(t) => [pg.uniqueIndex().on(t.userId, t.url), pg.index().on(t.userId, t.board)],
 );
 
 /** One application's live workspace state: answers, checklist ticks, questions to ask. */
@@ -366,6 +383,8 @@ export const careerRunItem = pg.pgTable(
 		host: pg.text("host").notNull().default(""),
 		title: pg.text("title").notNull().default(""),
 		decision: pg.text("decision").notNull(),
+		/** Where it came from: "web", a job source ("adzuna"), or a followed board ("greenhouse:acme"). */
+		source: pg.text("source"),
 	},
 	(t) => [pg.index().on(t.runId)],
 );

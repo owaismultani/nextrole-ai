@@ -3,6 +3,7 @@ import { useLingui } from "@lingui/react/macro";
 import { useQuery } from "@tanstack/react-query";
 import { View } from "react-native";
 import { cadenceLabel, diagnose, runState, stateLabel } from "./discovery-run";
+import { connectionName, runSources, sourceLabel, sourceOutcome } from "./discovery-sources";
 import { client, useCareerAction, useCareerTime } from "./hooks";
 import { orpc } from "@/api/client";
 import { useSession } from "@/auth/session";
@@ -62,6 +63,7 @@ export function DiscoveryStatus({ schedule: initial, onEnabledChange }: Discover
 				{ key: "found", label: t`Found`, value: report.found },
 				{ key: "duplicates", label: t`Duplicates`, value: report.duplicates },
 				{ key: "rejected", label: t`Rejected`, value: report.rejected },
+				...(report.filtered !== undefined ? [{ key: "filtered", label: t`Filtered out`, value: report.filtered }] : []),
 				{ key: "matches", label: t`New matches`, value: report.matches },
 				{ key: "failures", label: t`Read failures`, value: report.readFailures, bad: report.readFailures > 0 },
 			]
@@ -103,10 +105,15 @@ export function DiscoveryStatus({ schedule: initial, onEnabledChange }: Discover
 						/>
 					) : null}
 					<Text variant="callout" color="ink3">
-						{[report.queries.join(" · "), [report.provider, ...report.sources].filter(Boolean).join(" · ")]
+						{[report.queries.join(" · "), report.bySource?.length ? null : runSources(report)]
 							.filter(Boolean)
 							.join("\n")}
 					</Text>
+					{(report.bySource ?? []).map((source) => (
+						<Text key={source.source} variant="callout" color={source.status === "failed" ? "warnText" : "ink3"}>
+							{`${sourceLabel(source.source)}${source.source === "web" && connectionName(report.provider) ? ` · ${connectionName(report.provider)}` : ""}: ${sourceOutcome(source)}`}
+						</Text>
+					))}
 					<Text variant="callout" color="ink3">
 						{report.trigger === "manual" ? t`Started by you` : t`Scheduled run`} · {when(report.at)}
 					</Text>

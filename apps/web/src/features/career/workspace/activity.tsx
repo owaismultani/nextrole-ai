@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Icon } from "@reactive-resume/ui/components/icon";
 import { Skeleton } from "@reactive-resume/ui/components/skeleton";
 import { cn } from "@reactive-resume/utils/style";
+import { foundVia } from "../discovery-sources";
 import { useApplicationJourney } from "../hooks";
 import { CareerLoadError } from "../load-state";
 import { describeEvent } from "../pipeline-words";
@@ -93,7 +94,9 @@ export function ActivityTab({ savedOpen, ...props }: WorkspaceTabProps & { saved
 			at: new Date(found.foundAt),
 			kind: "discovery",
 			icon: "globe-simple",
-			text: found.run ? t`Found by the search “${found.run.query}”` : t`Found by discovery`,
+			text: found.run
+				? t`Found by the search “${found.run.query}” via ${foundVia(found)}`
+				: t`Found by discovery via ${foundVia(found)}`,
 			...(found.run
 				? {
 						link: {

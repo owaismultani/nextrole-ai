@@ -2,6 +2,7 @@ import { t } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@reactive-resume/utils/style";
+import { foundVia } from "./discovery-sources";
 import { describeEvent } from "./pipeline-words";
 import { useCareerTime } from "./shared";
 import { orpc } from "@/libs/orpc/client";
@@ -21,8 +22,8 @@ export function JobJourney({ opportunityId }: { opportunityId: string }) {
 		<ol className="grid gap-1.5 border-s border-line ps-3 text-xs">
 			<li className="text-ink-2">
 				{data.run
-					? t`${when(data.foundAt)} · Found by the search "${data.run.query}"`
-					: t`${when(data.foundAt)} · Found by discovery`}
+					? t`${when(data.foundAt)} · Found by the search "${data.run.query}" via ${foundVia(data)}`
+					: t`${when(data.foundAt)} · Found by discovery via ${foundVia(data)}`}
 			</li>
 			{data.events.map((event) => (
 				<li

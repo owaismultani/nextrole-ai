@@ -19,7 +19,7 @@ export async function searchTavily(query: string, { connection, signal, search }
 			},
 			{
 				query,
-				max_results: searchLimit(search),
+				max_results: searchLimit(search, "tavily"),
 				// Tavily filters by calendar day, so the day of `since` is included.
 				...(search?.since ? { start_date: search.since.toISOString().slice(0, 10) } : {}),
 				search_depth: "basic",

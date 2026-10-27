@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DEFAULT_SEARCH_LIMIT, MAX_SEARCH_LIMIT, searchLimit } from "./contracts";
+import { DEFAULT_SEARCH_LIMIT, PROVIDER_SEARCH_MAX, searchLimit } from "./contracts";
 
 const sent = vi.hoisted(() => ({ calls: [] as { url: string; body: Record<string, unknown> }[] }));
 vi.mock("./transport", async () => {
@@ -23,12 +23,13 @@ describe("search result limits", () => {
 		sent.calls.length = 0;
 	});
 
-	it("keeps the small default for every other feature, and clamps a requested budget", () => {
-		expect(searchLimit(undefined)).toBe(DEFAULT_SEARCH_LIMIT);
-		expect(searchLimit({})).toBe(5);
-		expect(searchLimit({ limit: 15 })).toBe(15);
-		expect(searchLimit({ limit: 500 })).toBe(MAX_SEARCH_LIMIT);
-		expect(searchLimit({ limit: 0 })).toBe(1);
+	it("keeps the small default for every other feature, and clamps a budget only to the provider's own maximum", () => {
+		expect(searchLimit(undefined, "exa")).toBe(DEFAULT_SEARCH_LIMIT);
+		expect(searchLimit({}, "exa")).toBe(5);
+		expect(searchLimit({ limit: 60 }, "exa")).toBe(60);
+		expect(searchLimit({ limit: 60 }, "tavily")).toBe(PROVIDER_SEARCH_MAX.tavily);
+		expect(searchLimit({ limit: 500 }, "firecrawl")).toBe(PROVIDER_SEARCH_MAX.firecrawl);
+		expect(searchLimit({ limit: 0 }, "exa")).toBe(1);
 	});
 
 	it("sends the budget and a start date to Tavily only when asked", async () => {

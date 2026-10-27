@@ -9,6 +9,8 @@ import {
 	careerRunReportSchema,
 	careerSourceSchema,
 	careerStoryInputSchema,
+	discoveryFiltersSchema,
+	discoverySourcesSchema,
 	preparationErrorSchema,
 	runItemDecisionSchema,
 	preparationKindSchema,
@@ -33,6 +35,8 @@ export const savedItemSchema = createSelectSchema(tables.careerArtifact, {
 export const careerScheduleSchema = createSelectSchema(tables.careerSchedule, {
 	intervalMinutes: careerIntervalMinutesSchema.nullable(),
 	lastRun: careerRunReportSchema.nullable(),
+	sources: discoverySourcesSchema.nullable(),
+	filters: discoveryFiltersSchema.nullable(),
 });
 export const careerScheduleListItemSchema = careerScheduleSchema.extend({
 	/** A run waiting for the next scheduler tick, or in progress. */
@@ -359,6 +363,8 @@ export const careerRunDetailSchema = z.object({
 			host: z.string(),
 			title: z.string(),
 			decision: runItemDecisionSchema,
+			/** "web", a job source, or a followed board ("greenhouse:acme"); null for runs before sources existed. */
+			source: z.string().nullable(),
 			/** The role this result is, when it is one; null for results that were not roles. */
 			opportunityId: z.string().nullable(),
 			/** Its application, when it has been tracked or automation created one. */
@@ -374,6 +380,12 @@ export const careerJourneySchema = z.object({
 	url: z.string(),
 	applicationId: z.string().nullable(),
 	foundAt: z.date(),
+	/** "web" or a job source; `board` is the followed company board it came from. */
+	source: z.string(),
+	board: z.string().nullable(),
+	/** Web roles only: the search connection that found it, and what read its page ("builtin" or the connection). */
+	searchedVia: z.string().nullable(),
+	readVia: z.string().nullable(),
 	run: z.object({ id: z.string(), at: z.date(), query: z.string() }).nullable(),
 	events: z.array(careerEventSchema),
 });

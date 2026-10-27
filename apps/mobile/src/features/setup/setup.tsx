@@ -96,7 +96,7 @@ export function SetupScreen() {
 				resumePrompt: plan.resumePrompt,
 				coverLetterPrompt: plan.coverLetterPrompt,
 				aiProviderId: null,
-				dailyLimit: Math.min(50, Math.max(1, Number.parseInt(plan.dailyLimit, 10) || 10)),
+				dailyLimit: Math.max(1, Number.parseInt(plan.dailyLimit, 10) || 10),
 				timezone: time.timeZone,
 				locale: time.locale,
 			}),
@@ -202,8 +202,9 @@ export function SetupScreen() {
 
 			{current === "services" ? (
 				<View style={{ gap: space.s3 }}>
-					<Text color="ink2">{t`Job search needs a web search service. Tailored documents also need an AI provider; skip that to only discover jobs.`}</Text>
-					<Text color={search ? "accentText" : "ink3"}>{`${search ? "✓" : "○"} ${t`Web search`}`}</Text>
+					<Text color="ink2">{t`Job search works right away with free job sources. Web search adds results from across the web. Tailored documents need an AI provider; skip that to only discover jobs.`}</Text>
+					<Text color="accentText">{`✓ ${t`Free job sources`}`}</Text>
+					<Text color={search ? "accentText" : "ink3"}>{`${search ? "✓" : "○"} ${t`Web search (optional)`}`}</Text>
 					<Text
 						color={ai.hasAIProvider ? "accentText" : "ink3"}
 					>{`${ai.hasAIProvider ? "✓" : "○"} ${t`AI provider (optional)`}`}</Text>
@@ -212,7 +213,6 @@ export function SetupScreen() {
 					<Button label={t`Back`} variant="ghost" onPress={() => setStage("baseline")} />
 					<Button
 						label={t`Continue`}
-						disabled={!search}
 						onPress={() => {
 							void refreshSetup();
 							setStage("discovery");
@@ -262,7 +262,7 @@ export function SetupScreen() {
 						<Text
 							variant="callout"
 							color="ink3"
-						>{t`A preview only: nothing is saved. Search services rank results, so this finds relevant postings but cannot promise to list every job.`}</Text>
+						>{t`A preview only: nothing is saved. Searches the free job sources, and web search when connected, filtered by your Preferences.`}</Text>
 					) : null}
 					<SwitchRow
 						label={t`Tailored resumes`}

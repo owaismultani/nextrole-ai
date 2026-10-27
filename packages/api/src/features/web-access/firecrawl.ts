@@ -65,7 +65,7 @@ export async function searchFirecrawl(query: string, options: ProviderRequest) {
 			{
 				query,
 				sources: ["web"],
-				limit: searchLimit(options.search),
+				limit: searchLimit(options.search, "firecrawl"),
 				timeout: 14_000,
 				...(options.search?.since ? { tbs: recencyBucket(options.search.since) } : {}),
 			},

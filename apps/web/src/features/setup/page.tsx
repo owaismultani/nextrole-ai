@@ -20,6 +20,7 @@ import { useCareerTime } from "@/features/career/shared";
 import { baselineCheckLabels } from "@/features/documents/baseline-checks";
 import { ImportProgress } from "@/features/documents/new-document-dialog";
 import { detectImportKind, ImportError, readResumeFile, summarizeImport } from "@/features/resume/import/read-file";
+import { JobSourcesSection } from "@/features/settings/ai/job-sources";
 import { ProvidersSection } from "@/features/settings/ai/providers";
 import { WebAccessSection } from "@/features/settings/ai/web-access";
 import { useHasUsableAiProvider } from "@/features/settings/integrations/hooks/use-has-usable-ai-provider";
@@ -427,28 +428,25 @@ function ServicesStep({ onBack, onNext }: { onBack: () => void; onNext: () => vo
 		<div className="grid gap-4">
 			<Panel
 				title={t`Connect your services`}
-				description={t`Job search needs a web search service. Tailored resumes and cover letters also need an AI provider; skip that for now to only discover jobs.`}
+				description={t`Job search works right away with free job sources. Web search adds results from across the web, and job-source keys add more listings. Tailored resumes and cover letters need an AI provider; skip that for now to only discover jobs.`}
 			>
 				<p className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
-					<Ready ok={search} label={t`Web search`} />
+					<Ready ok label={t`Free job sources`} />
+					<Ready ok={search} label={t`Web search (optional)`} />
 					<Ready ok={hasUsableProvider} label={t`AI provider (optional)`} />
 				</p>
 			</Panel>
 			<WebAccessSection />
+			<JobSourcesSection />
 			<ProvidersSection />
 			<Nav
 				onBack={onBack}
 				next={
-					<Button disabled={!search} onClick={onNext}>
+					<Button onClick={onNext}>
 						<Trans>Continue</Trans>
 					</Button>
 				}
 			/>
-			{!search && (
-				<p className="text-xs text-ink-3">
-					<Trans>Connect and test a web search service to continue.</Trans>
-				</p>
-			)}
 		</div>
 	);
 }
@@ -545,8 +543,8 @@ function DiscoveryStep({ plan, onPlan: set, onBack, onNext }: DiscoveryStepProps
 								</ul>
 								<p className="text-xs text-ink-3">
 									<Trans>
-										A preview only: nothing is saved. Search services rank results, so this finds relevant postings but
-										cannot promise to list every job.
+										A preview only: nothing is saved. Searches the free job sources, and web search when connected,
+										filtered by your Preferences. Follow companies and fine-tune filters in the search's settings later.
 									</Trans>
 								</p>
 							</>
@@ -600,9 +598,8 @@ function DiscoveryStep({ plan, onPlan: set, onBack, onNext }: DiscoveryStepProps
 								id="setup-limit"
 								type="number"
 								min={1}
-								max={50}
 								value={plan.dailyLimit}
-								onChange={(event) => set({ dailyLimit: Math.min(50, Math.max(1, Number(event.target.value) || 1)) })}
+								onChange={(event) => set({ dailyLimit: Math.max(1, Number(event.target.value) || 1) })}
 							/>
 							<p className="text-xs text-ink-3">
 								<Trans>

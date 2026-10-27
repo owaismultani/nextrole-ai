@@ -1,5 +1,5 @@
 import type { RouterOutput } from "@/libs/orpc/client";
-import type { careerScheduleInputSchema } from "@reactive-resume/schema/career";
+import type { careerScheduleInputSchema, DiscoveryFilters, DiscoverySources } from "@reactive-resume/schema/career";
 import type { IconName } from "@reactive-resume/ui/components/icon";
 import type { ReactNode } from "react";
 import type z from "zod";
@@ -9,7 +9,12 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useRouteContext } from "@tanstack/react-router";
 import { m } from "motion/react";
 import { useId, useState } from "react";
-import { RETRIEVAL_BUDGET } from "@reactive-resume/schema/career";
+import {
+	defaultDiscoveryFilters,
+	discoverySourcesSchema,
+	RETRIEVAL_BUDGET,
+	RETRIEVAL_BUDGET_CHOICES,
+} from "@reactive-resume/schema/career";
 import { Button } from "@reactive-resume/ui/components/button";
 import { Icon } from "@reactive-resume/ui/components/icon";
 import { Input } from "@reactive-resume/ui/components/input";
@@ -22,6 +27,7 @@ import { toast } from "@reactive-resume/ui/components/toast";
 import { useBreakpoint } from "@reactive-resume/ui/hooks/use-breakpoint";
 import { fromZonedDateTime } from "@reactive-resume/utils/timezone";
 import { cadenceOf, EVERY_VALUES, everyLabel, everyOf, rollForwardMinutes } from "./discovery-run";
+import { FiltersEditor, SearchPreview, SourcesEditor } from "./discovery-sources";
 import { PrivacyLine, Swap, useCareerTime, useNow } from "./shared";
 import { collectInterviews, interviewKindOf } from "@/features/applications/interviews";
 import { applicationsListQueryOptions } from "@/features/applications/queries";
@@ -108,8 +114,10 @@ type Draft = {
 	kind: Kind;
 	query: string;
 	every: string;
-	/** Results one discovery run may retrieve. */
+	/** Results one discovery run may retrieve from each source. */
 	budget: string;
+	sources: DiscoverySources;
+	filters: DiscoveryFilters;
 	date: string;
 	time: string;
 	interviewId: string;
@@ -175,6 +183,11 @@ export function ScheduleSheet({ schedule, onScheduleChange, onDelete }: Schedule
 			query: existing?.query || [...profile.targetRoles, ...profile.locations].join(" · "),
 			every: existing ? everyOf(existing) : "m60",
 			budget: String(existing?.retrievalBudget ?? RETRIEVAL_BUDGET.default),
+			// A search saved before sources existed searched the web alone; a new one starts with the free sources too.
+			sources:
+				existing?.sources ??
+				(existing ? { web: true, apis: [], companies: [], followFromSearch: false } : discoverySourcesSchema.parse({})),
+			filters: existing?.filters ?? defaultDiscoveryFilters(profile),
 			...toZoned(at, timeZone),
 			interviewId: existing?.interviewId ?? upcoming[0]?.interview.id ?? "",
 			lead: (existing?.lead as Lead | null) ?? "24h",
@@ -217,7 +230,12 @@ export function ScheduleSheet({ schedule, onScheduleChange, onDelete }: Schedule
 	const blocked =
 		(draft?.kind === "prepare" && (!interview || providers.length === 0)) ||
 		(draft?.kind === "follow-up" && open.length === 0);
-	const needsWebSearch = draft?.kind === "discovery" && webAccess?.search === false;
+	// Job sources and followed companies need no connection; only a web-search-only search does.
+	const needsWebSearch =
+		draft?.kind === "discovery" &&
+		webAccess?.search === false &&
+		!draft.sources.apis.length &&
+		!draft.sources.companies.length;
 
 	const onSave = () => {
 		if (!form || !draft) return;
@@ -242,6 +260,8 @@ export function ScheduleSheet({ schedule, onScheduleChange, onDelete }: Schedule
 					? new Date(form.existing?.nextRunAt ?? now)
 					: (runAt ?? fromZoned(draft.date, draft.time, timeZone)),
 				retrievalBudget: draft.kind === "discovery" ? Number(draft.budget) : null,
+				sources: draft.kind === "discovery" ? draft.sources : null,
+				filters: draft.kind === "discovery" ? draft.filters : null,
 				timezone: timeZone,
 				locale,
 				...(draft.kind === "discovery" ? cadenceOf(draft.every) : { intervalDays: null, intervalMinutes: null }),
@@ -357,8 +377,8 @@ export function ScheduleSheet({ schedule, onScheduleChange, onDelete }: Schedule
 										)}
 									</Field>
 									<Field
-										label={t`Results per search`}
-										hint={t`The most one run retrieves. Search services rank results, so this finds relevant postings but cannot promise to list every job.`}
+										label={t`Results per source`}
+										hint={t`Roughly the most each job-search source and web search return per run. Followed company boards are always read in full.`}
 									>
 										{(props) => (
 											<NativeSelect
@@ -367,7 +387,7 @@ export function ScheduleSheet({ schedule, onScheduleChange, onDelete }: Schedule
 												onChange={(event) => set({ budget: event.target.value })}
 												className="pointer-coarse:text-base"
 											>
-												{["5", "10", "15", "20"].map((value) => (
+												{[...new Set([...RETRIEVAL_BUDGET_CHOICES.map(String), draft.budget])].map((value) => (
 													<option key={value} value={value}>
 														{value}
 													</option>
@@ -375,11 +395,17 @@ export function ScheduleSheet({ schedule, onScheduleChange, onDelete }: Schedule
 											</NativeSelect>
 										)}
 									</Field>
+									<SourcesEditor
+										sources={draft.sources}
+										country={draft.filters.country}
+										onChange={(sources) => set({ sources })}
+									/>
+									<FiltersEditor filters={draft.filters} locale={locale} onChange={(filters) => set({ filters })} />
+									<SearchPreview query={draft.query} sources={draft.sources} filters={draft.filters} />
 									<p className="flex gap-2.5 rounded-lg bg-info-soft px-3 py-2.5 text-[13px] leading-[19px] text-ink">
 										<Icon name="globe-simple" size={18} className="mt-px shrink-0 text-info-text" />
 										<Trans>
-											Uses the web search service set up in Settings. Results wait in Today for your review;
-											applications and documents are never created for you.
+											New roles wait in Today for your review; applications and documents are never created for you.
 										</Trans>
 									</p>
 								</>

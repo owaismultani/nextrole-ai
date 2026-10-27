@@ -24,7 +24,10 @@ export function Hero() {
 			className="relative grid min-h-[118vh] max-[900px]:min-h-0"
 		>
 			<div className="mx-auto w-full max-w-[1280px] px-(--gutter)">
-				<div className="sticky top-[16vh] grid max-w-[700px] gap-[26px] pt-[4vh] pb-6 max-[900px]:static max-[900px]:pt-[42svh] max-[900px]:pb-[8vh] min-[1320px]:ms-24">
+				<div
+					data-copy
+					className="sticky top-[16vh] grid max-w-[700px] gap-[26px] pt-[4vh] pb-6 max-[900px]:static max-[900px]:pt-[42svh] max-[900px]:pb-[8vh] min-[1320px]:ms-24"
+				>
 					<p className={kickerClass}>
 						<Trans>
 							NextRole AI <span className="text-nr-ink-3">· free and open source</span>
@@ -125,7 +128,7 @@ export function Crew() {
 
 	return (
 		<section id="crew" data-stage={STAGE.hero} aria-labelledby="crew-title" className="relative pt-[6vh] pb-[22vh]">
-			<div className="mx-auto max-w-[1280px] px-(--gutter)">
+			<div data-copy className="mx-auto max-w-[1280px] px-(--gutter)">
 				<div className="mb-[30px] grid max-w-[640px] gap-3.5">
 					<p className={kickerClass}>{t`Meet your crew`}</p>
 					<h2 id="crew-title" className={headlineClass}>

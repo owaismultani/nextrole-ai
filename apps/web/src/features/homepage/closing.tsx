@@ -42,7 +42,7 @@ export function Rules() {
 
 	return (
 		<section id="rules" data-stage={STAGE.rules} aria-labelledby="rules-title" className={bandClass}>
-			<div className="mx-auto max-w-[1280px] px-(--gutter)">
+			<div data-copy className="mx-auto max-w-[1280px] px-(--gutter)">
 				<div className="mb-[34px] grid max-w-[720px] gap-3.5">
 					<p className={kickerClass}>{t`Your rules`}</p>
 					<h2 id="rules-title" className={headlineClass}>
@@ -88,7 +88,7 @@ export function Tour() {
 
 	return (
 		<section id="tour" data-stage={STAGE.rules} aria-labelledby="tour-title" className={bandClass}>
-			<div className="mx-auto max-w-[1280px] px-(--gutter)">
+			<div data-copy className="mx-auto max-w-[1280px] px-(--gutter)">
 				<div className="mx-auto mb-[34px] grid max-w-[720px] justify-items-center gap-3.5 text-center">
 					<p className={kickerClass}>
 						<Trans>
@@ -153,7 +153,7 @@ export function Free() {
 
 	return (
 		<section id="free" data-stage={STAGE.rules} aria-labelledby="free-title" className={bandClass}>
-			<div className="mx-auto max-w-[1280px] px-(--gutter)">
+			<div data-copy className="mx-auto max-w-[1280px] px-(--gutter)">
 				<div className="mb-[34px] grid max-w-[720px] gap-3.5">
 					<p className={kickerClass}>{t`Pricing`}</p>
 					<h2 id="free-title" className={headlineClass}>
@@ -187,7 +187,10 @@ export function Finale() {
 			aria-labelledby="finale-title"
 			className="relative grid min-h-[150vh] items-end max-[900px]:min-h-0"
 		>
-			<div className="mx-auto grid w-full max-w-[1280px] justify-items-center gap-[22px] px-(--gutter) pb-[22vh] text-center max-[900px]:pt-[50svh] max-[900px]:pb-[14vh]">
+			<div
+				data-copy
+				className="mx-auto grid w-full max-w-[1280px] justify-items-center gap-[22px] px-(--gutter) pb-[22vh] text-center max-[900px]:pt-[50svh] max-[900px]:pb-[14vh]"
+			>
 				<p className={kickerClass}>{t`Your move`}</p>
 				<h2 id="finale-title" className={cn(headlineClass, "max-w-[14ch] text-[clamp(46px,7vw,108px)] leading-[.88]")}>
 					<Trans>

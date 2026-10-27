@@ -7,6 +7,7 @@ import { Icon } from "@reactive-resume/ui/components/icon";
 import { ActivityFeed } from "../career/activity-feed";
 import { diagnose } from "../career/discovery-run";
 import { DiscoveryRuns, outcomeBadge, outcomeLabel, RunJobs } from "../career/discovery-runs";
+import { runSources } from "../career/discovery-sources";
 import { RunResults } from "../career/run-results";
 import { useCareerTime } from "../career/shared";
 import { StatTile } from "./stat";
@@ -71,7 +72,7 @@ function RunPage({ id }: { id: string }) {
 					{[
 						report.trigger === "manual" ? t`Started by you` : t`Scheduled`,
 						report.queries.join(" · "),
-						[report.provider, ...report.sources].filter(Boolean).join(" · "),
+						runSources(report),
 					]
 						.filter(Boolean)
 						.join(" · ")}

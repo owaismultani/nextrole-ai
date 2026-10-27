@@ -59,6 +59,10 @@ const PARITY_PROCEDURES = {
 	"webAccess.status": router.webAccess.status,
 	"webAccess.delete": router.webAccess.delete,
 	"webAccess.test": router.webAccess.test,
+	"jobSources.status": router.jobSources.status,
+	"jobSources.deleteKey": router.jobSources.deleteKey,
+	"jobSources.search": router.jobSources.search,
+	"jobSources.resolveCompany": router.jobSources.resolveCompany,
 	"agent.threads.list": router.agent.threads.list,
 	"agent.threads.start": router.agent.threads.start,
 	"agent.threads.get": router.agent.threads.get,
@@ -127,6 +131,8 @@ const readOnlyPosts = new Set([
 	"rest.matchResume",
 	"coverLetters.draft",
 	"webAccess.test",
+	"jobSources.search",
+	"jobSources.resolveCompany",
 ]);
 const exportPaths = new Set(["rest.documentExports.resume", "rest.documentExports.letter"]);
 const destructiveWrites = new Set([
@@ -147,6 +153,8 @@ const openWorldPaths = new Set([
 	"career.saveSchedule",
 	"agent.messages.send",
 	"statistics.github.getStarCount",
+	"jobSources.search",
+	"jobSources.resolveCompany",
 ]);
 
 /** These workflows require browser interaction so secrets and security ceremonies stay with the user. */
@@ -154,6 +162,7 @@ const BROWSER_HANDOFFS = {
 	"aiProviders.create": "ai",
 	"aiProviders.update": "ai",
 	"webAccess.save": "ai",
+	"jobSources.saveKey": "ai",
 	"resume.getRoot": "",
 	"auth.createApiKey": "api-keys",
 	"auth.deleteAccount": "account",
@@ -163,6 +172,7 @@ const HANDOFF_TITLES: Record<string, string> = {
 	"aiProviders.create": "Add an AI provider in the app",
 	"aiProviders.update": "Edit an AI provider in the app",
 	"webAccess.save": "Set up web search in the app",
+	"jobSources.saveKey": "Add a job source key in the app",
 	"resume.getRoot": "Open the dashboard",
 	"auth.createApiKey": "Create an API key in the app",
 	"auth.deleteAccount": "Delete your account in the app",

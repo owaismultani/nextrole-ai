@@ -14,6 +14,8 @@ export type WebAccessContext = {
 	connection: WebAccessConnection | null;
 	userId: string;
 	signal?: AbortSignal | undefined;
+	/** Reads inside a discovery run, whose search was already charged; they skip the per-user rate limit. */
+	unmetered?: boolean | undefined;
 };
 
 export type ReadPageResult = {
@@ -55,7 +57,6 @@ export class WebAccessError extends Error {
 
 export const MAX_PAGE_BYTES = 2_000_000;
 export const MAX_CONTENT_CHARS = 20_000;
-export const MAX_SEARCH_RESULTS = 5;
 export const WEB_ACCESS_DEADLINE_MS = 20_000;
 
 /**
@@ -77,7 +78,7 @@ export type ProviderRequest = {
 };
 
 export const DEFAULT_SEARCH_LIMIT = 5;
-/** Tavily's cap per search, the lowest of the three providers. */
-export const MAX_SEARCH_LIMIT = 20;
-export const searchLimit = (options: SearchOptions | undefined) =>
-	Math.max(1, Math.min(MAX_SEARCH_LIMIT, Math.floor(options?.limit ?? DEFAULT_SEARCH_LIMIT)));
+/** The most results each provider's API accepts for one search; asking for more is rejected, not paged. */
+export const PROVIDER_SEARCH_MAX: Record<WebAccessProvider, number> = { tavily: 20, exa: 100, firecrawl: 100 };
+export const searchLimit = (options: SearchOptions | undefined, provider: WebAccessProvider) =>
+	Math.max(1, Math.min(PROVIDER_SEARCH_MAX[provider], Math.floor(options?.limit ?? DEFAULT_SEARCH_LIMIT)));

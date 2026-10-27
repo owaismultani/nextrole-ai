@@ -10,7 +10,7 @@ description: "Find jobs on a schedule and have a tailored resume and cover lette
 New accounts open a four-step guide the first time. It can be skipped at any step, and **Overview** shows a **Finish setting up** card until it is done. People who already have a discovery schedule or applications are not sent to it.
 
 1. **Baseline resume**: upload a file, start blank or pick an existing resume. A checklist shows what is present (name, email, headline, summary, dated and described experience, education, skills) plus the ATS score, with **Fix in editor** links. Gaps are warnings, not blocks. You confirm the resume as your baseline; tailored documents start from it and never change it. If you edit it later, documents made from the older version are flagged.
-2. **Connect services**: a web search service (required for discovery) and an AI provider (needed only for documents).
+2. **Connect services**: optional. Free job sources search without setup; web search and job-source keys add results, and an AI provider is needed only for documents.
 3. **Set up discovery**: a search started from your resume's headline, how often, and **Preview results**, which runs the search once and saves nothing. Optionally turn on tailored resumes and cover letters and set the daily limit.
 4. **Start**: a summary, then **Start discovery** runs the first search right away.
 
@@ -18,8 +18,8 @@ The steps below cover the same settings if you prefer to set them up by hand.
 
 ## Set it up
 
-1. Connect a web search service and, for documents, an AI provider in **Settings → Integrations**.
-2. Set up discovery from **Discover** (**Set up discovery**) or **Automation → Discovery**: choose what to **Look for**, **How often** (every hour, 3 hours, 6 hours or every day) and **Results per search**. An hourly schedule starts searching as soon as you save it. See [Find roles while you are busy](/guides/finding-roles-automatically).
+1. Optionally connect web search and job-source keys and, for documents, an AI provider in **Settings → Integrations**.
+2. Set up discovery from **Discover** (**Set up discovery**) or **Automation → Discovery**: choose what to **Look for**, **How often** (every hour, 3 hours, 6 hours or every day), **Results per source**, **Where to look** and **What to keep**. An hourly schedule starts searching as soon as you save it. See [Find roles while you are busy](/guides/finding-roles-automatically).
 3. In **Automation → Documents**, choose a **Baseline resume**, then turn on **Generate tailored resumes automatically** and/or **Generate cover letters automatically**. The two are independent, and both are off until you turn them on. Open **Advanced writing instructions** to edit the **Additional instruction** for each type, which guides emphasis and tone. These preferences supplement the accuracy rules; they cannot authorize invented qualifications or achievements.
 4. Select **Save automation**. A missing baseline or AI connection is explained next to the setting.
 
@@ -27,9 +27,9 @@ The search is defined in one place. **Edit search** in Discover and **Edit searc
 
 ## What discovery does
 
-Each scheduled run asks your search service for results, skips pages it already knows, and keeps open job postings. New jobs appear in your applications as **Saved**. Hourly searches ask only for recent results, with some overlap so postings the search service indexed late are still seen.
+Each scheduled run searches the chosen job sources, followed company boards and web search, skips roles it already knows, and keeps open postings that pass the search's filters. New jobs appear in your applications as **Saved**. Hourly searches ask only for recent results, with some overlap so postings the search service indexed late are still seen.
 
-Search services rank results; they do not offer a complete feed or paging. Discovery finds relevant postings but cannot promise to list every job. The schedule's **Results per search** (5 to 20) is the most one run retrieves.
+Web search services and job-search APIs rank results, so they cannot promise to list every job. Followed company boards are read in full, so every role a followed company posts is found. **Results per source** (5 to 100) is roughly the most each job-search source and web search return per run. Tavily returns at most 20 per search; Exa and Firecrawl return up to 100.
 
 The header of **Discover** shows your saved search, how often it runs, whether it is running or paused, and **Run now**, **Pause** and **Edit search**. **Automation → Discovery** shows the same status in full: the last attempt, the last success, the next run, and what the last run found: queries, sources, results found, duplicates, rejected results, new matches and read failures. A run that finds nothing new is different from a run that could not search or read pages, and the panel says which. A failed run never turns discovery off.
 

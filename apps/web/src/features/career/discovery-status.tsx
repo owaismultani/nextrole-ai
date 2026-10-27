@@ -10,6 +10,7 @@ import { Icon } from "@reactive-resume/ui/components/icon";
 import { toast } from "@reactive-resume/ui/components/toast";
 import { cn } from "@reactive-resume/utils/style";
 import { cadenceLabel, diagnose, runState, stateLabel } from "./discovery-run";
+import { connectionName, runSources, sourceLabel, sourceOutcome } from "./discovery-sources";
 import { useCareerTime } from "./shared";
 import { getOrpcErrorMessage } from "@/libs/error-message";
 import { orpc } from "@/libs/orpc/client";
@@ -113,6 +114,7 @@ export function DiscoveryStatus({ schedule, onEnabledChange }: DiscoveryStatusPr
 						<Count label={t`Found`} value={report.found} />
 						<Count label={t`Duplicates`} value={report.duplicates} />
 						<Count label={t`Rejected`} value={report.rejected} />
+						{report.filtered !== undefined && <Count label={t`Filtered out`} value={report.filtered} />}
 						<Count label={t`New matches`} value={report.matches} tone={report.matches > 0 ? "good" : undefined} />
 						<Count
 							label={t`Read failures`}
@@ -149,10 +151,37 @@ export function DiscoveryStatus({ schedule, onEnabledChange }: DiscoveryStatusPr
 									{query}
 								</li>
 							))}
-							<li className="break-words text-ink-3">
-								{[report.provider, ...report.sources].filter(Boolean).join(" · ") || t`No sources`}
-							</li>
 						</ul>
+						{report.bySource?.length ? (
+							<ul aria-label={t`Sources this run`} className="mt-1.5 grid gap-1">
+								{report.bySource.map((source) => (
+									<li
+										key={source.source}
+										className={cn(
+											"flex flex-wrap justify-between gap-x-3",
+											source.status === "failed" && "text-warn-text",
+											source.status === "skipped" && "text-ink-3",
+										)}
+									>
+										<span>
+											{sourceLabel(source.source)}
+											{/* Web search names the connection it used. */}
+											{source.source === "web" && connectionName(report.provider)
+												? ` · ${connectionName(report.provider)}`
+												: ""}
+										</span>
+										<span>{sourceOutcome(source)}</span>
+									</li>
+								))}
+							</ul>
+						) : null}
+						<p className="mt-1.5 break-words text-ink-3">
+							{report.bySource?.length
+								? report.sources.length
+									? t`Sites: ${report.sources.join(" · ")}`
+									: null
+								: runSources(report) || t`No sources`}
+						</p>
 					</details>
 					<p className="text-xs text-ink-3">
 						{report.trigger === "manual" ? (

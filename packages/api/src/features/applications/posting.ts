@@ -185,7 +185,7 @@ const CLOSED =
  * board's list, a careers page or an article is null.
  */
 export async function readOpenPosting(url: string, context: WebAccessContext) {
-	const { content, html = "", resolvedUrl } = await readPage(url, context);
+	const { content, html = "", resolvedUrl, method } = await readPage(url, context);
 	// The same posting published twice (an SEO plugin beside the tracking system's own) is still one role.
 	const postings = jobPostingsIn(html);
 	const page = postings.length === 1 && postings[0] ? toPagePosting(postings[0]) : null;
@@ -199,5 +199,7 @@ export async function readOpenPosting(url: string, context: WebAccessContext) {
 		text: (page?.description || content).slice(0, MAX_POSTING_CHARS),
 		/** The company as its address names it ("simpleclub"), for pages without JobPosting data. */
 		company: address?.[1]?.replaceAll(/[-_]+/g, " ") ?? "",
+		/** What read the page: the built-in reader, or the web connection when the built-in one couldn't. */
+		method,
 	};
 }

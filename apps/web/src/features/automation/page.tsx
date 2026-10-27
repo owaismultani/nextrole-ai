@@ -296,15 +296,9 @@ function AutomationForm({ data }: AutomationFormProps) {
 						id={`${id}-limit`}
 						type="number"
 						min={DAILY_LIMIT.min}
-						max={DAILY_LIMIT.max}
 						value={draft.dailyLimit}
 						onChange={(event) =>
-							set({
-								dailyLimit: Math.min(
-									DAILY_LIMIT.max,
-									Math.max(DAILY_LIMIT.min, Number(event.target.value) || DAILY_LIMIT.min),
-								),
-							})
+							set({ dailyLimit: Math.max(DAILY_LIMIT.min, Number(event.target.value) || DAILY_LIMIT.min) })
 						}
 					/>
 					<p className="text-xs text-ink-3">

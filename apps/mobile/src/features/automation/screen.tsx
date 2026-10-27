@@ -140,10 +140,7 @@ function AutomationForm({ data }: { data: Automation }) {
 	const missingAi = wantsDocuments && !ai.isLoading && !ai.hasAIProvider;
 	const blocked = missingBaseline || missingAi;
 	const dirty = JSON.stringify(draft) !== JSON.stringify(toDraft(data));
-	const limit = Math.min(
-		DAILY_LIMIT.max,
-		Math.max(DAILY_LIMIT.min, Number.parseInt(draft.dailyLimit, 10) || DAILY_LIMIT.min),
-	);
+	const limit = Math.max(DAILY_LIMIT.min, Number.parseInt(draft.dailyLimit, 10) || DAILY_LIMIT.min);
 
 	const save = () =>
 		void action.run(() =>

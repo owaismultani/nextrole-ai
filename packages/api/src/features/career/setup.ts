@@ -6,12 +6,17 @@ import { db } from "@reactive-resume/db/client";
 import * as tables from "@reactive-resume/db/schema";
 import { lintResumeForAts } from "@reactive-resume/resume/ats";
 import { checkBaseline, suggestQuery } from "@reactive-resume/schema/baseline-check";
-import { careerScheduleInputSchema } from "@reactive-resume/schema/career";
+import {
+	careerScheduleInputSchema,
+	defaultDiscoveryFilters,
+	discoverySourcesSchema,
+} from "@reactive-resume/schema/career";
 import { aiProvidersService } from "../ai-providers/service";
-import { searchJobPostings } from "../applications/posting";
+import { searchJobs } from "../job-sources/service";
 import { webAccessService } from "../web-access/credentials";
 import { careerAutomation } from "./automation";
 import { careerJobs } from "./jobs";
+import { careerService } from "./service";
 
 type Launch = z.infer<typeof careerSetupLaunchSchema>;
 
@@ -62,13 +67,8 @@ export const careerSetup = {
 		const confirmed = Boolean(baseline && setup?.baselineConfirmedAt);
 		const search = Boolean(connection);
 		const completed = Boolean(setup?.completedAt);
-		const step = completed
-			? ("done" as const)
-			: !confirmed
-				? ("baseline" as const)
-				: !search
-					? ("services" as const)
-					: ("discovery" as const);
+		// Web search and AI are optional: free job sources need no setup, so a confirmed baseline goes straight on.
+		const step = completed ? ("done" as const) : !confirmed ? ("baseline" as const) : ("discovery" as const);
 		return {
 			step,
 			skipped: Boolean(setup?.skippedAt),
@@ -145,25 +145,32 @@ export const careerSetup = {
 		return careerSetup.get(userId);
 	},
 
-	/** Runs the search once and shows what came back, saving nothing, so a query can be tried before discovery is on. */
+	/**
+	 * Runs the search once across the sources a new search starts with (web search when connected, and the free job
+	 * sources), filtered by Preferences, and shows what came back, saving nothing.
+	 */
 	previewSearch: async (userId: string, query: string) => {
-		const connection = await webAccessService.resolve(userId);
-		if (!connection)
-			throw new ORPCError("PRECONDITION_FAILED", {
-				message: "Set up a web search connection first.",
-				data: { missing: "search" },
-			});
 		try {
-			const results = await searchJobPostings(
-				query,
-				{ userId, connection, signal: AbortSignal.timeout(25_000) },
-				{ limit: 8 },
+			const { results, bySource } = await searchJobs(
+				userId,
+				{
+					query,
+					sources: discoverySourcesSchema.parse({}),
+					filters: defaultDiscoveryFilters(await careerService.profile(userId)),
+				},
+				AbortSignal.timeout(45_000),
 			);
-			return results.slice(0, 8).map((result) => ({
-				title: result.title.slice(0, 200),
-				url: result.url,
-				description: result.description.slice(0, 240),
-			}));
+			// Every source that ran failed: say the search didn't work rather than show an empty list.
+			const ran = bySource.filter((source) => source.status !== "skipped");
+			if (!results.length && ran.length && ran.every((source) => source.status === "failed")) throw new Error("failed");
+			return results
+				.filter((result) => !result.filteredBy)
+				.slice(0, 8)
+				.map((result) => ({
+					title: [result.title, result.company].filter(Boolean).join(" · ").slice(0, 200),
+					url: result.url,
+					description: [result.location, result.source].filter(Boolean).join(" · ").slice(0, 240),
+				}));
 		} catch {
 			// Provider errors can echo credentials; say only that the search did not work.
 			throw new ORPCError("BAD_GATEWAY", { message: "The search could not run. Check the connection and try again." });
@@ -200,10 +207,19 @@ export const careerSetup = {
 			aiProviderId: input.aiProviderId,
 			dailyLimit: input.dailyLimit,
 		});
+		// A new search starts with web search and the free job sources; an existing one keeps what it was set to.
+		const [existingSchedule] = current.discovery
+			? await db
+					.select({ sources: tables.careerSchedule.sources, filters: tables.careerSchedule.filters })
+					.from(tables.careerSchedule)
+					.where(eq(tables.careerSchedule.id, current.discovery.scheduleId))
+			: [];
 		await careerJobs.save(userId, {
 			...careerScheduleInputSchema.parse({
 				kind: "discovery",
 				query: input.query,
+				sources: existingSchedule?.sources ?? discoverySourcesSchema.parse({}),
+				filters: existingSchedule?.filters ?? null,
 				enabled: true,
 				timezone: input.timezone,
 				...(input.locale ? { locale: input.locale } : {}),

@@ -1,6 +1,6 @@
 import z from "zod";
 import { assertPublicPageUrl } from "./builtin";
-import { MAX_CONTENT_CHARS, MAX_PAGE_BYTES, MAX_SEARCH_RESULTS, WebAccessError } from "./contracts";
+import { MAX_CONTENT_CHARS, MAX_PAGE_BYTES, WebAccessError } from "./contracts";
 
 export function parseResponse<T>(schema: z.ZodType<T>, input: unknown): T {
 	const parsed = schema.safeParse(input);
@@ -58,23 +58,21 @@ export async function postJson(url: string, headers: Record<string, string>, bod
 
 const searchItemSchema = z.object({ url: z.string(), title: z.string(), snippet: z.string().optional() });
 export function normalizeSearch(items: unknown[]) {
-	return items
-		.flatMap((item) => {
-			const result = searchItemSchema.safeParse(item);
-			if (!result.success) return [];
-			try {
-				return [
-					{
-						url: assertPublicPageUrl(result.data.url).toString(),
-						title: result.data.title.slice(0, 1_000),
-						...(result.data.snippet ? { snippet: result.data.snippet.slice(0, 5_000) } : {}),
-					},
-				];
-			} catch {
-				return [];
-			}
-		})
-		.slice(0, MAX_SEARCH_RESULTS);
+	return items.flatMap((item) => {
+		const result = searchItemSchema.safeParse(item);
+		if (!result.success) return [];
+		try {
+			return [
+				{
+					url: assertPublicPageUrl(result.data.url).toString(),
+					title: result.data.title.slice(0, 1_000),
+					...(result.data.snippet ? { snippet: result.data.snippet.slice(0, 5_000) } : {}),
+				},
+			];
+		} catch {
+			return [];
+		}
+	});
 }
 
 export function pageContent(content: string) {

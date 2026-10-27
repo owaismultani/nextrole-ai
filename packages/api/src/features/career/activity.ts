@@ -1,4 +1,9 @@
-import type { CareerEventData, CareerEventKind, CareerEventLevel } from "@reactive-resume/schema/career";
+import type {
+	CareerEventData,
+	CareerEventKind,
+	CareerEventLevel,
+	RunItemDecision,
+} from "@reactive-resume/schema/career";
 import { ORPCError } from "@orpc/client";
 import { and, asc, count, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@reactive-resume/db/client";
@@ -76,7 +81,8 @@ export const careerActivity = {
 					url: item.url,
 					host: item.host,
 					title: item.title,
-					decision: item.decision as "new" | "known" | "rejected" | "unreadable" | "invalid",
+					decision: item.decision as RunItemDecision,
+					source: item.source,
 					opportunityId: role?.id ?? null,
 					applicationId: role?.applicationId ?? null,
 				};
@@ -111,6 +117,10 @@ export const careerActivity = {
 			url: job.url,
 			applicationId: job.trackedApplicationId,
 			foundAt: job.firstSeenAt,
+			source: job.source,
+			board: job.board,
+			searchedVia: job.searchedVia,
+			readVia: job.readVia,
 			run: run[0] ? { id: run[0].id, at: run[0].at, query: run[0].report.queries[0] ?? "" } : null,
 			events: events.map((event) => toEvent(event, job.trackedApplicationId)),
 		};

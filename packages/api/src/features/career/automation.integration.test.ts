@@ -12,6 +12,7 @@ import {
 	careerSetupLaunchSchema,
 	DEFAULT_COVER_LETTER_PROMPT,
 	DEFAULT_RESUME_PROMPT,
+	KEYLESS_JOB_SOURCES,
 } from "@reactive-resume/schema/career";
 import { sampleResumeData } from "@reactive-resume/schema/resume/sample";
 
@@ -19,6 +20,12 @@ const fixture = vi.hoisted(() => ({
 	db: undefined as ReturnType<typeof import("drizzle-orm/node-postgres").drizzle> | undefined,
 	search: vi.fn<typeof import("../applications/posting").searchJobPostings>(),
 	read: vi.fn<typeof import("../applications/posting").readOpenPosting>(),
+	/** Job sources and company boards; empty unless a test gives them postings. */
+	collect: vi.fn<typeof import("../job-sources/collect").collectJobs>(async () => ({
+		postings: [],
+		bySource: [],
+		boards: [],
+	})),
 	generate: vi.fn(),
 	/** Holds the preparation worker back so a test can look at queued work. */
 	skipPrep: false,
@@ -47,6 +54,7 @@ vi.mock("../applications/posting", () => ({
 vi.mock("../web-access/credentials", () => ({
 	webAccessService: { resolve: async () => fixture.search_connection },
 }));
+vi.mock("../job-sources/collect", () => ({ collectJobs: fixture.collect, readDetails: async () => {} }));
 vi.mock("@reactive-resume/email/transport", () => ({ sendCareerNotification: vi.fn() }));
 vi.mock("../ai-providers/service", () => ({
 	aiProvidersService: {
@@ -94,6 +102,7 @@ const posting = (n: number) => ({
 	},
 	text: `Build reliable things at company ${n}.`,
 	company: "",
+	method: "builtin" as const,
 });
 
 describe.skipIf(!databaseUrl)("autonomous discovery and document preparation", () => {
@@ -142,6 +151,7 @@ describe.skipIf(!databaseUrl)("autonomous discovery and document preparation", (
 		fixture.search_connection = { provider: "tavily", apiKey: "synthetic" };
 		fixture.ai = { id: "fixture", label: "Fixture", provider: "openai", model: "m", apiKey: "k", baseURL: "" };
 		fixture.search.mockReset().mockResolvedValue([hit(1)]);
+		fixture.collect.mockReset().mockResolvedValue({ postings: [], bySource: [], boards: [] });
 		fixture.read.mockReset().mockImplementation(async (url) => posting(Number(url.split("/").pop())));
 		fixture.generate
 			.mockReset()
@@ -1070,6 +1080,153 @@ describe.skipIf(!databaseUrl)("autonomous discovery and document preparation", (
 		});
 	});
 
+	describe("job sources and filters", () => {
+		const board = (roles: { id: number; title: string }[]) => ({
+			jobs: roles.map(({ id, title }) => ({
+				id,
+				title,
+				absolute_url: `https://job-boards.greenhouse.io/acme/jobs/${id}`,
+				company_name: "Acme",
+				location: { name: "Berlin" },
+				first_published: "2026-10-20T09:00:00Z",
+			})),
+		});
+		let listed = board([]);
+		/** Boards are cached for minutes; each run here must read the list as it now stands. */
+		let fresh = () => {};
+
+		beforeEach(async () => {
+			const actual = await vi.importActual<typeof import("../job-sources/collect")>("../job-sources/collect");
+			fixture.collect.mockImplementation(actual.collectJobs);
+			fresh = (await import("../job-sources/http")).clearSourceCache;
+			fresh();
+			vi.stubGlobal("fetch", async () => new Response(JSON.stringify(listed)));
+		});
+		afterEach(() => vi.unstubAllGlobals());
+
+		async function follow(filters: Record<string, unknown>, sources: Record<string, unknown> = {}) {
+			return jobs.save(
+				"alice",
+				careerScheduleInputSchema.parse({
+					kind: "discovery",
+					query: "engineer",
+					enabled: true,
+					timezone: "Europe/Berlin",
+					nextRunAt: new Date(),
+					intervalMinutes: 60,
+					sources: {
+						web: false,
+						apis: [],
+						companies: [{ kind: "greenhouse", slug: "acme", name: "Acme" }],
+						...sources,
+					},
+					filters,
+				}),
+			);
+		}
+		const roles = () => jobs.opportunities("alice");
+
+		it("keeps only the roles a followed board lists that pass the filters, with no web search at all", async () => {
+			fixture.search_connection = null;
+			listed = board([
+				{ id: 1, title: "Reliability Engineer" },
+				{ id: 2, title: "Sales Manager" },
+			]);
+			const schedule = await follow({ titles: ["reliability engineer"] });
+			await discoverOnly();
+			expect(await roles()).toEqual([
+				expect.objectContaining({
+					role: "Reliability Engineer",
+					company: "Acme",
+					location: "Berlin",
+					source: "greenhouse",
+					board: "greenhouse:acme",
+					url: "https://job-boards.greenhouse.io/acme/jobs/1",
+				}),
+			]);
+			expect(fixture.search).not.toHaveBeenCalled();
+			const [saved] = await getDb()
+				.select()
+				.from(tables.careerSchedule)
+				.where(eq(tables.careerSchedule.id, schedule.id));
+			expect(saved?.lastRun).toMatchObject({
+				outcome: "success",
+				// No web search ran, so no search connection is named.
+				provider: "",
+				found: 2,
+				matches: 1,
+				filtered: 1,
+				bySource: [{ source: "greenhouse:acme", found: 2, kept: 1, status: "ok", reason: null }],
+			});
+			const items = await getDb().select().from(tables.careerRunItem);
+			expect(items.map((item) => item.decision).sort()).toEqual(["filtered", "new"]);
+			expect(items.every((item) => item.source === "greenhouse:acme")).toBe(true);
+		});
+
+		it("closes a followed role once its board stops listing it, and reopens it when it returns", async () => {
+			listed = board([
+				{ id: 1, title: "Reliability Engineer" },
+				{ id: 2, title: "Platform Engineer" },
+			]);
+			const schedule = await follow({});
+			await discoverOnly();
+			expect(await roles()).toHaveLength(2);
+
+			listed = board([{ id: 1, title: "Reliability Engineer" }]);
+			fresh();
+			await jobs.runNow("alice", schedule.id);
+			await discoverOnly();
+			expect((await roles()).map((role) => role.role)).toEqual(["Reliability Engineer"]);
+			const [closed] = await getDb()
+				.select()
+				.from(tables.careerOpportunity)
+				.where(eq(tables.careerOpportunity.url, "https://job-boards.greenhouse.io/acme/jobs/2"));
+			expect(closed?.closedAt).toBeInstanceOf(Date);
+
+			listed = board([
+				{ id: 1, title: "Reliability Engineer" },
+				{ id: 2, title: "Platform Engineer" },
+			]);
+			fresh();
+			await jobs.runNow("alice", schedule.id);
+			await discoverOnly();
+			expect(await roles()).toHaveLength(2);
+		});
+
+		it("follows the company boards web search turns up", async () => {
+			fixture.search.mockResolvedValue([
+				{
+					title: "Engineer at Acme",
+					url: "https://jobs.lever.co/acme/6ed76ce8-4156-4b60-b120-403538bd66cd",
+					description: "",
+				},
+			]);
+			fixture.read.mockResolvedValue(posting(1));
+			const schedule = await follow({}, { web: true, companies: [], followFromSearch: true });
+			await discoverOnly();
+			const [saved] = await getDb()
+				.select()
+				.from(tables.careerSchedule)
+				.where(eq(tables.careerSchedule.id, schedule.id));
+			expect(saved?.sources?.companies).toEqual([{ kind: "lever", slug: "acme", name: "Acme" }]);
+			// A web role remembers the connection that found it and what read its page.
+			expect(await roles()).toEqual([
+				expect.objectContaining({ source: "web", searchedVia: "tavily", readVia: "builtin", board: null }),
+			]);
+			const [item] = await getDb().select().from(tables.careerRunItem);
+			expect(item?.source).toBe("web");
+		});
+
+		it("lets a search run on job sources alone, but not with nothing to search", async () => {
+			fixture.search_connection = null;
+			await expect(follow({})).resolves.toMatchObject({ enabled: true });
+			await expect(follow({}, { companies: [], apis: [] })).rejects.toMatchObject({
+				code: "PRECONDITION_FAILED",
+				data: { missing: "search" },
+			});
+		});
+	});
+
 	describe("first-run setup", () => {
 		const launchInput = (patch: Record<string, unknown> = {}) =>
 			careerSetupLaunchSchema.parse({ query: "Reliability engineer", timezone: "Europe/Berlin", ...patch });
@@ -1080,14 +1237,15 @@ describe.skipIf(!databaseUrl)("autonomous discovery and document preparation", (
 			const base = await baseline();
 			await expect(careerSetup.confirmBaseline("bob", base)).rejects.toMatchObject({ code: "NOT_FOUND" });
 			fixture.search_connection = null;
+			// Web search is optional now that free job sources search without one.
 			const confirmed = await careerSetup.confirmBaseline("alice", base);
 			expect(confirmed).toMatchObject({
-				step: "services",
+				step: "discovery",
 				baseline: { resumeId: base, confirmed: true, changedSinceConfirm: false },
 				services: { search: false, ai: true },
 			});
 			fixture.search_connection = { provider: "tavily", apiKey: "x" };
-			expect((await careerSetup.get("alice")).step).toBe("discovery");
+			expect((await careerSetup.get("alice")).services.search).toBe(true);
 			await getDb()
 				.update(tables.resume)
 				.set({ updatedAt: new Date(Date.now() + 60_000) })
@@ -1122,10 +1280,12 @@ describe.skipIf(!databaseUrl)("autonomous discovery and document preparation", (
 				code: "BAD_GATEWAY",
 				message: expect.not.stringContaining("secret"),
 			});
+			// Without web search, the free job sources still preview.
 			fixture.search_connection = null;
-			await expect(careerSetup.previewSearch("alice", "Reliability engineer")).rejects.toMatchObject({
-				code: "PRECONDITION_FAILED",
-			});
+			await expect(careerSetup.previewSearch("alice", "Reliability engineer")).resolves.toEqual([]);
+			expect(fixture.collect).toHaveBeenLastCalledWith(
+				expect.objectContaining({ sources: expect.objectContaining({ apis: KEYLESS_JOB_SOURCES }) }),
+			);
 		});
 
 		it("launches only after a baseline is confirmed, starts discovery at once and reuses one schedule", async () => {
@@ -1141,7 +1301,14 @@ describe.skipIf(!databaseUrl)("autonomous discovery and document preparation", (
 			);
 			expect(done).toMatchObject({ step: "done", completed: true, discovery: { enabled: true } });
 			const [schedule] = await getDb().select().from(tables.careerSchedule);
-			expect(schedule).toMatchObject({ intervalMinutes: 60, query: "Reliability engineer", enabled: true });
+			expect(schedule).toMatchObject({
+				intervalMinutes: 60,
+				query: "Reliability engineer",
+				enabled: true,
+				// A new search starts with web search and the free job sources, filtered by Preferences.
+				sources: { web: true, apis: KEYLESS_JOB_SOURCES, companies: [] },
+				filters: null,
+			});
 			expect(schedule?.nextRunAt.getTime()).toBeLessThanOrEqual(Date.now());
 			expect(await automation.get("alice")).toMatchObject({
 				resumesEnabled: true,

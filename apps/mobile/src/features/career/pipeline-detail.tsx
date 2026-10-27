@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
+import { foundVia, sourceLabel } from "./discovery-sources";
 import { useCareerTime } from "./hooks";
 import { decisionLabel, describeEvent } from "./pipeline-words";
 import { orpc } from "@/api/client";
@@ -16,6 +17,7 @@ const TONE = {
 	rejected: "neutral",
 	unreadable: "warn",
 	invalid: "neutral",
+	filtered: "neutral",
 } as const;
 
 /** Every search result of one run and what became of it: the answer to "why wasn't that job found". */
@@ -38,7 +40,10 @@ export function RunResults({ runId }: { runId: string }) {
 			{query.data.items.map((item) => (
 				<View key={`${item.decision}-${item.url}`}>
 					<Badge tone={TONE[item.decision]} label={decisionLabel(item.decision)} />
-					<Text color="ink2">{`${item.title || item.url}${item.host ? ` · ${item.host}` : ""}`}</Text>
+					<Text color="ink2">
+						{/* Job sources and boards by name; a web result by its site. */}
+						{`${item.title || item.url} · ${item.source && item.source !== "web" ? sourceLabel(item.source) : item.host}`}
+					</Text>
 					{item.applicationId ? (
 						<Button
 							variant="ghost"
@@ -86,8 +91,8 @@ export function JobJourney({ opportunityId }: { opportunityId: string }) {
 				<>
 					<Text color="ink2">
 						{query.data.run
-							? t`${time.when(query.data.foundAt)} · Found by the search "${query.data.run.query}"`
-							: t`${time.when(query.data.foundAt)} · Found by discovery`}
+							? t`${time.when(query.data.foundAt)} · Found by the search "${query.data.run.query}" via ${foundVia(query.data)}`
+							: t`${time.when(query.data.foundAt)} · Found by discovery via ${foundVia(query.data)}`}
 					</Text>
 					{query.data.events.map((event) => (
 						<Text

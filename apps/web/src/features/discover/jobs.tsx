@@ -16,6 +16,7 @@ import { toast } from "@reactive-resume/ui/components/toast";
 import { useBreakpoint } from "@reactive-resume/ui/hooks/use-breakpoint";
 import { getInitials } from "@reactive-resume/utils/string";
 import { cn } from "@reactive-resume/utils/style";
+import { foundVia, SourceCredit } from "../career/discovery-sources";
 import { CareerLoadError } from "../career/load-state";
 import { failed, useDayOffset } from "../career/section";
 import { CollapseRow, FilterChip, InfoChip, Swap, useCareerTime, useNow, withUndo } from "../career/shared";
@@ -516,7 +517,9 @@ function JobRow({
 				</span>
 			</button>
 			<span className="hidden w-44 shrink-0 text-end text-xs text-ink-3 lg:grid">
-				<span className="truncate">{hostOf(row.url)}</span>
+				<span className="truncate">
+					{row.source === "web" ? hostOf(row.url) : <SourceCredit source={row.board ?? row.source} />}
+				</span>
 				<span>{found}</span>
 			</span>
 			<div className="flex shrink-0 items-center gap-2">
@@ -682,7 +685,11 @@ function Preview({
 				<h3 className="text-[11px] font-semibold tracking-[0.11em] text-ink-3 uppercase">
 					<Trans>Where it came from</Trans>
 				</h3>
-				<p>{hostOf(row.url)}</p>
+				<p>
+					{hostOf(row.url)}
+					{" · "}
+					{row.source === "web" ? foundVia(row) : <SourceCredit source={row.board ?? row.source} />}
+				</p>
 				{run ? (
 					<p>
 						{run.trigger === "manual" ? t`Found by a search you started` : t`Found by a scheduled search`}

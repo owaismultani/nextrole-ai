@@ -318,16 +318,24 @@ const fieldShell =
 const bareSelect =
 	"field-sizing-content cursor-pointer appearance-none bg-transparent text-ink-3 outline-none hover:text-ink focus-visible:text-ink";
 
-type ChipFieldProps = { label: string; placeholder: string; value: string[]; onChange: (value: string[]) => void };
+type ChipFieldProps = {
+	label: string;
+	placeholder: string;
+	value: string[];
+	onChange: (value: string[]) => void;
+	/** How many chips it takes. */
+	max?: number;
+	hint?: string;
+};
 
 /** Enter or comma adds a chip, Backspace in an empty input removes the last one, × removes one. */
-function ChipField({ label, placeholder, value, onChange }: ChipFieldProps) {
+export function ChipField({ label, placeholder, value, onChange, max = 20, hint }: ChipFieldProps) {
 	const id = useId();
 	const [input, setInput] = useState("");
 
 	const add = () => {
 		const chip = input.trim().slice(0, 200);
-		if (chip && !value.includes(chip) && value.length < 20) onChange([...value, chip]);
+		if (chip && !value.includes(chip) && value.length < max) onChange([...value, chip]);
 		setInput("");
 	};
 
@@ -373,6 +381,7 @@ function ChipField({ label, placeholder, value, onChange }: ChipFieldProps) {
 					className="h-7 min-w-40 flex-1 bg-transparent px-1.5 text-[13px] outline-none placeholder:text-ink-3"
 				/>
 			</div>
+			{hint && <p className="text-xs text-ink-3">{hint}</p>}
 		</div>
 	);
 }

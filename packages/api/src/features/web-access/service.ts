@@ -103,7 +103,7 @@ export async function readPage(input: string, context: WebAccessContext): Promis
 	const provider = context.connection?.provider ?? "builtin";
 	let fallback: WebAccessFailure | undefined;
 	try {
-		await consume(context.userId, signal);
+		if (!context.unmetered) await consume(context.userId, signal);
 		const url = await assertPublicTarget(input, signal);
 		if (context.connection) {
 			// Reserve five seconds of the same overall budget for the direct reader.

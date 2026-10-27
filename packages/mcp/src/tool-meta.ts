@@ -22,6 +22,13 @@ import { MCP_TOOL_NAME as T } from "./mcp-tool-names";
 
 // Contracts remain derived from the allowlisted API procedures in parity.ts.
 export const PARITY_TOOL_DESCRIPTIONS: Record<string, string> = {
+	"jobSources.search":
+		"Search jobs once across job sources (Adzuna, Reed, Jooble, USAJOBS, Bundesagentur, Himalayas, Jobicy, The Muse, Arbeitnow, Remote OK, We Work Remotely), followed company boards and web search, with filters for titles, excluded words, places, country, radius, workplace, posting age, employment type, minimum salary and companies. Returns kept roles first, then roles the filters left out with the reason, and each source's outcome. Nothing is saved; to search on a schedule, save a discovery schedule with these sources and filters.",
+	"jobSources.resolveCompany":
+		"Find the company job board (Greenhouse, Lever, Ashby, SmartRecruiters, Recruitee, Personio, Workable or Workday) behind a careers page or posting address, and how many roles it lists. Add the result to a discovery schedule's sources.companies to follow every role that company posts.",
+	"jobSources.status":
+		"List the keyed job sources (Adzuna, Reed, Jooble, USAJOBS, The Muse) and whether a key is in place, from the server or the user. Keys are added in the app.",
+	"jobSources.deleteKey": "Remove the user's personal key for one job source.",
 	"agent.threads.start":
 		"Start a document, application, or general career conversation using a tested saved AI provider. For scope=document, choose exactly one resumeId or coverLetterId. For scope=application, provide applicationId. For scope=career, omit document and application IDs.",
 	"career.profile":
@@ -56,7 +63,7 @@ export const PARITY_TOOL_DESCRIPTIONS: Record<string, string> = {
 		"Create an application at Saved from a discovered role, with its posting link and text and the preferences it matched.",
 	"career.schedules": "List the user's career discovery, interview preparation, and follow-up schedules.",
 	"career.saveSchedule":
-		"Create a career schedule, or replace one by providing its id. Explicitly choose enabled and email preferences, nextRunAt, timezone, optional repeat interval, and any application, interview, or saved AI provider. Enabled schedules may later perform research or coaching and send configured notifications; saving does not run a job immediately.",
+		"Create a career schedule, or replace one by providing its id. Explicitly choose enabled and email preferences, nextRunAt, timezone, optional repeat interval, and any application, interview, or saved AI provider. Discovery schedules also take sources (web search, job-source ids, followed company boards) and filters, the same shapes `api_job_sources_search` uses; omit them to keep web search alone. Enabled schedules may later perform research or coaching and send configured notifications; saving does not run a job immediately.",
 	"career.deleteSchedule": "Delete an owned career schedule and prevent its future scheduled runs.",
 	"career.opportunities":
 		"List discovered opportunities for review. Discovery results are suggestions; create a tracked application only when the user chooses one.",

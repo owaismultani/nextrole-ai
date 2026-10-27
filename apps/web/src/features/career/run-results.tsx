@@ -3,6 +3,7 @@ import { Trans } from "@lingui/react/macro";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Badge } from "@reactive-resume/ui/components/badge";
+import { sourceLabel } from "./discovery-sources";
 import { decisionLabel } from "./pipeline-words";
 import { orpc } from "@/libs/orpc/client";
 
@@ -12,6 +13,7 @@ const TONE = {
 	rejected: "neutral",
 	unreadable: "warn",
 	invalid: "neutral",
+	filtered: "neutral",
 } as const;
 
 /** Every search result of one run and what became of it: the answer to "why wasn't that job found". */
@@ -56,7 +58,10 @@ export function RunResults({ runId }: { runId: string }) {
 						{data.items.map((item) => (
 							<tr key={`${item.decision}-${item.url}`} className="border-b border-line last:border-b-0">
 								<td className="px-4 py-3 text-[13px] font-semibold wrap-break-word">{item.title || item.url}</td>
-								<td className="px-4 py-3 text-ink-2">{item.host}</td>
+								<td className="px-4 py-3 text-ink-2">
+									{/* Job sources and boards by name; a web result by its site. */}
+									{item.source && item.source !== "web" ? sourceLabel(item.source) : item.host}
+								</td>
 								<td className="px-4 py-3">
 									<Badge variant={TONE[item.decision]}>{decisionLabel(item.decision)}</Badge>
 								</td>

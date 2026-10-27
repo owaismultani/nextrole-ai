@@ -70,6 +70,8 @@ export function canonicalOpportunityUrl(value: string): string | null {
 		)
 			return null;
 		url.hash = "";
+		// Greenhouse serves one board under two hosts; the newer one is canonical.
+		if (host === "boards.greenhouse.io") url.hostname = "job-boards.greenhouse.io";
 		// A LinkedIn posting's query only tracks the click (refId, trackingId, position, pageNum, trk).
 		if (/(?:^|\.)linkedin\.com$/.test(host) && url.pathname.startsWith("/jobs/view/")) url.search = "";
 		const trackingKeys = Array.from(url.searchParams.keys()).filter((key) =>

@@ -9,7 +9,9 @@ import { readStages, STAGE, stageAt } from "./progress";
 import { Brand, StartLink } from "./ui";
 import { orpc } from "@/libs/orpc/client";
 
-export const githubUrl = "https://github.com/reactive-resume/reactive-resume";
+export const githubUrl = "https://github.com/owaismultani/nextrole-ai";
+/** A count this small reads as an empty room, so it isn't shown. */
+const smallestStarCountShown = 100;
 
 /** A floating glass bar: the mark, the page's sections, the GitHub star count and "Start free". */
 export function LandingHeader() {
@@ -51,10 +53,10 @@ function GithubLink() {
 	const { data: stars } = useQuery(orpc.statistics.github.getStarCount.queryOptions());
 	const count = stars == null ? null : i18n.number(stars);
 	const compact =
-		stars == null
+		stars == null || stars < smallestStarCountShown
 			? null
 			: new Intl.NumberFormat(i18n.locale, { notation: "compact", maximumFractionDigits: 1 }).format(stars);
-	const label = count ? t`Star Reactive Resume on GitHub, ${count} stars` : t`Star Reactive Resume on GitHub`;
+	const label = count ? t`Star NextRole AI on GitHub, ${count} stars` : t`Star NextRole AI on GitHub`;
 
 	return (
 		<a

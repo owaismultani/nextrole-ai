@@ -1,9 +1,9 @@
 ---
 title: "Self-hosting with Kubernetes"
-description: "Deploy Reactive Resume on Kubernetes with plain manifests: PostgreSQL, a Secret, persistent uploads, health probes, Ingress, scaling and updates."
+description: "Deploy NextRole AI on Kubernetes with plain manifests: PostgreSQL, a Secret, persistent uploads, health probes, Ingress, scaling and updates."
 ---
 
-This guide deploys Reactive Resume to a Kubernetes cluster with plain manifests. The result matches the
+This guide deploys NextRole AI to a Kubernetes cluster with plain manifests. The result matches the
 [Docker setup](/self-hosting/docker): one app Deployment serving everything on port `3000`, a separate PostgreSQL
 database, and persistent storage for uploads. Adapt the storage class and Ingress settings to your cluster.
 
@@ -16,7 +16,7 @@ You need:
 - A DNS name for your instance, for example `resume.example.com`.
 - About 250m CPU and 512 MiB of memory for the app Pod, plus room for PostgreSQL if it runs in the cluster.
 
-The image is `amruthpillai/reactive-resume` on Docker Hub or `ghcr.io/reactive-resume/reactive-resume` on GitHub
+The image is `ghcr.io/owaismultani/nextrole-ai` on Docker Hub or `ghcr.io/owaismultani/nextrole-ai` on GitHub
 Container Registry, built for `amd64` and `arm64`. The examples pin the `v6` tag, which gets fixes and new features
 without moving to the next major version.
 
@@ -182,7 +182,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: reactive-resume
-          image: ghcr.io/reactive-resume/reactive-resume:v6
+          image: ghcr.io/owaismultani/nextrole-ai:v6
           imagePullPolicy: Always
           ports:
             - name: http
@@ -370,8 +370,8 @@ A community-maintained Helm chart is available from HelmForge:
 - Documentation: [helmforge.dev](https://helmforge.dev/docs/charts/reactive-resume)
 
 <Warning>
-  The Helm chart is maintained outside the Reactive Resume project. Report chart problems in the HelmForge repository.
-  Check that it supports v6 before using it; the manifests above work without it.
+  The Helm chart is maintained outside the NextRole AI project. Report chart problems in the HelmForge repository. Check
+  that it supports v6 before using it; the manifests above work without it.
 </Warning>
 
 ## Troubleshooting

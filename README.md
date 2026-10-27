@@ -1,402 +1,195 @@
-> [!IMPORTANT]
-> Reactive Resume now lives at **[`reactive-resume/reactive-resume`](https://github.com/reactive-resume/reactive-resume)** on GitHub.  
-> GHCR images publish to `ghcr.io/reactive-resume/reactive-resume`.  
-> Docker Hub stays at `amruthpillai/reactive-resume`.
-
 <div align="center">
-  <a href="https://rxresu.me">
-    <img src="apps/web/public/opengraph/banner.jpg" alt="Reactive Resume" />
-  </a>
+  <img src="docs/images/nextrole/landing.webp" alt="NextRole AI: A career team that works while you sleep" />
 
-  <h1>Reactive Resume</h1>
+  <h1>NextRole AI</h1>
 
-  <p>Reactive Resume is a free and open-source resume builder for writing resumes and cover letters, checking your work, and tracking job applications.</p>
+  <p><strong>A career team that works while you sleep.</strong></p>
 
   <p>
-    <a href="https://rxresu.me"><strong>Get Started</strong></a>
+    NextRole AI scouts roles on your schedule, tailors a resume, letter and answers for each one, coaches you through
+    the interview and helps you weigh the offer. It runs on your own AI key and stops at every decision, so you make it.
+  </p>
+
+  <p>
+    <a href="#quick-start"><strong>Run it</strong></a>
     ·
-    <a href="https://docs.rxresu.me"><strong>Learn More</strong></a>
+    <a href="docs/getting-started.mdx"><strong>Read the docs</strong></a>
+    ·
+    <a href="apps/web/public/landing/tour.mp4"><strong>Watch the 60-second tour</strong></a>
   </p>
 
   <p>
-    <img src="https://img.shields.io/github/package-json/v/reactive-resume/reactive-resume?style=flat-square" alt="Reactive Resume Version">
-    <img src="https://img.shields.io/github/stars/reactive-resume/reactive-resume?style=flat-square" alt="GitHub Stars">
-    <img src="https://img.shields.io/github/license/reactive-resume/reactive-resume?style=flat-square" alt="License" />
-    <img src="https://img.shields.io/docker/pulls/amruthpillai/reactive-resume?style=flat-square" alt="Docker Pulls" />
-    <a href="https://discord.gg/u9pAd3za9t"><img src="https://img.shields.io/discord/1173518977851473940?style=flat-square&label=discord" alt="Discord" /></a>
-    <a href="https://crowdin.com/project/reactive-resume"><img src="https://badges.crowdin.net/reactive-resume/localized.svg?style=flat-square" alt="Crowdin" /></a>
-    <a href="https://github.com/sponsors/AmruthPillai"><img src="https://img.shields.io/github/sponsors/AmruthPillai?style=flat-square&label=sponsors" alt="Sponsors" /></a>
-    <a href="https://opencollective.com/reactive-resume/donate"><img src="https://img.shields.io/opencollective/backers/reactive-resume?style=flat-square&label=donations" alt="Donations" /></a>
+    <img src="https://img.shields.io/github/license/owaismultani/nextrole-ai?style=flat-square" alt="MIT License" />
+    <img src="https://img.shields.io/github/stars/owaismultani/nextrole-ai?style=flat-square" alt="GitHub stars" />
+    <img src="https://img.shields.io/badge/built%20on-Reactive%20Resume-5146d9?style=flat-square" alt="Built on Reactive Resume" />
   </p>
-
-  <p><sub>Sponsored by</sub></p>
-
-  <table align="center">
-    <tr>
-      <td align="center" valign="middle">
-        <a href="https://www.vultr.com/?ref=9929207">
-          <picture>
-            <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/e023617e-563e-4423-817b-2e2d4e70fc84" />
-            <img src="https://github.com/user-attachments/assets/2e47d6a3-75ac-4f62-a50c-eef1b7d1930a" alt="Vultr" height="24" />
-          </picture>
-        </a>
-      </td>
-      <td align="center" valign="middle">
-        <a href="https://www.hostg.xyz/aff_c?offer_id=48&amp;aff_id=232413&amp;url_id=6857">
-          <picture>
-            <source media="(prefers-color-scheme: dark)" srcset="docs/images/sponsors/hostinger-dark.svg" />
-            <img src="docs/images/sponsors/hostinger-light.svg" alt="Hostinger" height="24" />
-          </picture>
-        </a>
-      </td>
-      <td align="center" valign="middle">
-        <a href="https://vercel.com/open-source-program">
-          <img src="https://vercel.com/oss/program-badge-2026.svg" alt="Vercel OSS Program" height="24" />
-        </a>
-      </td>
-    </tr>
-  </table>
 </div>
 
 ---
 
-Create a free account, import an existing resume or start fresh, and see the finished page as you write. Download a PDF, Word, Markdown, or JSON file, or share your resume with a public link. You can also run the whole application on your own infrastructure.
+NextRole AI is a free, open-source job search app. It finds roles, drafts the documents and prepares you for each
+step, then hands everything back to you. **Nothing is submitted or sent in your name.** AI features use a provider you
+connect, so you choose the model and pay only for what you use.
 
-You own your data. The codebase is open source under the MIT license, with no tracking, no ads, and no paid tier. Optional AI features use a provider you connect; hosting and provider usage may have their own costs.
+It is built on [Reactive Resume](https://github.com/reactive-resume/reactive-resume), the open-source resume builder by
+Amruth Pillai and its contributors, so the full resume editor, templates and exports come with it.
 
-![Reactive Resume v6 editor with Write, Design, and Check modes and a live PDF preview](docs/images/getting-started/editor-overview.webp)
+## Meet the crew
 
-## Build a better resume, together
+Six specialists, one boss: you.
 
-[Join the Reactive Resume community on Discord](https://discord.gg/u9pAd3za9t) to exchange resume feedback, get help using or self-hosting the app, and share ideas with other users and contributors.
+| Specialist      | What it does                                                                                                                     | What it hands you                           |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| **The Scout**   | Searches 11 job boards, the companies you follow and the open web on your schedule, and says why it passed on the rest.          | A shortlist, with a fit check for each role |
+| **The Writer**  | Tailors your resume, cover letter and form answers to each posting, using only experience you've confirmed.                      | Drafts ready to review, never sent          |
+| **The Editor**  | 18 templates, about 500 fonts and an ATS check that points to the exact line. Its suggestions wait for your yes.                 | A resume both software and people can read  |
+| **The Coach**   | Briefs you before each interview, listens while you practise out loud, and turns every debrief into material for the next round. | A 30-minute plan for every interview        |
+| **The Tracker** | One board for every application, with interviews on your calendar, follow-up reminders and replies drafted for recruiters.       | Your next step on every application         |
+| **The Advisor** | Lines offers up against what you said matters, and keeps the unknown terms in plain sight.                                       | The questions to ask before you sign        |
 
-- **Resume feedback:** post a redacted resume and one specific question, or help someone improve theirs.
-- **Help:** find troubleshooting discussions and ask questions in dedicated forum threads.
-- **Contribute:** discuss ideas, translations, and code with the people building Reactive Resume.
-
-Feedback comes from fellow community members. Remove contact details and other private information before posting.
-
-## Features
-
-**Write, Design, and Check**
-
-- Redesigned editor with inline content editing and click-to-select on the page
-- Live PDF preview and browser downloads powered by Forme, rendered in a background worker
-- Rich text, custom sections, drag-and-drop ordering, and structured dates with consistent formatting
-- Autosave, local recovery of unsaved resume drafts, and up to 200 undo steps
-- Phone and tablet layouts, keyboard shortcuts, and a searchable command bar
-
-**Templates and Customization**
-
-- 18 templates, including the new Porygon and Smeargle, previewed with your own content
-- One-column, two-column, and ATS-safe template filters
-- Font presets, custom fonts, colors, spacing, A4 and Letter paper, and left or right sidebars
-- Fit overflowing content by adjusting density, margins, and text size
-- Custom Styles written as Semantic CSS, with an element picker on the page
-
-**Resume Checks**
-
-- Readability checks with findings pinned to the relevant lines
-- Job-posting keyword matching and a view of the text hiring software reads
-- Checks on the exported PDF, plus an optional AI writing review
-- A public [ATS checker](https://rxresu.me/ats-checker) that reads PDFs in your browser without an account
-
-**Documents and Cover Letters**
-
-- One searchable library for resumes and letters, with tags, sorting, and grid or list views
-- Standalone cover letters with their own editor, exports, and version history
-- Link a letter to a resume to keep its sender details and design in sync, or customize it independently
-- Automatic and named versions you can preview and restore
-- Trash with Undo and a 30-day recovery window
-
-**Job Applications**
-
-- List, Board, Insights, and Calendar views for tracking applications from Saved to Offer
-- Save jobs from a URL or pasted posting; optional keyword search through Firecrawl, Tavily, or Exa
-- Tailor a resume and draft a cover letter for a saved job
-- Track contacts, notes, follow-ups, application outcomes, and the documents you sent
-- Schedule interviews, export calendar events, and import or export applications as CSV
-
-**AI Assistant**
-
-- Assistant beside your resume or letter, with conversations tied to that document
-- Proposed edits show what changes and why; accept or reject each suggestion
-- Improve selected text, review writing, and draft letters from a resume and job posting
-- Connect OpenAI, Anthropic, Google Gemini, OpenRouter, Ollama, or other supported providers and compatible endpoints
-- Optional web search and page reading; self-hosters can configure shared AI and web-access providers
-
-**Import, Export, and Sharing**
-
-- Import Reactive Resume JSON, JSON Resume, LinkedIn data exports, PDF, and Word files
-- JSON, LinkedIn, and readable PDF imports work without AI; Word imports require a connected provider
-- Export resumes and letters as PDF, Word (DOCX), Markdown, or JSON
-- Share resumes through public links with optional password protection and view/download statistics
-- REST API and MCP server for document management, imports, exports, checks, and application workflows
-
-**Privacy and Control**
-
-- Self-host with Docker, Vercel, Cloudflare Workers, or a 1-click deploy on Hostinger
-- No tracking or ads; export your account data or delete your account
-- Passkeys, two-factor authentication, and linked sign-in providers
-- Multiple interface languages, light/dark/system themes, and reduced-motion support
-
-## Templates
+## See it work
 
 <table>
   <tr>
-    <td align="center">
-      <img src="apps/web/public/templates/jpg/azurill.jpg" alt="Azurill" width="150" />
-      <br /><sub><b>Azurill</b></sub>
-    </td>
-    <td align="center">
-      <img src="apps/web/public/templates/jpg/bronzor.jpg" alt="Bronzor" width="150" />
-      <br /><sub><b>Bronzor</b></sub>
-    </td>
-    <td align="center">
-      <img src="apps/web/public/templates/jpg/chikorita.jpg" alt="Chikorita" width="150" />
-      <br /><sub><b>Chikorita</b></sub>
-    </td>
-    <td align="center">
-      <img src="apps/web/public/templates/jpg/ditto.jpg" alt="Ditto" width="150" />
-      <br /><sub><b>Ditto</b></sub>
-    </td>
+    <td width="50%"><img src="docs/images/nextrole/discover.webp" alt="Discover listing new roles found by a scheduled search" /><br /><sub><b>Discover.</b> A scheduled search across job boards and the web, with every run's results and reasons.</sub></td>
+    <td width="50%"><img src="docs/images/nextrole/fit.webp" alt="A fit check showing which requirements the candidate's evidence supports" /><br /><sub><b>Fit.</b> Which requirements your evidence supports, and which have no evidence yet.</sub></td>
   </tr>
   <tr>
-    <td align="center">
-      <img src="apps/web/public/templates/jpg/gengar.jpg" alt="Gengar" width="150" />
-      <br /><sub><b>Gengar</b></sub>
-    </td>
-    <td align="center">
-      <img src="apps/web/public/templates/jpg/glalie.jpg" alt="Glalie" width="150" />
-      <br /><sub><b>Glalie</b></sub>
-    </td>
-    <td align="center">
-      <img src="apps/web/public/templates/jpg/kakuna.jpg" alt="Kakuna" width="150" />
-      <br /><sub><b>Kakuna</b></sub>
-    </td>
-    <td align="center">
-      <img src="apps/web/public/templates/jpg/lapras.jpg" alt="Lapras" width="150" />
-      <br /><sub><b>Lapras</b></sub>
-    </td>
+    <td><img src="docs/images/nextrole/studio.webp" alt="The resume editor with a tailored resume rendered on the page" /><br /><sub><b>Studio.</b> The tailored resume in the Reactive Resume editor, with Write, Design and Check modes.</sub></td>
+    <td><img src="docs/images/nextrole/interview-plan.webp" alt="An interview preparation plan with timed steps and a briefing" /><br /><sub><b>Coach.</b> A focused 30-minute plan and a briefing before the interview.</sub></td>
   </tr>
   <tr>
-    <td align="center">
-      <img src="apps/web/public/templates/jpg/leafish.jpg" alt="Leafish" width="150" />
-      <br /><sub><b>Leafish</b></sub>
-    </td>
-    <td align="center">
-      <img src="apps/web/public/templates/jpg/onyx.jpg" alt="Onyx" width="150" />
-      <br /><sub><b>Onyx</b></sub>
-    </td>
-    <td align="center">
-      <img src="apps/web/public/templates/jpg/persian.jpg" alt="Persian" width="150" />
-      <br /><sub><b>Persian</b></sub>
-    </td>
-    <td align="center">
-      <img src="apps/web/public/templates/jpg/pikachu.jpg" alt="Pikachu" width="150" />
-      <br /><sub><b>Pikachu</b></sub>
-    </td>
-    <td align="center">
-      <img src="apps/web/public/templates/jpg/rhyhorn.jpg" alt="Rhyhorn" width="150" />
-      <br /><sub><b>Rhyhorn</b></sub>
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <img src="apps/web/public/templates/jpg/ditgar.jpg" alt="Ditgar" width="150" />
-      <br /><sub><b>Ditgar</b></sub>
-    </td>
-    <td align="center">
-      <img src="apps/web/public/templates/jpg/meowth.jpg" alt="Meowth" width="150" />
-      <br /><sub><b>Meowth</b></sub>
-    </td>
-    <td align="center">
-      <img src="apps/web/public/templates/jpg/scizor.jpg" alt="Scizor" width="150" />
-      <br /><sub><b>Scizor</b></sub>
-    </td>
-    <td align="center">
-      <img src="apps/web/public/templates/jpg/porygon.jpg" alt="Porygon" width="150" />
-      <br /><sub><b>Porygon</b></sub>
-    </td>
-    <td align="center">
-      <img src="apps/web/public/templates/jpg/smeargle.jpg" alt="Smeargle" width="150" />
-      <br /><sub><b>Smeargle</b></sub>
-    </td>
+    <td><img src="docs/images/nextrole/board.webp" alt="The applications board with columns for each stage" /><br /><sub><b>Tracker.</b> Every application on one board, from saved to offer.</sub></td>
+    <td><img src="docs/images/nextrole/offers.webp" alt="Two job offers compared side by side" /><br /><sub><b>Advisor.</b> Offers compared against your preferences, unknowns kept visible.</sub></td>
   </tr>
 </table>
 
-## Quick Start
+<sub>Screens from the tour, filmed on a fictional account.</sub>
 
-Use the [hosted app](https://rxresu.me) to start writing, or build this checkout locally with Docker and Docker Compose:
+## Features
+
+**Find and prepare**
+
+- Scheduled discovery every 1, 3 or 6 hours or daily, across Himalayas, Remote OK, The Muse, Arbeitnow, Jobicy, We Work
+  Remotely, Bundesagentur, Adzuna, Reed, Jooble, USAJOBS, followed company boards (Greenhouse, Lever, Ashby and more)
+  and web search. Every run shows what it found, skipped and rejected, and why.
+- Knowledge: facts and five-part stories (situation, task, action, result, reflection) you confirm once and reuse.
+- Fit checks that show the evidence behind each requirement.
+- Automatic tailored resumes and cover letters per role, within a daily limit, with accuracy guards: dates, employers
+  and titles never change, and invented figures are discarded.
+- Application answers drafted within word counts, regenerate with a focus, and version history with compare and restore.
+
+**Interview and decide**
+
+- Briefings before each interview, timed preparation plans, practice out loud with transcription and feedback, a coach
+  conversation, and debriefs that feed your Knowledge.
+- Applications as a list, board, calendar and insights (reply rate, time to first reply, tailored vs base resume).
+- Drafted recruiter replies, follow-up reminders, `.ics` calendar files, CSV import and export.
+- Offer comparison against your preferences.
+
+**The resume builder** (from Reactive Resume)
+
+- 18 templates, about 500 fonts, layout and page controls, and fit to one page in a click.
+- Check mode: ATS readability pinned to lines, job matching and wording review.
+- An assistant that proposes edits you accept or reject one at a time.
+- Import from PDF, Word, LinkedIn or JSON Resume; export to PDF, Word, OpenDocument, Markdown or JSON.
+- Public links with optional passwords and view counts, cover letters, tags, trash and private notes.
+
+**Everywhere, and yours**
+
+- Native iPhone and Android apps (Expo) with the same features as the web, in 55 languages.
+- MCP server, WebMCP, REST and JSON Patch APIs, and agent skills for Claude, Codex and Cursor.
+- Bring your own AI: OpenAI, Anthropic, Google Gemini, DeepSeek, Mistral, Groq, xAI, OpenRouter, Ollama or any
+  OpenAI-compatible endpoint.
+- Passkeys, two-step sign-in, and an ATS checker that reads your PDF in your browser.
+- Self-host with one Docker image and PostgreSQL. Export everything as JSON at any time.
+
+## Quick start
+
+Build and run this checkout with Docker and Docker Compose:
 
 ```bash
-# Clone the repository
-git clone --depth=1 https://github.com/reactive-resume/reactive-resume.git reactive-resume
-cd reactive-resume
+git clone https://github.com/owaismultani/nextrole-ai.git nextrole-ai
+cd nextrole-ai
 
 # Create your local configuration
 cp .env.example .env
 # Edit .env: set AUTH_SECRET and a separate ENCRYPTION_SECRET.
 # Generate each secret with: openssl rand -hex 32
 
-# Build the app and start PostgreSQL, Redis, and SeaweedFS
+# Build the app and start PostgreSQL, Redis and SeaweedFS
 docker compose up -d --build
 
-# Open http://localhost:3000 in your browser
+# Open http://localhost:3000
 ```
 
-This builds the checked-out source. For a deployment using published images, follow the [Docker guide](https://docs.rxresu.me/self-hosting/docker). For source development, see the [development setup guide](https://docs.rxresu.me/contributing/development).
+Then connect an AI provider in **Settings → Integrations** if you want tailoring, coaching and the assistant, and open
+**Discover** to set up your first search. Free job sources work without any keys.
 
-## Tech Stack
+To run a published image instead, pull `ghcr.io/owaismultani/nextrole-ai:latest` and follow the
+[Docker guide](docs/self-hosting/docker.mdx). Kubernetes, Vercel, Cloudflare Workers and NAS guides are in
+[`docs/self-hosting`](docs/self-hosting). Every server setting is listed in
+[environment variables](docs/self-hosting/environment-variables.mdx).
 
-| Category         | Technology                               |
-| ---------------- | ---------------------------------------- |
-| Web app          | React 19 SPA, TanStack Router, and Vite  |
-| Server           | Hono on Node.js 24 or Cloudflare Workers |
-| Language         | TypeScript                               |
-| Monorepo         | pnpm and Turborepo                       |
-| Database         | PostgreSQL with Drizzle ORM              |
-| API              | oRPC, OpenAPI REST, and MCP              |
-| Auth             | Better Auth                              |
-| Styling          | Tailwind CSS                             |
-| UI Components    | Base UI + shared UI package              |
-| State Management | Zustand + TanStack Query                 |
-| PDF rendering    | Forme, with PDF.js for the viewer        |
-| Rich text        | TipTap                                   |
-| Localization     | Lingui                                   |
+## Develop
+
+Requirements: Node.js 24, pnpm 12 and Docker.
+
+```bash
+pnpm install --frozen-lockfile
+cp .env.example .env.local   # then point it at localhost; see the development guide
+docker compose -f compose.dev.yml up -d postgres redis seaweedfs seaweedfs_create_bucket
+pnpm dev                     # web on :3000, API on :3001
+```
+
+The [development guide](docs/contributing/development.mdx) covers the setup in full, and
+[`AGENTS.md`](AGENTS.md) explains the repository's layout and conventions.
+
+| Area    | Technology                                                                            |
+| ------- | ------------------------------------------------------------------------------------- |
+| Web     | React 19, TanStack Router and Query, Tailwind CSS, Vite, three.js on the landing page |
+| Server  | Hono on Node.js 24 or Cloudflare Workers                                              |
+| Mobile  | Expo / React Native with a native PDF renderer                                        |
+| Data    | PostgreSQL with Drizzle ORM, Redis, S3-compatible storage                             |
+| API     | oRPC, OpenAPI REST, MCP                                                               |
+| Auth    | Better Auth with passkeys, 2FA, OAuth and SSO                                         |
+| Tooling | TypeScript, pnpm and Turborepo, Vitest, Playwright, oxlint                            |
 
 ## Documentation
 
-The full documentation lives at [docs.rxresu.me](https://docs.rxresu.me):
+The [`docs`](docs) folder is a [Mintlify](https://mintlify.com) site. Preview it locally with the [Mintlify CLI](https://mintlify.com/docs/installation).
 
-| Guide                                                                                                            | Description                                  |
-| ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| [Getting started](https://docs.rxresu.me/getting-started)                                                        | First-time setup and basic usage             |
-| [What's new in v6](https://docs.rxresu.me/guides/whats-new-in-v6)                                                | Changes and where familiar features moved    |
-| [Checking your resume](https://docs.rxresu.me/guides/checking-your-resume)                                       | Readability, job match, and writing reviews  |
-| [Using the assistant](https://docs.rxresu.me/guides/using-the-assistant)                                         | Ask for changes and review proposed edits    |
-| [Writing a cover letter](https://docs.rxresu.me/guides/writing-a-cover-letter)                                   | Create a letter and link it to a resume      |
-| [Tracking job applications](https://docs.rxresu.me/guides/tracking-job-applications)                             | Saved jobs, stages, interviews, and insights |
-| [Exporting your resume](https://docs.rxresu.me/guides/exporting-your-resume)                                     | PDF, Word, Markdown, and JSON downloads      |
-| [API](https://docs.rxresu.me/guides/using-the-api) and [MCP](https://docs.rxresu.me/guides/using-the-mcp-server) | Connect scripts and external assistants      |
-| [Self-hosting](https://docs.rxresu.me/self-hosting/docker)                                                       | Deploy on your own infrastructure            |
-| [Migrating from v5](https://docs.rxresu.me/self-hosting/upgrading-to-v6)                                         | Migrations and integration changes           |
-| [Development setup](https://docs.rxresu.me/contributing/development)                                             | Local development environment                |
-| [Project architecture](https://docs.rxresu.me/contributing/architecture)                                         | Codebase structure and package boundaries    |
-
-## Self-Hosting
-
-Reactive Resume runs the same application everywhere: PostgreSQL for data, plus storage for uploads. Pick the option that fits how much you want to manage.
-
-| Option                                          | Best for                                      | Guide                                                                                                               |
-| ----------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| [Hostinger](#hostinger)                         | A ready-made VPS with no setup                | [Hostinger guide](https://docs.rxresu.me/self-hosting/hostinger)                                                    |
-| [Vercel](#vercel)                               | Serverless, with managed database and storage | [Vercel guide](https://docs.rxresu.me/self-hosting/vercel)                                                          |
-| [Cloudflare Workers](#cloudflare-workers)       | Workers, R2 and your own PostgreSQL           | [Cloudflare guide](https://docs.rxresu.me/self-hosting/cloudflare)                                                  |
-| [Docker and Kubernetes](#docker-and-kubernetes) | Your own server, homelab or cluster           | [Docker](https://docs.rxresu.me/self-hosting/docker) · [Kubernetes](https://docs.rxresu.me/self-hosting/kubernetes) |
-
-> **PDF generation in v6** uses Forme in the browser and on the server. No Browserless, Chromium, or external print service is needed. Legacy `PRINTER_*` and `BROWSERLESS_*` environment variables can be removed.
-
-### Hostinger
-
-The quickest way to get going is a 1-click deploy on Hostinger, starting at $6.49/month. Their VPS plans include a ready-made Reactive Resume template that provisions the Docker environment and brings the app up for you, with weekly backups and a Docker manager UI included — so you can skip the setup entirely.
-
-<a href="https://www.hostg.xyz/aff_c?offer_id=48&amp;aff_id=232413&amp;url_id=6857">
-  <img src="https://assets.hostinger.com/vps/deploy.svg" alt="Deploy on Hostinger" width="148" height="32" />
-</a>
-
-See the [Hostinger guide](https://docs.rxresu.me/self-hosting/hostinger) for what the template sets up and what to configure afterwards, such as email, your own domain, and turning off sign-ups.
-
-### Vercel
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Freactive-resume%2Freactive-resume&project-name=reactive-resume&repository-name=reactive-resume&env=AUTH_SECRET%2CENCRYPTION_SECRET&envDescription=Generate+two+independent+secrets+with+openssl+rand+-hex+32.+Keep+these+values+across+deployments.&envLink=https%3A%2F%2Fdocs.rxresu.me%2Fself-hosting%2Fvercel&stores=%5B%7B%22type%22%3A%22integration%22%2C%22protocol%22%3A%22storage%22%2C%22integrationSlug%22%3A%22neon%22%2C%22productSlug%22%3A%22neon%22%7D%2C%7B%22type%22%3A%22integration%22%2C%22protocol%22%3A%22storage%22%2C%22integrationSlug%22%3A%22upstash%22%2C%22productSlug%22%3A%22upstash-kv%22%7D%2C%7B%22type%22%3A%22blob%22%2C%22access%22%3A%22private%22%7D%5D)
-
-Vercel provisions Neon PostgreSQL, private Blob storage, and Upstash Redis through its deployment wizard. Supply two persistent secrets and use the **Services** framework preset. Static assets run in the frontend service, and Hono serves the application routes and APIs from the backend service. See the [Vercel guide](https://docs.rxresu.me/self-hosting/vercel) for setup, limits, and optional SMTP/OAuth configuration.
-
-### Cloudflare Workers
-
-Cloudflare deployment requires **Workers Paid** and uses Static Assets, private R2 storage, SQLite Durable Objects, and PostgreSQL through Hyperdrive. Supply an existing PostgreSQL database and apply migrations before deployment. See the [Cloudflare guide](https://docs.rxresu.me/self-hosting/cloudflare) for setup and runtime limits.
-
-### Docker and Kubernetes
-
-The application needs:
-
-- **PostgreSQL** — Accounts, documents, applications, and assistant conversations
-- **Upload storage** — A persistent local directory or an S3-compatible bucket, such as SeaweedFS
-- **Redis** (optional) — Shared coordination across instances and resumable assistant replies
-- **SMTP** (optional) — Verification and password-reset emails
-
-Published releases are available from Docker Hub and GitHub Container Registry (`latest` tracks the latest stable release):
-
-```bash
-# Docker Hub
-docker pull amruthpillai/reactive-resume:latest
-
-# GitHub Container Registry
-docker pull ghcr.io/reactive-resume/reactive-resume:latest
-```
-
-See the [Docker guide](https://docs.rxresu.me/self-hosting/docker) or [Kubernetes guide](https://docs.rxresu.me/self-hosting/kubernetes) for complete instructions. Running on a NAS? See the [Synology and UGREEN guides](https://docs.rxresu.me/self-hosting/nas).
-
-### Configuration
-
-Every setting is listed in the [environment variables reference](https://docs.rxresu.me/self-hosting/environment-variables). Self-hosters can also configure [shared AI and job-search services](https://docs.rxresu.me/self-hosting/job-search-and-ai) and [single sign-on](https://docs.rxresu.me/self-hosting/sso).
-
-### Upgrading from v5
-
-Back up your database and uploads and stop all v5 instances before applying v6 migrations. Old visual style rules require a manual conversion; API and MCP integrations also have changes. Follow [Migrating from v5](https://docs.rxresu.me/self-hosting/upgrading-to-v6).
-
-## Support
-
-Reactive Resume is and always will be free and open source. If it has helped you land a job or saved you time, please consider supporting continued development:
-
-<p>
-  <a href="https://github.com/sponsors/AmruthPillai">
-    <img src="https://img.shields.io/badge/GitHub%20Sponsors-Support-ea4aaa?style=flat-square&logo=github-sponsors" alt="GitHub Sponsors" />
-  </a>
-  <a href="https://opencollective.com/reactive-resume/donate">
-    <img src="https://img.shields.io/badge/Open%20Collective-Contribute-7FADF2?style=flat-square&logo=open-collective" alt="Open Collective" />
-  </a>
-</p>
-
-Other ways to support:
-
-- Star this repository
-- Report reproducible bugs and suggest actionable features
-- Help other users in [GitHub Discussions](https://github.com/reactive-resume/reactive-resume/discussions/categories/q-a)
-- Improve documentation
-- Help with translations
-
-<a href="https://blacksmith.sh/">
-  <img width="368" height="126" alt="powered-by-blacksmith" src="https://github.com/user-attachments/assets/3e95d11b-4579-4082-8d0c-6b574f925625" />
-</a>
-
-## Star History
-
-<a href="https://www.star-history.com/?repos=reactive-resume%2Freactive-resume&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=reactive-resume/reactive-resume&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=reactive-resume/reactive-resume&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=reactive-resume/reactive-resume&type=date&legend=top-left" />
- </picture>
-</a>
+| Guide                                                                      | What it covers                                          |
+| -------------------------------------------------------------------------- | ------------------------------------------------------- |
+| [Introduction](docs/getting-started.mdx)                                   | What NextRole AI does and where to start                |
+| [Automate your job search](docs/guides/automating-your-job-search.mdx)     | Discovery, tailored documents and the daily limit       |
+| [Your career, in one place](docs/guides/career-overview.mdx)               | Overview, Discover, Knowledge, the coach and Automation |
+| [Get ready for interview day](docs/guides/preparing-for-interview-day.mdx) | Briefings, practice and debriefs                        |
+| [Tracking job applications](docs/guides/tracking-job-applications.mdx)     | Board, list, calendar and insights                      |
+| [Resume editor](docs/guides/editor-overview.mdx)                           | Write, Design and Check                                 |
+| [Self-hosting with Docker](docs/self-hosting/docker.mdx)                   | Deploying your own instance                             |
+| [Using the MCP server](docs/guides/using-the-mcp-server.mdx)               | Connecting AI clients                                   |
+| [Changelog](docs/changelog/index.mdx)                                      | What changed in NextRole AI                             |
 
 ## Contributing
 
-Every contribution helps, whether it is a typo fix or a new feature.
+Bug reports, translations and pull requests are welcome.
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes using Conventional Commits (`git commit -m 'feat: add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+1. Fork the repository and create a branch (`git checkout -b feat/your-change`).
+2. Commit with [Conventional Commits](https://www.conventionalcommits.org) (`feat: …`, `fix: …`).
+3. Run `pnpm check` and the relevant tests.
+4. Open a pull request.
 
-See the [development setup guide](https://docs.rxresu.me/contributing/development) for how to run the project locally.
+To translate, see [contributing translations](docs/contributing/translations.mdx). To report a security issue, see
+[`SECURITY.md`](SECURITY.md).
 
-Maintainers review the [`status: needs triage` queue](https://github.com/reactive-resume/reactive-resume/issues?q=is%3Aissue+is%3Aopen+label%3A%22status%3A+needs+triage%22)
-weekly. Triaged bugs become `status: confirmed`; feature proposals become `status: accepted`; reports that need details become
-`status: needs info`.
+## Credits
+
+NextRole AI is built on [Reactive Resume](https://github.com/reactive-resume/reactive-resume) by
+[Amruth Pillai](https://github.com/AmruthPillai) and its community of contributors and translators. The resume editor,
+templates, PDF renderer, importers, exports and most translations come from that project. If the resume builder helps
+you, consider [supporting Reactive Resume](https://opencollective.com/reactive-resume).
 
 ## License
 
-[MIT](./LICENSE) — do whatever you want with it.
+[MIT](LICENSE). Copyright © 2026 Amruth Pillai (Reactive Resume) and Owais Multani (NextRole AI).

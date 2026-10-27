@@ -1,13 +1,13 @@
 ---
 title: "Using the API"
-description: "Create a Reactive Resume API key, send authenticated REST requests to read and edit your resumes, and revoke keys you no longer need."
+description: "Create a NextRole AI API key, send authenticated REST requests to read and edit your resumes, and revoke keys you no longer need."
 ---
 
-The Reactive Resume REST API lets your own scripts, extensions and automations read and change your documents and job applications. You authenticate with an API key that you create in Settings. This guide walks you through creating a key, making your first request and revoking the key when you're done.
+The NextRole AI REST API lets your own scripts, extensions and automations read and change your documents and job applications. You authenticate with an API key that you create in Settings. This guide walks you through creating a key, making your first request and revoking the key when you're done.
 
 ## Before you start
 
-- You need a Reactive Resume account. The examples use the hosted instance at `https://rxresu.me`. If you self-host, replace it with your own address.
+- You need a NextRole AI account. The examples use the hosted instance at `https://nextrole.example.com`. If you self-host, replace it with your own address.
 - An API key acts as you. Anyone who has it can read and edit your documents, so treat it like a password.
 
 ## Create an API key
@@ -35,7 +35,7 @@ The Reactive Resume REST API lets your own scripts, extensions and automations r
     </Frame>
 
     <Warning>
-      Reactive Resume shows the key only once. If you lose it, revoke it and create a new one.
+      NextRole AI shows the key only once. If you lose it, revoke it and create a new one.
     </Warning>
 
   </Step>
@@ -55,7 +55,7 @@ Your keys are listed in the **API keys** table with the date each was created, t
 The REST API lives under `/api/openapi` on your instance. Send your key in the `x-api-key` header.
 
 ```bash
-curl "https://rxresu.me/api/openapi/resumes" \
+curl "https://nextrole.example.com/api/openapi/resumes" \
   -H "x-api-key: YOUR_API_KEY"
 ```
 
@@ -80,14 +80,14 @@ The response is a JSON array of your resumes, without their full content:
 Fetch one resume with its full data, using an ID from the list:
 
 ```bash
-curl "https://rxresu.me/api/openapi/resumes/01a0efa5-6529-745e-950a-521ef5b8afc7" \
+curl "https://nextrole.example.com/api/openapi/resumes/01a0efa5-6529-745e-950a-521ef5b8afc7" \
   -H "x-api-key: YOUR_API_KEY"
 ```
 
 For request bodies, send JSON with `Content-Type: application/json`. For example, create a resume filled with sample content:
 
 ```bash
-curl -X POST "https://rxresu.me/api/openapi/resumes" \
+curl -X POST "https://nextrole.example.com/api/openapi/resumes" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{ "name": "Product Designer Resume", "tags": ["design"], "withSampleData": true }'
@@ -101,7 +101,7 @@ The response is the new resume's ID as a JSON string.
 
 ## Find the endpoint you need
 
-Every endpoint, with its parameters, request body and responses, is listed in the **API Reference** tab of these docs. Your own instance also serves the machine-readable OpenAPI document at `/api/openapi/spec.json` (for example `https://rxresu.me/api/openapi/spec.json`). Use the spec from the version you run when you generate a client.
+Every endpoint, with its parameters, request body and responses, is listed in the **API Reference** tab of these docs. Your own instance also serves the machine-readable OpenAPI document at `/api/openapi/spec.json` (for example `https://nextrole.example.com/api/openapi/spec.json`). Use the spec from the version you run when you generate a client.
 
 | Area          | Paths                                   | What you can do                                                                                                                                        |
 | ------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -133,11 +133,11 @@ Authentication workflows use Better Auth's native HTTP API and its own error con
 File imports accept a multipart form. The format is one of `PDF`, `REACTIVE_RESUME`, `REACTIVE_RESUME_V4`, `JSON_RESUME` or `LINKEDIN`; the maximum file size is 10 MiB. PDF imports read the text layer without AI. AI-assisted PDF and Word parsing remain available under `/ai/pdf-parses` and `/ai/docx-parses`; save the resulting data through `/resumes/imports`.
 
 ```bash
-curl "https://rxresu.me/api/openapi/resumes/file-imports" \
+curl "https://nextrole.example.com/api/openapi/resumes/file-imports" \
   -H "x-api-key: YOUR_API_KEY" \
   -F "format=JSON_RESUME" -F "file=@resume.json"
 
-curl "https://rxresu.me/api/openapi/resumes/RESUME_ID/exports/docx" \
+curl "https://nextrole.example.com/api/openapi/resumes/RESUME_ID/exports/docx" \
   -H "x-api-key: YOUR_API_KEY" -o resume.docx
 ```
 
@@ -148,7 +148,7 @@ Exports accept `pdf`, `docx`, `md` or `json` and return a downloadable file. The
 Collection endpoints support `limit` (1–100) and `offset` (zero-based). For existing array responses, omitting both preserves the complete array for compatibility. Supplying only `offset` selects a page size of 20. The `X-Total-Count` header reports the total before slicing; paginated responses also include `X-Limit` and `X-Offset`. The cover-letter list retains its existing `{ items, total }` response and default pagination.
 
 ```bash
-curl "https://rxresu.me/api/openapi/resumes?limit=20&offset=20" \
+curl "https://nextrole.example.com/api/openapi/resumes?limit=20&offset=20" \
   -H "x-api-key: YOUR_API_KEY" -i
 ```
 

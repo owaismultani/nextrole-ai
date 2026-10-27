@@ -1,9 +1,9 @@
 ---
 title: "Large RPC requests"
-description: "Reference for the staged-body protocol that lets RPC requests larger than Vercel's 4.5 MB request limit reach a Reactive Resume installation."
+description: "Reference for the staged-body protocol that lets RPC requests larger than Vercel's 4.5 MB request limit reach a NextRole AI installation."
 ---
 
-Vercel limits the request body of a Function to 4.5 MB. On a Reactive Resume installation hosted on Vercel, larger RPC requests, such as big file uploads or assistant attachments, are first uploaded to private Blob storage. The server then restores the original request and runs it with the usual authentication, validation and limits.
+Vercel limits the request body of a Function to 4.5 MB. On a NextRole AI installation hosted on Vercel, larger RPC requests, such as big file uploads or assistant attachments, are first uploaded to private Blob storage. The server then restores the original request and runs it with the usual authentication, validation and limits.
 
 The web app does this for you: it stages any RPC request body of 3 MiB or more, and sends smaller bodies directly. You only need this page if you write your own client for `/api/rpc` against a Vercel installation.
 
@@ -60,7 +60,7 @@ Content-Type: application/octet-stream
 <exact serialized body bytes>
 ```
 
-Don't send your Reactive Resume credentials to this URL. The body must be exactly `size` bytes, sent as `application/octet-stream`.
+Don't send your NextRole AI credentials to this URL. The body must be exactly `size` bytes, sent as `application/octet-stream`.
 
 ### 3. Finalize
 

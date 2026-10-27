@@ -1,6 +1,6 @@
 ---
 title: "Using the patch API"
-description: "Change individual fields of a Reactive Resume with JSON Patch (RFC 6902): add, remove, replace and move items, set dates and avoid overwriting edits."
+description: "Change individual fields of a NextRole AI with JSON Patch (RFC 6902): add, remove, replace and move items, set dates and avoid overwriting edits."
 ---
 
 The patch endpoint lets you make small, targeted changes to a resume's content without sending the whole document. You send a list of [JSON Patch (RFC 6902)](https://datatracker.ietf.org/doc/html/rfc6902) operations, and the server applies them together and returns the updated resume. This is the same mechanism the MCP server's `apply_resume_patch` tool uses.
@@ -61,7 +61,7 @@ A successful patch returns `200` with the full updated resume, including its new
 ### Replace basic fields
 
 ```bash
-curl -X PATCH "https://rxresu.me/api/openapi/resumes/YOUR_RESUME_ID" \
+curl -X PATCH "https://nextrole.example.com/api/openapi/resumes/YOUR_RESUME_ID" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -77,7 +77,7 @@ curl -X PATCH "https://rxresu.me/api/openapi/resumes/YOUR_RESUME_ID" \
 A new entry must be a complete item: include every required field of that item type, a unique `id` (a UUID) and `"hidden": false`. Set its dates in `dates` and leave `period` empty; the server fills it in.
 
 ```bash
-curl -X PATCH "https://rxresu.me/api/openapi/resumes/YOUR_RESUME_ID" \
+curl -X PATCH "https://nextrole.example.com/api/openapi/resumes/YOUR_RESUME_ID" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{

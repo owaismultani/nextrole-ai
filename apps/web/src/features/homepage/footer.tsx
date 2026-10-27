@@ -6,6 +6,7 @@ import { githubUrl } from "./header";
 import { Brand } from "./ui";
 
 const licenseUrl = `${githubUrl}/blob/main/LICENSE`;
+const reactiveResumeUrl = "https://github.com/reactive-resume/reactive-resume";
 const linkClass = "text-nr-ink-2 transition-colors hover:text-nr-ink";
 
 type FooterLink = { label: string; href: string } | { label: string; to: "/ats-checker" | "/dashboard/overview" };
@@ -26,9 +27,9 @@ const getColumns = (): { id: string; title: string; links: FooterLink[] }[] => [
 		id: "resources",
 		title: t`Resources`,
 		links: [
-			{ label: t`Documentation`, href: "https://docs.rxresu.me" },
-			{ label: t`Changelog`, href: "https://docs.rxresu.me/changelog" },
-			{ label: t`Self-hosting`, href: "https://docs.rxresu.me/self-hosting/docker" },
+			{ label: t`Documentation`, href: `${githubUrl}/tree/main/docs` },
+			{ label: t`Changelog`, href: `${githubUrl}/blob/main/docs/changelog/index.mdx` },
+			{ label: t`Self-hosting`, href: `${githubUrl}/blob/main/docs/self-hosting/docker.mdx` },
 			{ label: t`Source code`, href: githubUrl },
 		],
 	},
@@ -36,19 +37,16 @@ const getColumns = (): { id: string; title: string; links: FooterLink[] }[] => [
 		id: "community",
 		title: t`Community`,
 		links: [
-			{ label: t`Join Discord`, href: "https://discord.gg/jSVSJyWd2k" },
-			{ label: t`Subreddit`, href: "https://reddit.com/r/reactiveresume" },
-			{ label: t`Translations`, href: "https://crowdin.com/project/reactive-resume" },
+			{ label: t`Discussions`, href: `${githubUrl}/discussions` },
+			{ label: t`Translations`, href: `${githubUrl}/blob/main/docs/contributing/translations.mdx` },
+			{ label: "Reactive Resume", href: reactiveResumeUrl },
 			{ label: t`Report an issue`, href: `${githubUrl}/issues` },
 		],
 	},
 	{
 		id: "legal",
 		title: t`Legal`,
-		links: [
-			{ label: t`Privacy policy`, href: "https://docs.rxresu.me/legal/privacy-policy" },
-			{ label: t`MIT License`, href: licenseUrl },
-		],
+		links: [{ label: t`MIT License`, href: licenseUrl }],
 	},
 ];
 
@@ -77,7 +75,7 @@ export function LandingFooter() {
 						<p>
 							<Trans>
 								Built on{" "}
-								<a href={githubUrl} className="text-nr-accent underline underline-offset-[3px]">
+								<a href={reactiveResumeUrl} className="text-nr-accent underline underline-offset-[3px]">
 									Reactive Resume
 								</a>{" "}
 								by a community of contributors.

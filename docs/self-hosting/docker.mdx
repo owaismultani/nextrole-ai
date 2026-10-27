@@ -1,10 +1,10 @@
 ---
 title: "Self-hosting with Docker"
-description: "Run your own Reactive Resume server with Docker Compose and PostgreSQL: set up, create the first account, check health, update and back up."
+description: "Run your own NextRole AI server with Docker Compose and PostgreSQL: set up, create the first account, check health, update and back up."
 ---
 
-This guide sets up your own Reactive Resume server with Docker Compose. You end up with two containers, the app and a
-PostgreSQL database, reachable at an address you choose. It's the same app that runs on `https://rxresu.me`, and your data stays on
+This guide sets up your own NextRole AI server with Docker Compose. You end up with two containers, the app and a
+PostgreSQL database, reachable at an address you choose. It's the full app, and your data stays on
 your hardware.
 
 ## Before you start
@@ -33,8 +33,8 @@ separate printer service.
 
 The image is published to two registries with the same tags:
 
-- Docker Hub: `amruthpillai/reactive-resume`
-- GitHub Container Registry: `ghcr.io/reactive-resume/reactive-resume`
+- Docker Hub: `ghcr.io/owaismultani/nextrole-ai`
+- GitHub Container Registry: `ghcr.io/owaismultani/nextrole-ai`
 
 | Tag                    | Contents                                                                                          |
 | ---------------------- | ------------------------------------------------------------------------------------------------- |
@@ -111,7 +111,7 @@ Pi 4 or newer running a 64-bit operating system.
           retries: 10
 
       reactive-resume:
-        image: amruthpillai/reactive-resume:latest
+        image: ghcr.io/owaismultani/nextrole-ai:latest
         restart: unless-stopped
         ports:
           - "3000:3000"
@@ -133,7 +133,7 @@ Pi 4 or newer running a 64-bit operating system.
 
     <Tip>
       To use GitHub Container Registry instead of Docker Hub, change the image to
-      `ghcr.io/reactive-resume/reactive-resume:latest`.
+      `ghcr.io/owaismultani/nextrole-ai:latest`.
     </Tip>
 
   </Step>
@@ -159,7 +159,7 @@ Pi 4 or newer running a 64-bit operating system.
   <Step title="Create your account">
     Open your `APP_URL` in a browser and create an account; see [Creating an account](/guides/creating-an-account).
 
-    You're signed in right away. Reactive Resume also sends a verification email, but you don't have to open it to
+    You're signed in right away. NextRole AI also sends a verification email, but you don't have to open it to
     use the app. Without SMTP settings the email isn't sent; its link is written to the app log instead:
 
     ```bash
@@ -286,7 +286,7 @@ The repository's own `compose.yml` builds the image from source and also starts 
 storage). It reads `.env.example` first and then your `.env`.
 
 ```bash
-git clone https://github.com/reactive-resume/reactive-resume.git
+git clone https://github.com/owaismultani/nextrole-ai.git
 cd reactive-resume
 cp .env.example .env    # then set APP_URL, AUTH_SECRET and ENCRYPTION_SECRET
 docker compose up -d --build
@@ -308,7 +308,7 @@ docker compose up -d --build --no-deps reactive_resume
 
 There is no official app template. Use your platform's generic container settings:
 
-- Create two containers: one from `amruthpillai/reactive-resume:latest` and one from `postgres:18`. Give PostgreSQL its
+- Create two containers: one from `ghcr.io/owaismultani/nextrole-ai:latest` and one from `postgres:18`. Give PostgreSQL its
   own persistent volume at `/var/lib/postgresql`.
 - Put both containers on the same private network, and use the PostgreSQL container's name as the host in
   `DATABASE_URL`.
@@ -380,4 +380,3 @@ There is no official app template. Use your platform's generic container setting
 - [Job search and AI](/self-hosting/job-search-and-ai): Firecrawl, SearXNG and shared or personal AI providers.
 - [Self-hosting with Kubernetes](/self-hosting/kubernetes): the same setup as Kubernetes manifests.
 - [Self-hosting on Hostinger](/self-hosting/hostinger): a 1-click deploy of the same stack on a Hostinger VPS.
-- [Checking service status](/guides/checking-service-status): the status of the hosted instance.

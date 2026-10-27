@@ -9,8 +9,9 @@ type ParticleStageProps = { root: RefObject<HTMLElement | null> };
 
 /**
  * The fixed canvas behind the page. three.js and the scene load only after the page is up; if WebGL is unavailable (the
- * renderer throws) or the GPU drops the context, a still gradient takes the canvas's place. Decorative: every point is
- * also made in the copy.
+ * renderer throws) or the GPU drops the context, a still gradient takes the canvas's place until the context returns.
+ * The canvas is as tall as the large viewport, so a phone's toolbar showing and hiding never resizes it. Decorative:
+ * every point is also made in the copy.
  */
 export function ParticleStage({ root }: ParticleStageProps) {
 	const { i18n } = useLingui();
@@ -35,6 +36,7 @@ export function ParticleStage({ root }: ParticleStageProps) {
 					templates: templateSchema.options.length,
 					languages: localeSchema.options.length,
 					onLost: () => setFallback(true),
+					onRestored: () => setFallback(false),
 				}),
 			)
 			.then((dispose) => {
@@ -50,7 +52,7 @@ export function ParticleStage({ root }: ParticleStageProps) {
 	}, [root, rtl]);
 
 	return (
-		<div aria-hidden="true" className={cn("fixed inset-0 -z-1", fallback && "nr-fallback")}>
+		<div aria-hidden="true" className={cn("fixed inset-0 -z-1 h-lvh", fallback && "nr-fallback")}>
 			<canvas ref={canvas} className={cn("block size-full", fallback && "hidden")} />
 			<div className="nr-veil pointer-events-none absolute inset-0" />
 		</div>

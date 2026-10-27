@@ -15,6 +15,7 @@ import { createLetterFile, letterFileName } from "@/features/letters/export";
 import { useLetterEditorStore } from "@/features/letters/store";
 import { useEditorStore } from "@/features/resume/editor/store";
 import { createExportFile, getDefaultFileName, sanitizeFileName } from "@/features/resume/export/use-resume-export";
+import { NOW } from "@/features/resume/share/compare-dialog";
 import {
 	DownloadActions,
 	FileNameField,
@@ -216,6 +217,16 @@ function useLetterHistory(open: boolean): HistorySource {
 		remove: async (versionId) => {
 			await client.coverLetters.deleteVersion({ id, versionId });
 			void refresh();
+		},
+		compare: {
+			kind: "letter",
+			documentId: id,
+			extras: [],
+			load: async (side) => {
+				const now = useLetterEditorStore.getState().letter;
+				if (side === NOW && now) return now;
+				return (await client.coverLetters.getVersion({ id, versionId: side })).data;
+			},
 		},
 	};
 }

@@ -1,4 +1,4 @@
-import type { WorkspaceTab } from "@reactive-resume/schema/career";
+import type { WorkspaceHint } from "@reactive-resume/schema/career";
 import { tool, type ToolSet } from "ai";
 import { and, desc, eq } from "drizzle-orm";
 import z from "zod";
@@ -13,19 +13,24 @@ type CareerToolsInput = {
 	context: Awaited<ReturnType<typeof careerService.context>>;
 	shareApplication: boolean;
 	shareMemory: boolean;
-	tab: WorkspaceTab | undefined;
+	tab: WorkspaceHint | undefined;
 	sourceMessageId: string | undefined;
 };
 
-const TABS: Record<WorkspaceTab, string> = {
+const TABS: Record<WorkspaceHint, string> = {
+	summary: "looking over the role: what it asks for, how it fits, and what to do next",
 	fit: "checking how the role fits: its requirements against their evidence",
+	documents: "reviewing the resume and cover letter prepared for this application",
+	answers: "writing answers for the application form",
 	apply: "writing answers for the application form",
+	interviews: "working on this application's interview rounds",
 	prepare: "preparing for the next interview round",
 	practise:
 		"practising interview answers: ask one question at a time and give feedback on the answer they actually gave",
 	debrief: "writing down how a real interview went",
 	messages: "reading and replying to messages from the employer",
 	saved: "looking back at what was saved for this application",
+	activity: "looking back at what happened with this application",
 };
 
 const MEMORY = {

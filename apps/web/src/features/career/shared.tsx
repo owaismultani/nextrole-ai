@@ -169,13 +169,19 @@ export function Swap({ id, children, className }: { id: string; children: ReactN
 
 export const tabLabel = (tab: WorkspaceTab) =>
 	({
-		fit: t({ message: "Fit", context: "Application workspace tab: how well a job fits your experience" }),
-		apply: t`Apply`,
-		prepare: t`Prepare`,
-		practise: t`Practise`,
-		debrief: t`Debrief`,
+		summary: t({ message: "Summary", context: "Application workspace tab: the job, its fit and what to do next" }),
+		documents: t({
+			message: "Documents",
+			context: "Application workspace tab: the resume and cover letter for this job",
+		}),
+		answers: t({ message: "Answers", context: "Application workspace tab: answers to the application form" }),
+		interviews: t({
+			message: "Interviews",
+			context: "Application workspace tab: rounds, preparation, practice and debriefs",
+		}),
 		messages: t`Messages`,
-		saved: t({ message: "Saved", context: "Application workspace tab: earlier results kept for this job" }),
+		saved: t({ message: "Saved work", context: "Application workspace tab: earlier results kept for this job" }),
+		activity: t({ message: "Activity", context: "Application workspace tab: the history of this application" }),
 	})[tab];
 
 // ---- Long AI work: what the coach is doing, one phrase at a time ----
@@ -244,8 +250,8 @@ export function Eyebrow({ children, className }: EyebrowProps) {
 }
 
 const statusPill = {
-	supported: { icon: "check-circle", tone: "bg-accent-soft text-accent-text" },
-	added: { icon: "check-circle", tone: "bg-accent-soft text-accent-text" },
+	supported: { icon: "check-circle", tone: "bg-ok-soft text-ok-text" },
+	added: { icon: "check-circle", tone: "bg-ok-soft text-ok-text" },
 	partial: { icon: "circle-half", tone: "bg-warn-soft text-warn-text" },
 	missing: { icon: "question", tone: "bg-sunken text-ink-2" },
 } satisfies Record<string, { icon: IconName; tone: string }>;
@@ -273,7 +279,7 @@ export function InfoChip({ tone, children }: { tone: "match" | "unknown"; childr
 		<span
 			className={cn(
 				"inline-flex h-6 items-center gap-1 rounded-sm px-2 text-xs font-medium",
-				tone === "match" ? "bg-accent-soft text-accent-text" : "bg-warn-soft text-warn-text",
+				tone === "match" ? "bg-ok-soft text-ok-text" : "bg-warn-soft text-warn-text",
 			)}
 		>
 			<Icon name={tone === "match" ? "check" : "question"} size={15} />
@@ -284,7 +290,7 @@ export function InfoChip({ tone, children }: { tone: "match" | "unknown"; childr
 
 type FilterChipProps = { pressed: boolean; onClick: () => void; children: ReactNode; className?: string };
 
-/** A 30px pill toggle for filters and single choices; selected is ink-filled. */
+/** A 30px pill toggle for filters and single choices; selected is a soft accent fill. */
 export function FilterChip({ pressed, onClick, children, className }: FilterChipProps) {
 	return (
 		<button
@@ -293,7 +299,9 @@ export function FilterChip({ pressed, onClick, children, className }: FilterChip
 			onClick={onClick}
 			className={cn(
 				"touch-target inline-flex h-[30px] items-center rounded-full border px-2.5 text-xs font-medium transition-[background-color,border-color,color,scale] duration-quick ease-enter active:scale-[0.97]",
-				pressed ? "border-ink bg-ink text-bg" : "border-line-2 text-ink hover:bg-hover",
+				pressed
+					? "border-accent/30 bg-accent-soft font-semibold text-accent-text"
+					: "border-line-2 text-ink-2 hover:bg-hover",
 				className,
 			)}
 		>

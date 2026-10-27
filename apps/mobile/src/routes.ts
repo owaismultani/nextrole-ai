@@ -1,12 +1,17 @@
 // Typed hrefs for every screen under app/. Navigate with these instead of writing paths by hand, so a route move
 // is one change here. Ids and slugs are URL-encoded.
-import type { WorkspaceTab } from "@reactive-resume/schema/career";
+import type { InterviewSection, WorkspaceTab } from "@reactive-resume/schema/career";
+import { resolveWorkspaceTab } from "@reactive-resume/schema/career";
 
 export type BuilderPane = "write" | "page" | "design" | "check";
 export type LetterPane = "write" | "page" | "design";
-export type CareerPane = "today" | "coach" | "knowledge" | "offers";
-export type SettingsPane = "account" | "preferences" | "ai";
+export type DiscoverView = "jobs" | "activity" | "dismissed";
+export type KnowledgeSection = "facts" | "stories";
+export type SettingsPane = "account" | "preferences" | "ai" | "security" | "developer";
 export type ApplicationTab = WorkspaceTab;
+/** A workspace tab, or a former tab name that now means a tab and an interview section. */
+export type ApplicationTarget = WorkspaceTab | "fit" | "apply" | "prepare" | "practise" | "debrief";
+export type ApplicationSearch = { section?: InterviewSection | undefined; round?: string | undefined };
 /** The Applications tab's views; List is the tab's index. */
 export type ApplicationsView = "list" | "board" | "calendar" | "insights";
 
@@ -22,14 +27,30 @@ export const routes = {
 	trash: () => "/documents/trash" as const,
 	applications: (view: ApplicationsView = "list") =>
 		view === "list" ? ("/applications" as const) : (`/applications/${view}` as const),
-	career: (pane: CareerPane = "today") => `/career/${pane}` as const,
+	overview: () => "/overview" as const,
+	discover: (view: DiscoverView = "jobs") =>
+		view === "jobs" ? ("/discover" as const) : (`/discover/${view}` as const),
+	knowledge: (section: KnowledgeSection = "facts") => `/knowledge/${section}` as const,
+	coach: () => "/coach" as const,
+	automation: () => "/automation" as const,
+	/** The phone's overflow tab: Profile, Coach, Automation, Settings and Trash. */
+	more: () => "/more" as const,
+	offers: () => "/applications/offers" as const,
 	settings: (pane?: SettingsPane) => (pane ? (`/settings/${pane}` as const) : ("/settings" as const)),
 
 	// Modals and full-screen flows
 	new: () => "/new" as const,
 	search: () => "/search" as const,
+	setup: () => "/setup" as const,
 	atsChecker: () => "/ats-checker" as const,
-	application: (id: string, tab: ApplicationTab = "fit") => `/applications/${segment(id)}/${tab}` as const,
+	application: (id: string, target: ApplicationTarget = "summary", search: ApplicationSearch = {}) => {
+		const { tab, section } = resolveWorkspaceTab(target) ?? { tab: "summary" as const, section: undefined };
+		const query = [
+			(search.section ?? section) ? `section=${search.section ?? section}` : "",
+			search.round ? `round=${encodeURIComponent(search.round)}` : "",
+		].filter(Boolean);
+		return `/applications/${segment(id)}/${tab}${query.length > 0 ? `?${query.join("&")}` : ""}` as const;
+	},
 	/** The application detail; it shares the dynamic `[tab]` route with the workspace tabs. */
 	applicationDetails: (id: string) => `/applications/${segment(id)}/details` as const,
 	publicResume: (username: string, slug: string) => `/r/${segment(username)}/${segment(slug)}` as const,

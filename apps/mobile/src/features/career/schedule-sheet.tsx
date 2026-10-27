@@ -6,10 +6,19 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Platform, View } from "react-native";
-import { careerScheduleInputSchema } from "@reactive-resume/schema/career";
+import {
+	careerScheduleInputSchema,
+	defaultDiscoveryFilters,
+	discoverySourcesSchema,
+	RETRIEVAL_BUDGET,
+	RETRIEVAL_BUDGET_CHOICES,
+} from "@reactive-resume/schema/career";
+import { cadenceOf, EVERY_VALUES, everyOf } from "@reactive-resume/schema/career-run";
 import { fromZonedDateTime } from "@reactive-resume/utils/timezone";
+import { everyLabel } from "./discovery-run";
+import { FiltersEditor, SearchPreview, SourcesEditor } from "./discovery-sources";
 import { client, useCareerAction, useCareerQueries, useCareerTime, useNow } from "./hooks";
-import { collectInterviews, nextCareerRun, prepareRunAt, rollForward, toZoned } from "./scheduling";
+import { collectInterviews, nextCareerRun, prepareRunAt, rollForwardRepeat, toZoned } from "./scheduling";
 import { EditorSheet, LoadState, SwitchRow } from "./shared";
 import { orpc } from "@/api/client";
 import { useSession } from "@/auth/session";
@@ -99,14 +108,18 @@ function ScheduleForm({
 	const open = applications.filter((application) => application.status !== "closed");
 	const [initial] = useState(() => {
 		const at = schedule
-			? schedule.intervalDays
-				? rollForward(new Date(schedule.nextRunAt), schedule.intervalDays, timezone)
-				: new Date(schedule.nextRunAt)
+			? rollForwardRepeat(new Date(schedule.nextRunAt), schedule, timezone)
 			: nextCareerRun(new Date(), 1, timezone);
 		return {
 			kind: (schedule?.kind as Input["kind"]) ?? initialKind,
 			query: schedule?.query || [...profile.targetRoles, ...profile.locations].join(" · "),
-			every: String(schedule?.intervalDays ?? 1),
+			every: schedule ? everyOf(schedule) : "m60",
+			budget: String(schedule?.retrievalBudget ?? RETRIEVAL_BUDGET.default),
+			// A search saved before sources existed searched the web alone; a new one starts with the free sources too.
+			sources:
+				schedule?.sources ??
+				(schedule ? { web: true, apis: [], companies: [], followFromSearch: false } : discoverySourcesSchema.parse({})),
+			filters: schedule?.filters ?? defaultDiscoveryFilters(profile),
 			...toZoned(at, timezone),
 			time: schedule ? toZoned(at, timezone).time : "08:00",
 			interviewId: schedule?.interviewId ?? upcoming[0]?.interview.id ?? "",
@@ -125,7 +138,13 @@ function ScheduleForm({
 	const set = (patch: Partial<typeof draft>) => setDraft((current) => ({ ...current, ...patch }));
 	const interview = upcoming.find((row) => row.interview.id === draft.interviewId);
 	const at = fromZonedDateTime(draft.date, draft.time, timezone);
-	const runAt = draft.kind === "prepare" && interview ? prepareRunAt(interview.start, draft.lead, timezone) : at;
+	// A schedule on a fixed gap starts as soon as it is saved, so it has no first-run time to choose.
+	const immediate = draft.kind === "discovery" && Boolean(cadenceOf(draft.every).intervalMinutes);
+	const runAt = immediate
+		? new Date(schedule?.nextRunAt ?? now)
+		: draft.kind === "prepare" && interview
+			? prepareRunAt(interview.start, draft.lead, timezone)
+			: at;
 	const provider = ai.usableProviders.find((row) => row.id === draft.aiProviderId) ?? ai.defaultProvider;
 	const blocked =
 		(draft.enabled && !available) ||
@@ -133,13 +152,14 @@ function ScheduleForm({
 			? !interview || !ai.hasAIProvider
 			: draft.kind === "follow-up"
 				? !open.some((row) => row.id === draft.applicationId)
-				: !search);
+				: // Job sources and followed companies need no connection; only a web-search-only search does.
+					!search && !draft.sources.apis.length && !draft.sources.companies.length);
 	const save = () => {
 		if (draft.kind === "discovery" && draft.query.trim().length < 3)
 			return setValidation(t`Add a role or company to look for.`);
 		if (blocked) return;
 		if (!runAt) return setValidation(t`This date or time does not exist in your timezone. Choose another time.`);
-		if (draft.kind !== "prepare" && runAt <= now) return setValidation(t`Pick a time after now.`);
+		if (draft.kind !== "prepare" && !immediate && runAt <= now) return setValidation(t`Pick a time after now.`);
 		const input: Input = {
 			...(schedule ? { id: schedule.id } : {}),
 			kind: draft.kind,
@@ -157,7 +177,10 @@ function ScheduleForm({
 			timezone,
 			locale,
 			nextRunAt: runAt,
-			intervalDays: draft.kind === "discovery" ? Number(draft.every) : null,
+			...(draft.kind === "discovery" ? cadenceOf(draft.every) : { intervalDays: null, intervalMinutes: null }),
+			retrievalBudget: draft.kind === "discovery" ? Number(draft.budget) : null,
+			sources: draft.kind === "discovery" ? draft.sources : null,
+			filters: draft.kind === "discovery" ? draft.filters : null,
 			aiProviderId: draft.kind === "prepare" ? (provider?.id ?? null) : null,
 		};
 		if (!careerScheduleInputSchema.safeParse(input).success) return setValidation(t`Check the fields and try again.`);
@@ -202,14 +225,38 @@ function ScheduleForm({
 							label={t`How often`}
 							value={draft.every}
 							onChange={(every) => set({ every })}
-							options={[
-								{ value: "1", label: t`Every day` },
-								{ value: "3", label: t`Every 3 days` },
-								{ value: "7", label: t`Every week` },
-							]}
+							options={(EVERY_VALUES.includes(draft.every) ? EVERY_VALUES : [...EVERY_VALUES, draft.every]).map(
+								(value) => ({
+									value,
+									label: everyLabel(value),
+								}),
+							)}
 						/>
-						<Text color="ink3">{t`Uses web search set up in Settings. Results wait in Today. Applications and documents are never created for you.`}</Text>
-						{!search ? <Banner tone="warn" message={t`Set up web search in Settings to find roles.`} /> : null}
+						<SelectSheet
+							label={t`Results per source`}
+							value={draft.budget}
+							onChange={(budget) => set({ budget })}
+							options={[...new Set([...RETRIEVAL_BUDGET_CHOICES.map(String), draft.budget])].map((value) => ({
+								value,
+								label: value,
+							}))}
+						/>
+						<Text color="ink3">{t`Roughly the most each job-search source and web search return per run. Followed company boards are always read in full.`}</Text>
+						<Text color="ink3">{t`Hourly runs keep a fixed gap. Daily and longer keep the same time of day in ${timezone}.`}</Text>
+						<SourcesEditor
+							sources={draft.sources}
+							country={draft.filters.country}
+							onChange={(sources) => set({ sources })}
+						/>
+						<FiltersEditor filters={draft.filters} locale={locale} onChange={(filters) => set({ filters })} />
+						<SearchPreview query={draft.query} sources={draft.sources} filters={draft.filters} />
+						<Text color="ink3">{t`New roles wait in Today. Applications and documents are never created for you.`}</Text>
+						{!search && !draft.sources.apis.length && !draft.sources.companies.length ? (
+							<Banner
+								tone="warn"
+								message={t`Choose a job source, follow a company, or set up web search in Settings.`}
+							/>
+						) : null}
 					</>
 				) : draft.kind === "prepare" ? (
 					<>
@@ -272,7 +319,8 @@ function ScheduleForm({
 						{!open.length ? <Banner tone="warn" message={t`Add an application first.`} /> : null}
 					</>
 				)}
-				{draft.kind !== "prepare" ? (
+				{immediate ? <Text color="ink3">{t`Starts as soon as you save, then repeats on this gap.`}</Text> : null}
+				{draft.kind !== "prepare" && !immediate ? (
 					<>
 						<TextField
 							label={draft.kind === "follow-up" ? t`Remind me on (YYYY-MM-DD)` : t`First run (YYYY-MM-DD)`}

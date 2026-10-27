@@ -513,7 +513,7 @@ function ChoiceTile({ icon, title, description, onClick, disabled }: ChoiceTileP
 }
 
 /** Reading the file → Finding sections → Filling in entries, each with a note once done. */
-function ImportProgress({ stage, notes }: { stage: number; notes: string[] }) {
+export function ImportProgress({ stage, notes }: { stage: number; notes: string[] }) {
 	const steps = [t`Reading the file`, t`Finding sections`, t`Filling in entries`];
 
 	return (
@@ -528,7 +528,7 @@ function ImportProgress({ stage, notes }: { stage: number; notes: string[] }) {
 							className={cn("flex items-center gap-2.5 text-sm", done || current ? "text-ink" : "text-ink-3")}
 						>
 							{done ? (
-								<Icon name="check-circle" size={18} className={cn(POP_CLASS, "text-accent-text")} />
+								<Icon name="check-circle" size={18} className={cn(POP_CLASS, "text-ok-text")} />
 							) : current ? (
 								<Spinner decorative className={cn(POP_CLASS, "size-[18px]")} />
 							) : (

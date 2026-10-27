@@ -14,7 +14,6 @@ import { latest, useDraft, useFacts, useGenerate, useSavedItems, useTicks, works
 import { debriefRound, nextEvening } from "../logic";
 import { Actions, AiNotice, Block, CheckRow, Pill, PrivacyLine, useWorking, workingSteps } from "../parts";
 import { shareText } from "../share";
-import { WorkspaceScreen } from "../shell";
 import { orpc } from "@/api/client";
 import { useHasAIProvider } from "@/features/ai/providers";
 import { isInterview, useUserTime } from "@/features/application-detail/hooks";
@@ -27,11 +26,7 @@ type Draft = { question: string; answer: string; landed: Debrief["landed"] | nul
 
 const isDebrief = (item: SavedItem | undefined): item is SavedItem & { data: Debrief } => item?.data.kind === "debrief";
 
-export function DebriefTab() {
-	return <WorkspaceScreen tab="debrief">{(props) => <DebriefBody {...props} />}</WorkspaceScreen>;
-}
-
-function DebriefBody({ application, version, now }: WorkspaceTabProps) {
+export function DebriefBody({ application, version, now }: WorkspaceTabProps) {
 	const { t } = useLingui();
 	const { colors, radius, space } = useTheme();
 	const saved = useSavedItems(application.id);

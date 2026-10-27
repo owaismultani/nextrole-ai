@@ -1,20 +1,20 @@
 ---
 title: "JSON resume schema"
-description: "The Reactive Resume JSON Schema published at /schema.json: what it covers, how resume data is structured, and how to validate files against it."
+description: "The NextRole AI JSON Schema published at /schema.json: what it covers, how resume data is structured, and how to validate files against it."
 ---
 
-Every Reactive Resume document is stored as one JSON object, described by a public [JSON Schema](https://json-schema.org). The same schema validates what the API and MCP server accept, what the JSON export produces and what the JSON import reads. Use it to validate files, generate types, get autocompletion in your editor or build integrations that exchange resumes without parsing PDFs.
+Every NextRole AI document is stored as one JSON object, described by a public [JSON Schema](https://json-schema.org). The same schema validates what the API and MCP server accept, what the JSON export produces and what the JSON import reads. Use it to validate files, generate types, get autocompletion in your editor or build integrations that exchange resumes without parsing PDFs.
 
 ## Where to get it
 
 The schema is served by every instance at `/schema.json`:
 
-<Info>[https://rxresu.me/schema.json](https://rxresu.me/schema.json)</Info>
+<Info>[https://nextrole.example.com/schema.json](https://nextrole.example.com/schema.json)</Info>
 
 It uses the JSON Schema draft 2020-12 dialect and is served as `application/schema+json`. Self-hosted instances serve the schema of the version they run, at their own address. MCP clients can read the same schema as the resource `resume://_meta/schema`.
 
 <Note>
-  This is Reactive Resume's own format, not the community [JSON Resume](https://jsonresume.org) format. Reactive Resume can import JSON Resume files; see [Importing resumes](/guides/importing-resumes).
+  This is NextRole AI's own format, not the community [JSON Resume](https://jsonresume.org) format. NextRole AI can import JSON Resume files; see [Importing resumes](/guides/importing-resumes).
 </Note>
 
 ## Structure
@@ -62,10 +62,10 @@ An empty `title` means the template's default heading in the resume's language.
 
 ## Things to know
 
-- **Dates.** Dated items have a `dates` object with `start`, `end` (a year like `"2022"` or a year and month like `"2022-03"`) and `present`. The text in `period` (or `date` for awards, certifications and publications) is still required and still exported, but Reactive Resume rewrites it from `dates` whenever it saves. Write `dates`. See [Using the patch API](/guides/using-the-patch-api#dates).
+- **Dates.** Dated items have a `dates` object with `start`, `end` (a year like `"2022"` or a year and month like `"2022-03"`) and `present`. The text in `period` (or `date` for awards, certifications and publications) is still required and still exported, but NextRole AI rewrites it from `dates` whenever it saves. Write `dates`. See [Using the patch API](/guides/using-the-patch-api#dates).
 - **Rich text is HTML.** Fields such as `description` and `summary.content` hold HTML strings.
 - **IDs.** Every item and custom section needs a unique `id`. Use a UUID.
-- **Cover letters.** The schema still accepts custom sections of type `cover-letter` so older exports stay valid. When you save or import such a resume, Reactive Resume moves each letter into a cover letter of its own and removes the section. See [Writing a cover letter](/guides/writing-a-cover-letter).
+- **Cover letters.** The schema still accepts custom sections of type `cover-letter` so older exports stay valid. When you save or import such a resume, NextRole AI moves each letter into a cover letter of its own and removes the section. See [Writing a cover letter](/guides/writing-a-cover-letter).
 - **Templates.** `metadata.template` is one of the 18 templates: `azurill`, `bronzor`, `chikorita`, `ditgar`, `ditto`, `gengar`, `glalie`, `kakuna`, `lapras`, `leafish`, `meowth`, `onyx`, `persian`, `pikachu`, `porygon`, `rhyhorn`, `scizor` or `smeargle`.
 - **No version field.** Resume objects have no top-level `version` or `$schema` property. Don't add one; point your tools at the schema URL instead.
 
@@ -77,7 +77,7 @@ Any validator that supports draft 2020-12 works. With [Ajv](https://ajv.js.org) 
 import Ajv2020 from "ajv/dist/2020.js";
 
 const ajv = new Ajv2020({ strict: false });
-const schema = await fetch("https://rxresu.me/schema.json").then((response) => response.json());
+const schema = await fetch("https://nextrole.example.com/schema.json").then((response) => response.json());
 const validate = ajv.compile(schema);
 
 if (!validate(resumeData)) console.error(validate.errors);
@@ -89,7 +89,7 @@ In Python, with [`jsonschema`](https://pypi.org/project/jsonschema/):
 import json, urllib.request
 from jsonschema import Draft202012Validator
 
-schema = json.load(urllib.request.urlopen("https://rxresu.me/schema.json"))
+schema = json.load(urllib.request.urlopen("https://nextrole.example.com/schema.json"))
 Draft202012Validator(schema).validate(resume_data)
 ```
 
@@ -104,7 +104,7 @@ Associate exported files with the schema. In VS Code, add this to `settings.json
   "json.schemas": [
     {
       "fileMatch": ["*.resume.json"],
-      "url": "https://rxresu.me/schema.json"
+      "url": "https://nextrole.example.com/schema.json"
     }
   ]
 }

@@ -146,6 +146,28 @@ export function useSavedItems(applicationId: string) {
 	return useQuery({ ...options, queryKey: [...options.queryKey, server], enabled });
 }
 
+/** The documents prepared for one application, refetched while any are still being made. */
+export function useApplicationPreparation(applicationId: string) {
+	const { server, enabled } = useSignedIn();
+	const options = orpc.career.preparations.queryOptions({ input: { applicationId } });
+	return useQuery({
+		...options,
+		queryKey: [...options.queryKey, server],
+		enabled,
+		refetchInterval: (query) =>
+			query.state.data?.some((job) => job.steps.some((step) => step.status === "queued" || step.status === "running"))
+				? 10_000
+				: false,
+	});
+}
+
+/** How an application came to be and what was done for it, or null when it was added by hand. */
+export function useApplicationJourney(applicationId: string) {
+	const { server, enabled } = useSignedIn();
+	const options = orpc.career.applicationJourney.queryOptions({ input: { id: applicationId } });
+	return useQuery({ ...options, queryKey: [...options.queryKey, server], enabled });
+}
+
 export function useFacts(applicationId: string) {
 	const { server, enabled } = useSignedIn();
 	const options = orpc.career.facts.queryOptions({ input: { applicationId } });

@@ -3,7 +3,8 @@ import type { ComponentProps, ReactNode } from "react";
 import { t } from "@lingui/core/macro";
 import { Plural, Trans } from "@lingui/react/macro";
 import { useHotkey } from "@tanstack/react-hotkeys";
-import { Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { Link, useRouter, useSearch } from "@tanstack/react-router";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { buttonVariants } from "@reactive-resume/ui/components/button";
 import { Icon } from "@reactive-resume/ui/components/icon";
@@ -12,6 +13,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@reactive-resume/ui/com
 import { useBreakpoint } from "@reactive-resume/ui/hooks/use-breakpoint";
 import { cn } from "@reactive-resume/utils/style";
 import { useEditorStore, ZOOM_MAX, ZOOM_MIN, ZOOM_STEP } from "./store";
+import { applicationsListQueryOptions } from "@/features/applications/queries";
+import { libraryTarget } from "@/libs/origin";
 
 // The editor chrome resumes and letters share: the back link and drawer controls in the bar, the canvas width
 // and the zoom bar.
@@ -97,25 +100,74 @@ export function DocumentMenuTrigger({ name, isLocked, ...props }: DocumentMenuTr
 	);
 }
 
-/** Leaving the editor is navigation, so it's a link styled as an icon button. */
-export function BackLink() {
-	const label = t`Back to documents`;
+/** The application a document belongs to: the one the editor was opened from, else the one it was made for. */
+function useOwningApplication(ownerId: string | null | undefined) {
+	const search = useSearch({ strict: false }) as { applicationId?: string };
+	const id = search.applicationId ?? ownerId ?? null;
+	const applications = useQuery({ ...applicationsListQueryOptions(), enabled: id !== null });
+	return { id, application: applications.data?.find((item) => item.id === id) };
+}
+
+/**
+ * Leaving the editor is navigation, so it's a link styled as an icon button. A document that belongs to an application
+ * goes back to that application's Documents; otherwise back to the library view it was opened from.
+ */
+export function BackLink({ applicationId }: { applicationId?: string | null | undefined }) {
+	const router = useRouter();
+	const owner = useOwningApplication(applicationId);
+	const label = owner.id ? t`Back to application` : t`Back to documents`;
+	const className = buttonVariants({ variant: "ghost", size: "icon", className: "text-ink-2" });
 
 	return (
 		<Tooltip>
 			<TooltipTrigger
 				render={
-					<Link
-						to="/dashboard"
-						aria-label={label}
-						className={buttonVariants({ variant: "ghost", size: "icon", className: "text-ink-2" })}
-					/>
+					owner.id ? (
+						<Link
+							to="/dashboard/applications/$applicationId/{-$tab}"
+							params={{ applicationId: owner.id, tab: "documents" }}
+							aria-label={label}
+							className={className}
+						/>
+					) : (
+						<Link
+							to="/dashboard/documents"
+							aria-label={label}
+							className={className}
+							onClick={(event) => {
+								// The library view it was opened from, with its scope, search and tags.
+								event.preventDefault();
+								router.history.push(libraryTarget());
+							}}
+						/>
+					)
 				}
 			>
 				<Icon name="arrow-left" />
 			</TooltipTrigger>
 			<TooltipContent side="bottom">{label}</TooltipContent>
 		</Tooltip>
+	);
+}
+
+/** "Applications / Snowflake": where a document made for a job sits, above its name. Nothing for other documents. */
+export function ApplicationCrumb({ applicationId }: { applicationId?: string | null | undefined }) {
+	const owner = useOwningApplication(applicationId);
+	if (!owner.id) return null;
+	return (
+		<nav aria-label={t`Application`} className="flex min-w-0 items-center gap-1 text-xs text-ink-3">
+			<Link to="/dashboard/applications" className="hover:text-ink-2 hover:underline">
+				<Trans>Applications</Trans>
+			</Link>
+			<span aria-hidden="true">/</span>
+			<Link
+				to="/dashboard/applications/$applicationId/{-$tab}"
+				params={{ applicationId: owner.id, tab: "documents" }}
+				className="truncate hover:text-ink-2 hover:underline"
+			>
+				{owner.application ? `${owner.application.company}` : <Trans>This application</Trans>}
+			</Link>
+		</nav>
 	);
 }
 

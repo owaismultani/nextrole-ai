@@ -1,6 +1,7 @@
 import type {
 	ProviderRequest,
 	ReadPageResult,
+	SearchOptions,
 	WebAccessConnection,
 	WebAccessContext,
 	WebAccessFailure,
@@ -67,7 +68,7 @@ function log(operation: "search" | "read", provider: string, started: number, ou
 	});
 }
 
-export async function searchWeb(query: string, context: WebAccessContext) {
+export async function searchWeb(query: string, context: WebAccessContext, options?: SearchOptions) {
 	const signal = deadline(context.signal);
 	const started = Date.now();
 	const provider = context.connection?.provider ?? "builtin";
@@ -79,6 +80,7 @@ export async function searchWeb(query: string, context: WebAccessContext) {
 		const results = await externalSearch(input, {
 			connection: context.connection,
 			signal,
+			search: options,
 		});
 		signal.throwIfAborted();
 		log("search", provider, started, "success");
@@ -101,7 +103,7 @@ export async function readPage(input: string, context: WebAccessContext): Promis
 	const provider = context.connection?.provider ?? "builtin";
 	let fallback: WebAccessFailure | undefined;
 	try {
-		await consume(context.userId, signal);
+		if (!context.unmetered) await consume(context.userId, signal);
 		const url = await assertPublicTarget(input, signal);
 		if (context.connection) {
 			// Reserve five seconds of the same overall budget for the direct reader.

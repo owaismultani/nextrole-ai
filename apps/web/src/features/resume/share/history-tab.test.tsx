@@ -16,7 +16,7 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("@/features/resume/builder/draft", () => ({
 	savePendingChanges: mocks.save,
-	useCurrentResume: () => ({ id: "resume", isLocked: false }),
+	useCurrentResume: () => ({ id: "resume", isLocked: false, tags: [] }),
 	useResumeStore: { getState: () => ({ replaceResumeFromServer: mocks.replace }) },
 }));
 vi.mock("@/hooks/use-confirm", () => ({ useConfirm: () => vi.fn(), usePrompt: () => vi.fn() }));
@@ -35,6 +35,9 @@ vi.mock("@/libs/orpc/client", () => ({
 			getById: { queryKey: () => ["resume"] },
 			createVersion: { call: mocks.create },
 			restoreVersion: { call: mocks.restore },
+		},
+		career: {
+			automation: { queryOptions: () => ({ queryKey: ["automation"], queryFn: async () => null }) },
 		},
 	},
 }));

@@ -63,7 +63,7 @@ function TabsIndicator({ className, ...props }: TabsPrimitive.Indicator.Props) {
 			className={cn(
 				"absolute left-0 w-(--active-tab-width) translate-x-(--active-tab-left) transition-[translate,width,height] duration-standard ease-in-out-strong group-data-instant/tabs-list:transition-none",
 				"group-data-[variant=default]/tabs-list:top-0 group-data-[variant=default]/tabs-list:h-(--active-tab-height) group-data-[variant=default]/tabs-list:translate-y-(--active-tab-top) group-data-[variant=default]/tabs-list:rounded-sm group-data-[variant=default]/tabs-list:bg-raised group-data-[variant=default]/tabs-list:shadow-e1",
-				"group-data-[variant=line]/tabs-list:bottom-0 group-data-[variant=line]/tabs-list:h-0.5 group-data-[variant=line]/tabs-list:bg-ink",
+				"group-data-[variant=line]/tabs-list:bottom-0 group-data-[variant=line]/tabs-list:h-0.5 group-data-[variant=line]/tabs-list:bg-accent",
 				className,
 			)}
 			{...props}
@@ -78,7 +78,7 @@ function TabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
 			className={cn(
 				"touch-target relative inline-flex min-w-fit items-center justify-center gap-1.5 font-medium whitespace-nowrap transition-colors duration-quick group-data-vertical/tabs:w-full group-data-vertical/tabs:justify-start hover:text-ink disabled:pointer-events-none disabled:text-ink-3 aria-disabled:pointer-events-none aria-disabled:text-ink-3 data-active:text-ink [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
 				"group-data-[variant=default]/tabs-list:h-full group-data-[variant=default]/tabs-list:flex-1 group-data-[variant=default]/tabs-list:rounded-sm group-data-[variant=default]/tabs-list:px-3 group-data-[variant=default]/tabs-list:text-[13px]",
-				"group-data-[variant=line]/tabs-list:h-full group-data-[variant=line]/tabs-list:text-sm",
+				"group-data-[variant=line]/tabs-list:h-full group-data-[variant=line]/tabs-list:text-[13px] group-data-[variant=line]/tabs-list:data-active:font-bold group-data-[variant=line]/tabs-list:data-active:text-accent-text",
 				className,
 			)}
 			{...props}

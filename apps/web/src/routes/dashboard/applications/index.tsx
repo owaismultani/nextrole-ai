@@ -2,7 +2,7 @@ import type { Application } from "@/features/applications/types";
 import { t } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, stripSearchParams, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, stripSearchParams, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import z from "zod";
 import { Button } from "@reactive-resume/ui/components/button";
@@ -20,8 +20,6 @@ import { useBreakpoint } from "@reactive-resume/ui/hooks/use-breakpoint";
 import { cn } from "@reactive-resume/utils/style";
 import { PageHeader } from "@/components/layout/page-header";
 import { AddApplicationDialog } from "@/features/applications/components/add-application-dialog";
-import { ApplicationDetailSheet } from "@/features/applications/components/application-detail-sheet";
-import { ApplicationFormSheet } from "@/features/applications/components/application-form-sheet";
 import { ApplicationBoard } from "@/features/applications/components/board";
 import { ApplicationCalendar } from "@/features/applications/components/calendar-view";
 import { ExportApplicationsSheet } from "@/features/applications/components/export-applications-sheet";
@@ -76,8 +74,8 @@ function RouteComponent() {
 	const [adding, setAdding] = useState(false);
 	const [importing, setImporting] = useState(false);
 	const [exporting, setExporting] = useState(false);
-	const [editing, setEditing] = useState<Application | null>(null);
-	const [selectedId, setSelectedId] = useState<string | null>(null);
+	const openApplication = (id: string) =>
+		void navigate({ to: "/dashboard/applications/$applicationId/{-$tab}", params: { applicationId: id } });
 	// Views animate in only after a switch, never on the page's first render.
 	const [viewSwitched, setViewSwitched] = useState(false);
 
@@ -92,20 +90,14 @@ function RouteComponent() {
 		void navigate({ replace: true, resetScroll: false, search: (prev: Search) => ({ ...prev, create: false }) });
 	}, [create, navigate]);
 
+	// An older link to ?applicationId= opens that application's workspace.
 	useEffect(() => {
-		if (!applicationId || !applications) return;
-		// oxlint-disable-next-line react/set-state-in-effect -- takes the one-shot ?applicationId from the address, then clears it
-		setSelectedId(applicationId);
-		void navigate({
-			replace: true,
-			resetScroll: false,
-			search: (prev: Search) => ({ ...prev, applicationId: undefined }),
-		});
-	}, [applicationId, applications, navigate]);
+		if (applicationId) openApplication(applicationId);
+		// oxlint-disable-next-line react-hooks/exhaustive-deps -- runs once for the address's id
+	}, [applicationId]);
 
 	const text = query.trim().toLowerCase();
 	const filtered = (applications ?? []).filter((application) => matches(application, text));
-	const selected = applications?.find((application) => application.id === selectedId) ?? null;
 	// The board needs room to drag: phones get the list instead.
 	const shown: View = phone && (view === "board" || view === "calendar") ? "list" : view;
 	const empty = !!applications && applications.length === 0;
@@ -115,6 +107,7 @@ function RouteComponent() {
 		<div className="mx-auto grid w-full max-w-[1180px] content-start gap-5 px-8 py-8 max-sm:px-4 max-sm:py-5">
 			<PageHeader
 				title={<Trans>Applications</Trans>}
+				description={<Trans>One workspace for every role, from saved job to offer.</Trans>}
 				actions={
 					<>
 						<DropdownMenu>
@@ -132,6 +125,10 @@ function RouteComponent() {
 								</DropdownMenuItem>
 							</DropdownMenuContent>
 						</DropdownMenu>
+						<Button variant="secondary" nativeButton={false} render={<Link to="/dashboard/applications/offers" />}>
+							<Icon name="scales" />
+							<Trans>Offers</Trans>
+						</Button>
 						<Button onClick={() => setAdding(true)}>
 							<Icon name="plus" />
 							<Trans>Save job</Trans>
@@ -203,7 +200,7 @@ function RouteComponent() {
 				)}
 			</PageHeader>
 
-			{applications && <FollowUpNudge applications={applications} onOpen={setSelectedId} />}
+			{applications && <FollowUpNudge applications={applications} onOpen={openApplication} />}
 
 			{isError && (
 				<div
@@ -248,8 +245,7 @@ function RouteComponent() {
 								<ApplicationList
 									applications={filtered}
 									showClosed={closed}
-									selectedId={selectedId}
-									onOpen={(application) => setSelectedId(application.id)}
+									onOpen={(application) => openApplication(application.id)}
 								/>
 							)}
 							{shown === "board" && (
@@ -257,7 +253,7 @@ function RouteComponent() {
 									<ApplicationBoard
 										applications={filtered}
 										showClosed={closed}
-										onOpen={(application) => setSelectedId(application.id)}
+										onOpen={(application) => openApplication(application.id)}
 									/>
 								</div>
 							)}
@@ -266,7 +262,7 @@ function RouteComponent() {
 								<ApplicationCalendar
 									applications={filtered.filter((application) => closed || application.status !== "closed")}
 									allApplications={applications ?? []}
-									onOpen={(application) => setSelectedId(application.id)}
+									onOpen={(application) => openApplication(application.id)}
 								/>
 							)}
 						</div>
@@ -274,26 +270,13 @@ function RouteComponent() {
 				</>
 			)}
 
-			<AddApplicationDialog open={adding} onOpenChange={setAdding} onAdded={setSelectedId} />
-			<ApplicationFormSheet
-				open={Boolean(editing)}
-				application={editing}
-				onOpenChange={(open) => !open && setEditing(null)}
-			/>
+			<AddApplicationDialog open={adding} onOpenChange={setAdding} onAdded={openApplication} />
 			<ImportApplicationsSheet open={importing} onOpenChange={setImporting} />
 			<ExportApplicationsSheet
 				open={exporting}
 				onOpenChange={setExporting}
 				applications={applications ?? []}
 				filtered={filtered.filter((application) => closed || application.status !== "closed")}
-			/>
-			<ApplicationDetailSheet
-				application={selected}
-				onOpenChange={(open) => !open && setSelectedId(null)}
-				onEditDetails={(application) => {
-					setSelectedId(null);
-					setEditing(application);
-				}}
 			/>
 		</div>
 	);

@@ -1,4 +1,4 @@
-import type { WebAccessContext } from "../web-access/contracts";
+import type { SearchOptions, WebAccessContext } from "../web-access/contracts";
 import { z } from "zod";
 import { htmlToText } from "../web-access/builtin";
 import { MAX_CONTENT_CHARS, WebAccessError } from "../web-access/contracts";
@@ -39,8 +39,13 @@ export const postingSearchResult = z.object({
 });
 
 /** Job-specific query intent belongs here, never in the generic retrieval service. */
-export async function searchJobPostings(query: string, context: WebAccessContext) {
-	return (await searchWeb(`${query} job posting`, context))
+/** The search sent for a discovery query. */
+export const jobSearchQuery = (query: string) => `${query} job posting`;
+
+export async function searchJobPostings(query: string, context: WebAccessContext, options?: SearchOptions) {
+	return (
+		await (options ? searchWeb(jobSearchQuery(query), context, options) : searchWeb(jobSearchQuery(query), context))
+	)
 		.filter(({ url, title }) => !isListingUrl(url) && !/\b\d[\d,]*\+?\s+(?:[\w-]+\s+){0,4}jobs\b/i.test(title))
 		.map(({ url, title, snippet }) => ({
 			url,
@@ -180,7 +185,7 @@ const CLOSED =
  * board's list, a careers page or an article is null.
  */
 export async function readOpenPosting(url: string, context: WebAccessContext) {
-	const { content, html = "", resolvedUrl } = await readPage(url, context);
+	const { content, html = "", resolvedUrl, method } = await readPage(url, context);
 	// The same posting published twice (an SEO plugin beside the tracking system's own) is still one role.
 	const postings = jobPostingsIn(html);
 	const page = postings.length === 1 && postings[0] ? toPagePosting(postings[0]) : null;
@@ -194,5 +199,7 @@ export async function readOpenPosting(url: string, context: WebAccessContext) {
 		text: (page?.description || content).slice(0, MAX_POSTING_CHARS),
 		/** The company as its address names it ("simpleclub"), for pages without JobPosting data. */
 		company: address?.[1]?.replaceAll(/[-_]+/g, " ") ?? "",
+		/** What read the page: the built-in reader, or the web connection when the built-in one couldn't. */
+		method,
 	};
 }

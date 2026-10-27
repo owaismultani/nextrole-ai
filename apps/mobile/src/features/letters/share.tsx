@@ -263,6 +263,8 @@ function versionTitle(version: Version) {
 			return t`Restored a version`;
 		case "sent":
 			return version.name ? t`Sent to ${version.name}` : t`Sent`;
+		case "generated":
+			return version.name || t`Generated`;
 		default:
 			return t`Version`;
 	}

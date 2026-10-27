@@ -1,6 +1,6 @@
 ---
 title: "Deployment examples"
-description: "Copy-ready setups for self-hosted Reactive Resume: Caddy, Traefik and nginx with HTTPS, S3 storage, Redis, local AI with Ollama, and more."
+description: "Copy-ready setups for self-hosted NextRole AI: Caddy, Traefik and nginx with HTTPS, S3 storage, Redis, local AI with Ollama, and more."
 ---
 
 Each section on this page solves one common self-hosting task and builds on the two-container setup from
@@ -62,7 +62,7 @@ services:
       retries: 10
 
   reactive-resume:
-    image: amruthpillai/reactive-resume:latest
+    image: ghcr.io/owaismultani/nextrole-ai:latest
     restart: unless-stopped
     env_file: .env
     volumes:
@@ -137,7 +137,7 @@ services:
       retries: 10
 
   reactive-resume:
-    image: amruthpillai/reactive-resume:latest
+    image: ghcr.io/owaismultani/nextrole-ai:latest
     restart: unless-stopped
     env_file: .env
     volumes:
@@ -361,7 +361,7 @@ accepts public `https://` provider addresses, so you turn on a flag that allows 
 
   </Step>
 
-  <Step title="Add the provider in Reactive Resume">
+  <Step title="Add the provider in NextRole AI">
     Open **Settings**, then **AI & developer**, and select **Add provider**. Choose **Ollama** as the provider and
     fill in:
 
@@ -442,7 +442,7 @@ Swarm service then looks like this:
 ```yaml compose-swarm.yml
 services:
   reactive-resume:
-    image: amruthpillai/reactive-resume:v6
+    image: ghcr.io/owaismultani/nextrole-ai:v6
     env_file: .env
     networks:
       - reactive_resume
@@ -463,7 +463,7 @@ services, and route traffic to it with your proxy.
 ## Share your setup
 
 Have a working setup that isn't covered here, such as Podman, Portainer or Cloudflare Tunnel?
-[Open a pull request](https://github.com/reactive-resume/reactive-resume) that adds it to this page. Include when
+[Open a pull request](https://github.com/owaismultani/nextrole-ai) that adds it to this page. Include when
 someone would use it, the complete configuration, and the environment variables it needs.
 
 ## Related pages

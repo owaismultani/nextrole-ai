@@ -67,6 +67,7 @@ function RootStack() {
 					name="new"
 					options={{ presentation: "formSheet", sheetAllowedDetents: [0.5, 0.9], title: t`New` }}
 				/>
+				<Stack.Screen name="setup" options={{ headerShown: true, title: t`Set up` }} />
 				<Stack.Screen name="search" options={{ presentation: "modal", headerShown: false, title: t`Search` }} />
 				<Stack.Screen name="ats-checker" options={{ title: t`ATS checker` }} />
 				<Stack.Screen name="applications/[id]" options={{ headerShown: false, title: t`Application` }} />

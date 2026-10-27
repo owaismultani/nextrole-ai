@@ -1,8 +1,8 @@
-import { useLocalSearchParams } from "expo-router";
-import { CoachScreen, offerIdsFrom } from "@/features/assistant/coach-screen";
+import { Redirect, useLocalSearchParams } from "expo-router";
+import { routes } from "@/routes";
 
-/** `?offers=` carries the saved offers chosen in Offers → Plan what to ask. */
-export default function CoachRoute() {
+/** Keeps the offers chosen for "Plan what to ask" when the old address is opened. */
+export default function CareerCoach() {
 	const { offers } = useLocalSearchParams<{ offers?: string | string[] }>();
-	return <CoachScreen offerIds={offerIdsFrom(offers)} />;
+	return <Redirect href={{ pathname: routes.coach(), params: offers ? { offers } : {} }} />;
 }

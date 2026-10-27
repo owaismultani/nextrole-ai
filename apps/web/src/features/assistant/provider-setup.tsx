@@ -17,8 +17,8 @@ type Choice = { provider: AIProvider; label: string; model: string; needsBaseURL
 
 // Provider names are brands and stay untranslated.
 const CHOICES: Choice[] = [
-	{ provider: "openai", label: "OpenAI", model: "gpt-4.1" },
-	{ provider: "anthropic", label: "Anthropic", model: "claude-3-5-sonnet-latest" },
+	{ provider: "openai", label: "OpenAI", model: "gpt-6.1-sol" },
+	{ provider: "anthropic", label: "Anthropic", model: "claude-sonnet-5-5" },
 	{ provider: "openai-compatible", label: "OpenAI-compatible", model: "", needsBaseURL: true },
 ];
 

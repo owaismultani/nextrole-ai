@@ -1,11 +1,13 @@
 ---
 title: "Single sign-on (SSO)"
-description: "Let people sign in to your self-hosted Reactive Resume through Authentik, Authelia, Keycloak, or any OpenID Connect or OAuth 2.0 identity provider."
+description: "Let people sign in to your self-hosted NextRole AI through Authentik, Authelia, Keycloak, or any OpenID Connect or OAuth 2.0 identity provider."
 ---
 
-This guide connects a self-hosted Reactive Resume to your own identity provider, so people sign in with their company or homelab account. It works with any OpenID Connect (OIDC) provider, and with plain OAuth 2.0 providers that expose a user-info endpoint. You configure it with environment variables and a restart; there's nothing to set up in the app.
+This guide connects a self-hosted NextRole AI to your own identity provider, so people sign in with their company or homelab account. It works with any OpenID Connect (OIDC) provider, and with plain OAuth 2.0 providers that expose a user-info endpoint. You configure it with environment variables and a restart; there's nothing to set up in the app.
 
-<Info>This is for self-hosted installations. On [rxresu.me](https://rxresu.me), use the built-in sign-in options.</Info>
+<Info>
+  This is for the person who runs a NextRole AI installation. If you only use one, sign in with the options it offers.
+</Info>
 
 ## Before you start
 
@@ -13,9 +15,9 @@ You need:
 
 - Admin access to your identity provider, so you can register an application (client).
 - The public address of your installation, set as `APP_URL`, for example `https://resume.example.com`. Every callback URL is built from it.
-- A provider that returns an email address for each user. Reactive Resume identifies accounts by email and refuses sign-ins without one.
+- A provider that returns an email address for each user. NextRole AI identifies accounts by email and refuses sign-ins without one.
 
-## Register Reactive Resume with your provider
+## Register NextRole AI with your provider
 
 Create a confidential OAuth 2.0 / OIDC client in your provider with these settings:
 
@@ -34,11 +36,11 @@ Copy the client ID and client secret. The callback must match exactly, including
 
 ## Configure the environment variables
 
-Set the client credentials and one way of finding the provider's endpoints, then restart Reactive Resume.
+Set the client credentials and one way of finding the provider's endpoints, then restart NextRole AI.
 
 <Tabs>
   <Tab title="OIDC discovery (recommended)">
-    Most modern providers publish a discovery document. Point Reactive Resume at it and it reads the authorization, token, and user-info endpoints from there.
+    Most modern providers publish a discovery document. Point NextRole AI at it and it reads the authorization, token, and user-info endpoints from there.
 
     ```bash .env
     OAUTH_PROVIDER_NAME="Company SSO"
@@ -90,20 +92,20 @@ People who already have an account can add or remove SSO from the same place wit
 
 ## How profiles are mapped
 
-When someone signs in for the first time, Reactive Resume creates their account from the provider's profile:
+When someone signs in for the first time, NextRole AI creates their account from the provider's profile:
 
-| Reactive Resume field | Taken from, in order                                                                          |
-| --------------------- | --------------------------------------------------------------------------------------------- |
-| Email (required)      | `email`                                                                                       |
-| Name                  | `name`, then `preferred_username`, then the part of the email before `@`                      |
-| Username              | `preferred_username`, then the part of the email before `@`. A number is added if it's taken. |
-| Picture               | `image`, then `picture`, then `avatar_url`                                                    |
+| NextRole AI field | Taken from, in order                                                                          |
+| ----------------- | --------------------------------------------------------------------------------------------- |
+| Email (required)  | `email`                                                                                       |
+| Name              | `name`, then `preferred_username`, then the part of the email before `@`                      |
+| Username          | `preferred_username`, then the part of the email before `@`. A number is added if it's taken. |
+| Picture           | `image`, then `picture`, then `avatar_url`                                                    |
 
-If the email already belongs to an account, the sign-in is linked to that account, which keeps its name and username. This works only when that account's email address is verified in Reactive Resume, protecting an existing account from an unverified email match. If it isn't (common on installations without SMTP, where verification emails never arrive), the sign-in stops with an "account not linked" error. Verify the existing account's email before trying SSO again, or sign in to that account and connect the provider in **Settings → Account**.
+If the email already belongs to an account, the sign-in is linked to that account, which keeps its name and username. This works only when that account's email address is verified in NextRole AI, protecting an existing account from an unverified email match. If it isn't (common on installations without SMTP, where verification emails never arrive), the sign-in stops with an "account not linked" error. Verify the existing account's email before trying SSO again, or sign in to that account and connect the provider in **Settings → Account**.
 
 ## Make SSO the only way in
 
-Two feature flags turn Reactive Resume into an SSO-only installation:
+Two feature flags turn NextRole AI into an SSO-only installation:
 
 | Variable                       | Effect                                                                                     |
 | ------------------------------ | ------------------------------------------------------------------------------------------ |
@@ -139,7 +141,7 @@ Replace the hostnames with your own. The redirect URI is always `{APP_URL}/api/a
       oidc:
         clients:
           - client_id: reactive-resume
-            client_name: Reactive Resume
+            client_name: NextRole AI
             client_secret: "the-hashed-secret"
             public: false
             authorization_policy: two_factor
@@ -152,7 +154,7 @@ Replace the hostnames with your own. The redirect URI is always `{APP_URL}/api/a
             token_endpoint_auth_method: client_secret_post
     ```
 
-    Give Reactive Resume the **plain-text** secret, not the hash:
+    Give NextRole AI the **plain-text** secret, not the hash:
 
     ```bash .env
     OAUTH_PROVIDER_NAME="Authelia"
@@ -226,15 +228,15 @@ Without it, existing users who sign in through your provider no longer match the
     Both `OAUTH_CLIENT_ID` and `OAUTH_CLIENT_SECRET` must be set and non-empty. Restart after changing them.
   </Accordion>
   <Accordion title='Sign-in fails with "account not linked"'>
-    An account with the same email already exists, and its email address isn't verified in Reactive Resume. The person
-    can verify their email (this needs SMTP) and try again. Accounts created through SSO are always treated as verified.
+    An account with the same email already exists, and its email address isn't verified in NextRole AI. The person can
+    verify their email (this needs SMTP) and try again. Accounts created through SSO are always treated as verified.
   </Accordion>
   <Accordion title="Existing users get a new, empty account or can't sign in after an upgrade">
     If you use `OAUTH_DISCOVERY_URL` and upgraded from before v5.2.8, run the issuer update in [Upgrading an install
     that uses OIDC discovery](#upgrading-an-install-that-uses-oidc-discovery).
   </Accordion>
   <Accordion title="An MCP or API client's redirect URI is rejected">
-    This is a different feature: Reactive Resume is then the OAuth server, for tools that connect to it. Dynamic client
+    This is a different feature: NextRole AI is then the OAuth server, for tools that connect to it. Dynamic client
     registration accepts your app's own origin and local loopback callbacks. Trusted private installations that need
     other redirect URIs can set `FLAG_ALLOW_UNSAFE_OAUTH_REDIRECT_URI=true`, which accepts any parseable URI. Don't
     enable it on public or shared installations.
@@ -243,10 +245,10 @@ Without it, existing users who sign in through your provider no longer match the
 
 ## Security checklist
 
-- Use `https` for both Reactive Resume and your provider.
+- Use `https` for both NextRole AI and your provider.
 - Keep `OAUTH_CLIENT_SECRET`, `AUTH_SECRET`, and `BETTER_AUTH_API_KEY` out of version control. Rotating `AUTH_SECRET` signs everyone out.
 - Register the exact redirect URI; avoid wildcards.
-- Request only the default scopes; Reactive Resume needs nothing more.
+- Request only the default scopes; NextRole AI needs nothing more.
 
 ## Related pages
 

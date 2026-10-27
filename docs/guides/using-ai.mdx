@@ -1,9 +1,9 @@
 ---
 title: "Connecting an AI provider"
-description: "Add your own AI provider key in Reactive Resume, test the connection, and choose which provider the assistant and other AI features use."
+description: "Add your own AI provider key in NextRole AI, test the connection, and choose which provider the assistant and other AI features use."
 ---
 
-Reactive Resume doesn't include an AI model of its own. To use the assistant, AI imports, drafting and the other AI features, connect a provider such as OpenAI, Anthropic or Google Gemini. Everything else in the app works without AI.
+NextRole AI doesn't include an AI model of its own. To use the assistant, AI imports, drafting and the other AI features, connect a provider such as OpenAI, Anthropic or Google Gemini. Everything else in the app works without AI.
 
 On a self-hosted instance, the administrator can [configure a shared provider](/self-hosting/job-search-and-ai).
 Settings then show that AI is enabled globally, and personal provider controls are hidden. You can use AI features
@@ -12,19 +12,19 @@ without entering your own key. The steps below apply when personal providers are
 ## Before you start
 
 - Get an API key from your provider's dashboard. You pay the provider directly for what you use. A local Ollama server can connect without a key.
-- Know which model you want to use, such as `gpt-4.1` or `claude-3-5-sonnet-latest`. Reactive Resume suggests a default for each provider, but your account may not have access to every model.
+- Know which model you want to use, such as `gpt-4.1` or `claude-3-5-sonnet-latest`. NextRole AI suggests a default for each provider, but your account may not have access to every model.
 
 ## Add a provider
 
 <Steps>
   <Step title="Open AI settings">
-    Select your name at the bottom of the sidebar, choose **Settings**, then choose **AI & developer**. You can also go to `https://rxresu.me/dashboard/settings/ai` directly. Self-hosted instances use their own address.
+    Select your name at the bottom of the sidebar, choose **Settings**, then choose **Integrations**. You can also go to `https://nextrole.example.com/dashboard/settings/ai` directly. Self-hosted instances use their own address.
   </Step>
   <Step title="Start adding a provider">
     Under **AI providers**, select **Add provider** (the dashed button below your saved providers).
   </Step>
   <Step title="Choose the provider and fill in the fields">
-    Pick your provider from the **Provider** list. Reactive Resume fills in that provider's usual **Model** and **Base URL** for you. Paste your key into **API key**, and change the model if you want a different one.
+    Pick your provider from the **Provider** list. NextRole AI fills in that provider's usual **Model** and **Base URL** for you. Paste your key into **API key**, and change the model if you want a different one.
 
     <Frame caption="The Add provider dialog">
       <img src="/images/guides/using-ai/add-provider-dialog.webp" alt="Add provider dialog with Provider set to OpenAI, a hidden API key, Model gpt-4.1, Name Personal OpenAI and the default OpenAI base URL" />
@@ -32,7 +32,7 @@ without entering your own key. The steps below apply when personal providers are
 
   </Step>
   <Step title="Save and test">
-    Select **Save and test**. Reactive Resume saves the provider, then sends it a tiny request to check that the key, model and address work. If the test passes, the dialog closes and the provider is ready to use.
+    Select **Save and test**. NextRole AI saves the provider, then sends it a tiny request to check that the key, model and address work. If the test passes, the dialog closes and the provider is ready to use.
   </Step>
 </Steps>
 
@@ -110,7 +110,7 @@ Select **Edit** on a provider's row.
 
 You can save several providers, for example one per account or one per model.
 
-- One provider is your **default**, marked **Default** in **Settings → AI & developer**. To change it, choose **Make default** on another provider that's on and tested. Every AI feature where you don't pick a provider uses the default, and the line under each AI action names it.
+- One provider is your **default**, marked **Default** in **Settings → Integrations**. To change it, choose **Make default** on another provider that's on and tested. Every AI feature where you don't pick a provider uses the default, and the line under each AI action names it.
 - If you haven't chosen a default, or it's turned off, features use the enabled provider you used most recently, and if you haven't used one yet, the oldest enabled provider you added.
 - Conversations keep the provider they started with. When that provider is turned off or deleted, they continue on the default. A scheduled interview briefing does the same.
 - Voice practice uses the default when its provider offers speech models, otherwise another provider that does, otherwise your browser.
@@ -119,7 +119,7 @@ You can save several providers, for example one per account or one per model.
 
 ## Connect from the assistant instead
 
-If no provider is connected yet, opening the assistant in the editor shows **Connect an AI provider** with OpenAI, Anthropic and **Other · OpenAI-compatible**. Enter your key and model there and select **Connect**. It saves and tests the provider the same way as settings. For the other providers, use **AI & developer**.
+If no provider is connected yet, opening the assistant in the editor shows **Connect an AI provider** with OpenAI, Anthropic and **Other · OpenAI-compatible**. Enter your key and model there and select **Connect**. It saves and tests the provider the same way as settings. For the other providers, use **Integrations**.
 
 <Frame caption="Connecting a provider from the assistant panel">
   <img
@@ -130,13 +130,13 @@ If no provider is connected yet, opening the assistant in the editor shows **Con
 
 ## How your key is stored
 
-Your personal API key is encrypted on the Reactive Resume server with AES-256-GCM before it's saved, and it's never shown again. Settings only ever show the last four characters. When a feature needs the key, the server decrypts it just long enough to call your provider.
+Your personal API key is encrypted on the NextRole AI server with AES-256-GCM before it's saved, and it's never shown again. Settings only ever show the last four characters. When a feature needs the key, the server decrypts it just long enough to call your provider.
 
-Self-hosted instances encrypt keys with the `ENCRYPTION_SECRET` environment variable. Until it's set, **AI & developer** shows "AI providers aren't available on this server until ENCRYPTION_SECRET is set." If the secret changes later, saved keys can no longer be decrypted. The error asks you to enter the key again: open **Settings → AI & developer**, select **Edit** on the provider, paste the key, and select **Save and test**.
+Self-hosted instances encrypt keys with the `ENCRYPTION_SECRET` environment variable. Until it's set, **Integrations** shows "AI providers aren't available on this server until ENCRYPTION_SECRET is set." If the secret changes later, saved keys can no longer be decrypted. The error asks you to enter the key again: open **Settings → Integrations**, select **Edit** on the provider, paste the key, and select **Save and test**.
 
 ## What is sent to your provider
 
-Requests go from the Reactive Resume server to the provider you chose, using your key. Requests run when you use an AI action or when an AI schedule you enabled becomes due. Each action explains its inputs and connection:
+Requests go from the NextRole AI server to the provider you chose, using your key. Requests run when you use an AI action or when an AI schedule you enabled becomes due. Each action explains its inputs and connection:
 
 | Feature                      | What is sent                                                                                                                                                                                                                                  |
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -159,7 +159,7 @@ Career adds these uses:
 
 Workspace text actions use your default connection. **Voice settings** can use another speech-capable connection or browser speech. Speech usage can be billed separately from text coaching. Automatic role discovery uses your web search connection; it does not need an AI model. See [Career controls and data](/guides/career-workspace-reference#coach-context-and-ai-actions).
 
-Your provider handles that data under its own terms and privacy policy. Reactive Resume keeps assistant conversations and their attachments in your account until you delete the conversation.
+Your provider handles that data under its own terms and privacy policy. NextRole AI keeps assistant conversations and their attachments in your account until you delete the conversation.
 
 ## Related guides
 

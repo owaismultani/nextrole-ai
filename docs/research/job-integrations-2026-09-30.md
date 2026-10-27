@@ -1,6 +1,6 @@
 # Job discovery, page reading, and application integrations
 
-Research date: September 30, 2026. Sources are official API documentation and provider-owned repositories. API behavior is documented capability, not a measured success rate on Reactive Resume users' URLs. No paid-provider benchmark or pricing comparison was performed.
+Research date: September 30, 2026. Sources are official API documentation and provider-owned repositories. API behavior is documented capability, not a measured success rate on NextRole AI users' URLs. No paid-provider benchmark or pricing comparison was performed.
 
 ## Verified capabilities
 
@@ -14,7 +14,7 @@ Research date: September 30, 2026. Sources are official API documentation and pr
 | Exa         | Search can request content. Contents separately reads supplied URLs with text, highlights, or summaries. Cached content is used unless freshness options call for fetching. Text output can have a character limit. | Explicitly select text and freshness appropriate to a live posting; highlights and summaries are not a complete description. [Contents API](https://exa.ai/docs/reference/get-contents), [Contents retrieval](https://exa.ai/docs/reference/contents-retrieval)                                  |
 | Jina Reader | `r.jina.ai` reads a supplied URL. `s.jina.ai` performs search and can fetch the top results' content. Reader supports browser and lightweight fetching.                                                             | Suitable as an independent reader candidate; source completeness still needs evaluation. [Provider-owned Reader documentation](https://github.com/jina-ai/reader)                                                                                                                                |
 
-**Inference:** None of these capability lists establishes the best default for Reactive Resume. Benchmark completion of the actual task: a usable, sufficiently complete job description, acceptable latency, source freshness, language coverage, and cost per successful import. Measure company-research quality separately.
+**Inference:** None of these capability lists establishes the best default for NextRole AI. Benchmark completion of the actual task: a usable, sufficiently complete job description, acceptable latency, source freshness, language coverage, and cost per successful import. Measure company-research quality separately.
 
 ### Structured ATS reads improve known-board coverage
 

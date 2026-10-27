@@ -1,9 +1,9 @@
 ---
 title: "Project architecture"
-description: "How the Reactive Resume monorepo fits together: the web and server apps, shared packages, runtime boundaries, and where new code belongs."
+description: "How the NextRole AI monorepo fits together: the web and server apps, shared packages, runtime boundaries, and where new code belongs."
 ---
 
-Reactive Resume is a TypeScript monorepo managed with pnpm workspaces and Turborepo. This page explains how the pieces fit together, so you can find the code behind a feature and know where a change belongs. To get a working checkout first, see [Development setup](/contributing/development).
+NextRole AI is a TypeScript monorepo managed with pnpm workspaces and Turborepo. This page explains how the pieces fit together, so you can find the code behind a feature and know where a change belongs. To get a working checkout first, see [Development setup](/contributing/development).
 
 ## The big picture
 
@@ -70,7 +70,7 @@ The server checks the environment, applies database migrations, and verifies the
 | `packages/email`      | Email transport and templates                                                                                                                         |
 | `packages/utils`      | Narrow cross-cutting helpers behind explicit export subpaths                                                                                          |
 | `packages/config`     | Shared TypeScript and tooling configuration                                                                                                           |
-| `packages/dsh-plugin` | A separately built and published plugin that connects a DeepSeek Harness session to Reactive Resume over MCP                                          |
+| `packages/dsh-plugin` | A separately built and published plugin that connects a DeepSeek Harness session to NextRole AI over MCP                                              |
 | `tooling`             | Development-only scripts: PDF translation catalog, semantic CSS reference, icon builds, database reset, deployment smoke test                         |
 
 Internal packages are consumed as source through the `exports` map in each `package.json`, which points at `src` files. Don't expect a `dist` folder unless a package builds one explicitly.

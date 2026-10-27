@@ -22,17 +22,23 @@ import { SegmentedControl, SegmentedControlItem } from "@reactive-resume/ui/comp
 import { Skeleton } from "@reactive-resume/ui/components/skeleton";
 import { Tabs, TabsCount, TabsList, TabsTrigger } from "@reactive-resume/ui/components/tabs";
 import { cn } from "@reactive-resume/utils/style";
+import { BaselineManager } from "./baseline-manager";
 import { LinkApplicationDialog, TagsDialog, useBatchActions } from "./document-actions";
 import { DocumentCard, DocumentRow } from "./document-card";
 import { collectTags, filterDocuments } from "./filter";
 import { LibraryError } from "./library-error";
 import { useStartDocument } from "./new-document-dialog";
+import { ApplicationGroups, useDocumentOrigins } from "./scopes";
 import { PageHeader } from "@/components/layout/page-header";
 import { useDialogStore } from "@/dialogs/store";
 import { isEditableElementFocused } from "@/features/resume/builder/draft";
 import { orpc } from "@/libs/orpc/client";
 
+type DocumentsScope = "all" | "baseline" | "applications";
+
 export type DocumentsSearch = {
+	/** Which documents the library shows: baseline and reusable ones, those made for a job, or all. */
+	scope: DocumentsScope;
 	type: DocumentTypeFilter;
 	q: string;
 	tags: string[];
@@ -89,10 +95,21 @@ export function DocumentsPage({ search, onSearchChange }: DocumentsPageProps) {
 		searchRef.current?.focus();
 	});
 
+	const origins = useDocumentOrigins();
+	const setup = useQuery(orpc.career.setup.queryOptions({ input: {} }));
+	const baselineId = setup.data?.baseline?.resumeId;
 	const all = documents ?? [];
 	const failed = isError && !documents;
 	const firstRun = !isPending && all.length === 0;
-	const shown = filterDocuments(all, search);
+	// Baseline and reusable: documents not made for a job (the baseline itself is pinned above them).
+	// By application: documents that belong to one. Everything else in every view works the same.
+	const inScope = (document: DocumentSummary) =>
+		search.scope === "baseline"
+			? !document.application && !origins.byDocument.has(document.id) && document.id !== baselineId
+			: search.scope === "applications"
+				? Boolean(document.application)
+				: true;
+	const shown = filterDocuments(all.filter(inScope), search);
 	const tags = collectTags(all);
 	const counts = {
 		all: all.length,
@@ -102,6 +119,7 @@ export function DocumentsPage({ search, onSearchChange }: DocumentsPageProps) {
 	const hasPublic = all.some((document) => document.isPublic);
 	const filtered = search.type !== "all" || search.q.trim() !== "" || search.tags.length > 0 || search.public === true;
 	// Actions apply to the selected documents the filters show.
+	const openTab = search.scope === "all" ? search.type : search.scope;
 	const selection = shown.filter((document) => selected.has(documentKey(document)));
 	const selecting = selection.length > 0;
 	const allSelected = selecting && selection.length === shown.length;
@@ -128,13 +146,26 @@ export function DocumentsPage({ search, onSearchChange }: DocumentsPageProps) {
 
 	return (
 		<div className="mx-auto grid w-full max-w-[1180px] content-start gap-5 px-8 py-8 max-sm:px-4 max-sm:py-5">
-			<PageHeader title={<Trans>Documents</Trans>}>
+			<PageHeader
+				title={<Trans>Documents</Trans>}
+				description={<Trans>Every resume and cover letter, from your baseline to each application.</Trans>}
+			>
 				{!failed && !firstRun && (
-					<>
-						<Tabs value={search.type} onValueChange={(type) => onSearchChange({ type: type as DocumentTypeFilter })}>
-							<TabsList variant="line" aria-label={t`Document type`}>
+					<div className="flex w-full flex-wrap items-center justify-between gap-x-4 gap-y-3 border-b border-line max-sm:border-b-0">
+						<Tabs
+							value={openTab}
+							onValueChange={(next) =>
+								onSearchChange(
+									next === "applications" || next === "baseline"
+										? { scope: next, type: "all" }
+										: { scope: "all", type: next as DocumentTypeFilter },
+								)
+							}
+							className="-mx-4 max-w-[100vw] overflow-x-auto px-4 max-sm:w-full sm:mx-0 sm:px-0"
+						>
+							<TabsList variant="line" className="border-b-0 max-sm:border-b" aria-label={t`Documents shown`}>
 								<TabsTrigger value="all">
-									<Trans>All</Trans>
+									<Trans>All documents</Trans>
 									<TabsCount>{counts.all}</TabsCount>
 								</TabsTrigger>
 								<TabsTrigger value="resume">
@@ -145,10 +176,15 @@ export function DocumentsPage({ search, onSearchChange }: DocumentsPageProps) {
 									<Trans>Letters</Trans>
 									<TabsCount>{counts.letter}</TabsCount>
 								</TabsTrigger>
+								<TabsTrigger value="applications">
+									<Trans>By application</Trans>
+								</TabsTrigger>
+								<TabsTrigger value="baseline">
+									<Trans>Baseline &amp; reusable</Trans>
+								</TabsTrigger>
 							</TabsList>
 						</Tabs>
-
-						<div className="ms-auto flex flex-wrap items-center gap-2 max-sm:ms-0 max-sm:w-full">
+						<div className="flex flex-wrap items-center gap-2 pb-2 max-sm:w-full max-sm:pb-0">
 							<InputGroup className="w-60 max-sm:w-full">
 								<InputGroupAddon>
 									<Icon name="magnifying-glass" size={18} />
@@ -176,20 +212,22 @@ export function DocumentsPage({ search, onSearchChange }: DocumentsPageProps) {
 									<option value="created">{t`Created`}</option>
 								</NativeSelect>
 							</div>
-							<SegmentedControl
-								aria-label={t`View`}
-								value={view}
-								onValueChange={(next) => setView(next as "grid" | "list")}
-							>
-								<SegmentedControlItem value="grid" aria-label={t`Grid`}>
-									<Icon name="squares-four" size={18} />
-								</SegmentedControlItem>
-								<SegmentedControlItem value="list" aria-label={t`List`}>
-									<Icon name="list-dashes" size={18} />
-								</SegmentedControlItem>
-							</SegmentedControl>
+							{search.scope !== "applications" && (
+								<SegmentedControl
+									aria-label={t`View`}
+									value={view}
+									onValueChange={(next) => setView(next as "grid" | "list")}
+								>
+									<SegmentedControlItem value="grid" aria-label={t`Grid`}>
+										<Icon name="squares-four" size={18} />
+									</SegmentedControlItem>
+									<SegmentedControlItem value="list" aria-label={t`List`}>
+										<Icon name="list-dashes" size={18} />
+									</SegmentedControlItem>
+								</SegmentedControl>
+							)}
 						</div>
-					</>
+					</div>
 				)}
 			</PageHeader>
 
@@ -210,8 +248,11 @@ export function DocumentsPage({ search, onSearchChange }: DocumentsPageProps) {
 						/>
 					)}
 
+					{search.scope === "baseline" && <BaselineManager />}
 					{isPending ? (
 						<LibrarySkeleton view={view} />
+					) : search.scope === "applications" ? (
+						<ApplicationGroups documents={shown} origins={origins.byDocument} />
 					) : shown.length === 0 ? (
 						<div className="grid justify-items-center gap-2 py-16 text-center">
 							<Icon name="magnifying-glass" size={28} className="text-ink-3" />

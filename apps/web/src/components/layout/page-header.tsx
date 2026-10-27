@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 
 type PageHeaderProps = {
+	/** The section the page belongs to, as a small label above the title. Hidden from assistive tech, which already has the nav. */
+	eyebrow?: ReactNode;
 	title: ReactNode;
 	/** One line under the title. */
 	description?: ReactNode;
@@ -13,13 +15,20 @@ type PageHeaderProps = {
 };
 
 /** The one header every dashboard page uses. Renders as siblings, so the page's own gap spaces the rows. */
-export function PageHeader({ title, description, back, actions, children }: PageHeaderProps) {
+export function PageHeader({ eyebrow, title, description, back, actions, children }: PageHeaderProps) {
 	return (
 		<>
 			<header className="flex flex-wrap items-center justify-between gap-3">
 				<div className="grid min-w-0 gap-1">
 					{back && <div className="mb-2">{back}</div>}
-					<h1 className="font-display text-[30px] leading-9 font-medium">{title}</h1>
+					{eyebrow && (
+						<p aria-hidden="true" className="text-[11px] font-semibold tracking-[0.11em] text-accent-text uppercase">
+							{eyebrow}
+						</p>
+					)}
+					<h1 className="font-display text-[clamp(28px,2.5vw,34px)] leading-[1.3] font-[750] tracking-[-0.035em]">
+						{title}
+					</h1>
 					{description && <p className="text-sm text-ink-2">{description}</p>}
 				</div>
 				{actions && <div className="flex items-center gap-2">{actions}</div>}

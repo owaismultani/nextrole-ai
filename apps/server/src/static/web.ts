@@ -77,9 +77,9 @@ const BASE_SECURITY_HEADERS = {
 const githubUrl = "https://github.com/reactive-resume/reactive-resume";
 // The English copy, for a build without prerendered pages; a prerendered page carries its own locale's title and
 // description, and the social cards reuse them.
-const ROOT_TITLE = "Reactive Resume — A free and open-source resume builder";
+const ROOT_TITLE = "NextRole AI — A career team that works while you sleep";
 const ROOT_DESCRIPTION =
-	"Free, open-source resume builder. Create, update, and share your resume, with PDF and Word downloads, no ads and no paywall.";
+	"Free, open-source AI job search crew: finds roles on your schedule, tailors resumes, letters and answers, coaches interviews and weighs offers. You decide every step.";
 const ATS_CHECKER_TITLE = "Free ATS resume checker — Reactive Resume";
 const ATS_CHECKER_DESCRIPTION =
 	"Check whether software can read your resume PDF. Runs entirely in your browser, so your file is never uploaded.";
@@ -121,7 +121,7 @@ function homepageStructuredData(origin: string): StructuredData {
 			},
 			{
 				"@type": ["SoftwareApplication", "WebApplication"],
-				name: "Reactive Resume",
+				name: "NextRole AI",
 				url: rootUrl,
 				description: ROOT_DESCRIPTION,
 				applicationCategory: "BusinessApplication",
@@ -132,13 +132,18 @@ function homepageStructuredData(origin: string): StructuredData {
 				codeRepository: githubUrl,
 				publisher: { "@id": `${origin}/#organization` },
 				featureList: [
+					"Scheduled job discovery across 11 job boards, followed company boards and web search",
+					"Fit checks that show the evidence behind each requirement",
+					"Tailored resume, cover letter and application answer drafts for review, using your own AI key",
+					"Interview briefings, practice aloud with feedback, debriefs and a career coach",
+					"Job tracker with board, calendar, insights, recruiter replies and offer comparison",
+					"Native iPhone and Android apps, an MCP server and REST and JSON Patch APIs",
 					"Resume editor with a live page preview",
 					`${templateSchema.options.length} templates`,
-					"PDF, Word (DOCX), Markdown and JSON export",
+					"PDF, Word (DOCX), OpenDocument, Markdown and JSON export",
 					"Import from PDF, LinkedIn, JSON Resume and Word",
 					"ATS readability checker",
 					"Public or password-protected sharing links",
-					"Cover letters and a job application tracker",
 					"Optional AI assistant with your own API key",
 					"Self-hosting with Docker",
 				],

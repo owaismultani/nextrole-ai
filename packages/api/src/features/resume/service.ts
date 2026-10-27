@@ -748,6 +748,58 @@ export const resumeService = {
 		return resume;
 	},
 
+	/**
+	 * Writes a new generation over a generated resume in one transaction. The state it replaces and the new one are both
+	 * kept in History as `generated` versions, so edits made to the earlier generation can be restored. A trashed or
+	 * locked resume is not replaced.
+	 */
+	replaceGeneration: async (input: {
+		id: string;
+		userId: string;
+		data: ResumeData;
+		/** History's name for the state being replaced, and for the new one. */
+		replaced: string;
+		name: string;
+		/** Runs in the same transaction, given the History version that holds the replaced state. */
+		alongside?: (tx: DbOrTx, replaced: { id: string }) => Promise<unknown>;
+	}) => {
+		const resume = await db.transaction(async (tx) => {
+			const owned = and(eq(schema.resume.id, input.id), eq(schema.resume.userId, input.userId));
+			const [existing] = await tx
+				.select({ data: schema.resume.data, isLocked: schema.resume.isLocked, trashedAt: schema.resume.trashedAt })
+				.from(schema.resume)
+				.where(owned)
+				.for("update");
+			if (!existing || existing.trashedAt) throw new ORPCError("NOT_FOUND");
+			if (existing.isLocked) throw new ORPCError("RESUME_LOCKED", { status: 403 });
+
+			const data = parseWritableResumeData(input.data);
+			const current = { resumeId: input.id, userId: input.userId, kind: "generated" as const };
+			const replaced = await writeVersion(tx, {
+				...current,
+				data: parseStoredResumeData(existing.data),
+				name: input.replaced,
+			});
+			const [updated] = await tx
+				.update(schema.resume)
+				.set({ data })
+				.where(owned)
+				.returning({ id: schema.resume.id, updatedAt: schema.resume.updatedAt });
+			if (!updated) throw new ORPCError("NOT_FOUND");
+			await writeVersion(tx, { ...current, data, name: input.name });
+			await input.alongside?.(tx, replaced);
+			return updated;
+		});
+
+		await notifyResumeUpdated({
+			type: "resume.updated",
+			resumeId: resume.id,
+			userId: input.userId,
+			updatedAt: resume.updatedAt.toISOString(),
+			mutation: "update",
+		});
+	},
+
 	patch: async (input: { id: string; userId: string; operations: JsonPatchOperation[]; expectedUpdatedAt?: Date }) => {
 		const resume = await db.transaction((tx) => applyResumePatchTx(tx, input));
 

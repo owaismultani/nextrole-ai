@@ -1,9 +1,13 @@
 import type {
+	CareerEventData,
 	CareerNotice,
 	CareerProfileData,
+	CareerRunReport,
 	CareerSource,
 	CareerStoryData,
 	CareerWorkspace,
+	DiscoveryFilters,
+	DiscoverySources,
 	SavedItemData,
 } from "@reactive-resume/schema/career";
 import * as pg from "drizzle-orm/pg-core";
@@ -11,6 +15,7 @@ import { generateId } from "@reactive-resume/utils/string";
 import { aiProvider } from "./agent";
 import { application } from "./applications";
 import { user } from "./auth";
+import { resume } from "./resume";
 
 const owned = () => ({
 	id: pg
@@ -98,9 +103,34 @@ export const careerSchedule = pg.pgTable(
 		nextRunAt: pg.timestamp("next_run_at", { withTimezone: true }).notNull(),
 		lastQueuedAt: pg.timestamp("last_queued_at", { withTimezone: true }),
 		intervalDays: pg.integer("interval_days"),
+		/** Hourly-style discovery: a fixed gap in minutes. Mutually exclusive with `intervalDays`, which keeps wall time. */
+		intervalMinutes: pg.integer("interval_minutes").$type<60 | 180 | 360>(),
+		lastAttemptedAt: pg.timestamp("last_attempted_at", { withTimezone: true }),
+		lastSucceededAt: pg.timestamp("last_succeeded_at", { withTimezone: true }),
+		/** Discovery only: what the latest run did. */
+		lastRun: pg.jsonb("last_run").$type<CareerRunReport>(),
+		/** Discovery only: results one run may retrieve from the search provider; null uses the default. */
+		retrievalBudget: pg.integer("retrieval_budget"),
+		/** Discovery only: where to look; null is web search alone. */
+		sources: pg.jsonb("sources").$type<DiscoverySources>(),
+		/** Discovery only: what to keep; null uses Preferences. */
+		filters: pg.jsonb("filters").$type<DiscoveryFilters>(),
 		aiProviderId: pg.text("ai_provider_id").references(() => aiProvider.id, { onDelete: "set null" }),
 	},
 	(t) => [pg.index().on(t.enabled, t.nextRunAt)],
+);
+/** One discovery attempt and what it found, kept so runs can be reviewed and traced to the jobs and documents they led to. */
+export const careerRun = pg.pgTable(
+	"career_run",
+	{
+		...owned(),
+		scheduleId: pg
+			.text("schedule_id")
+			.notNull()
+			.references(() => careerSchedule.id, { onDelete: "cascade" }),
+		report: pg.jsonb("report").notNull().$type<CareerRunReport>(),
+	},
+	(t) => [pg.index().on(t.userId, t.createdAt.desc(), t.id.desc()), pg.index().on(t.scheduleId, t.createdAt.desc())],
 );
 export const careerJob = pg.pgTable(
 	"career_job",
@@ -116,6 +146,8 @@ export const careerJob = pg.pgTable(
 		lease: pg.text("lease"),
 		leaseUntil: pg.timestamp("lease_until", { withTimezone: true }),
 		error: pg.text("error"),
+		/** `manual` jobs (Run now) also run for a paused schedule. */
+		trigger: pg.text("trigger").notNull().default("schedule"),
 	},
 	(t) => [pg.uniqueIndex().on(t.scheduleId, t.dueAt), pg.index().on(t.status, t.leaseUntil)],
 );
@@ -150,10 +182,23 @@ export const careerOpportunity = pg.pgTable(
 		firstSeenAt: pg.timestamp("first_seen_at", { withTimezone: true }).notNull().defaultNow(),
 		lastSeenAt: pg.timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
 		dismissedAt: pg.timestamp("dismissed_at", { withTimezone: true }),
+		/** The discovery run that first found this role. */
+		runId: pg.text("run_id").references(() => careerRun.id, { onDelete: "set null" }),
 		/** Set when tracked in Applications; a tracked role never returns in later runs. */
 		trackedApplicationId: pg.text("tracked_application_id").references(() => application.id, { onDelete: "set null" }),
+		/** Where it was found: "web", or a job source such as "adzuna" or "greenhouse". */
+		source: pg.text("source").notNull().default("web"),
+		/** The followed company board it came from ("greenhouse:acme"), so a role gone from that board can be closed. */
+		board: pg.text("board"),
+		/** Web roles only: the search connection that found it ("tavily", "exa", "firecrawl"). */
+		searchedVia: pg.text("searched_via"),
+		/** Web roles only: what read its page, the built-in reader ("builtin") or the search connection. */
+		readVia: pg.text("read_via"),
+		postedAt: pg.timestamp("posted_at", { withTimezone: true }),
+		/** Set when the role disappeared from its company's board; closed roles leave New roles. */
+		closedAt: pg.timestamp("closed_at", { withTimezone: true }),
 	},
-	(t) => [pg.uniqueIndex().on(t.userId, t.url)],
+	(t) => [pg.uniqueIndex().on(t.userId, t.url), pg.index().on(t.userId, t.board)],
 );
 
 /** One application's live workspace state: answers, checklist ticks, questions to ask. */
@@ -184,4 +229,162 @@ export const careerTranscript = pg.pgTable(
 		model: pg.text("model").notNull(),
 	},
 	(t) => [pg.index().on(t.userId, t.applicationId)],
+);
+
+/**
+ * A user's document-preparation settings. Discovery itself is an ordinary `career_schedule`, edited in Career →
+ * Schedules, so there is one source of truth for its query, cadence and on/off state; this row adds what to prepare
+ * for the jobs it finds, and the limits.
+ */
+export const careerAutomation = pg.pgTable(
+	"career_automation",
+	{
+		...owned(),
+		resumesEnabled: pg.boolean("resumes_enabled").notNull().default(false),
+		lettersEnabled: pg.boolean("letters_enabled").notNull().default(false),
+		resumePrompt: pg
+			.text("resume_prompt")
+			.notNull()
+			.default(
+				"Prioritize the experience and skills that best match this role while keeping the resume truthful and concise.",
+			),
+		coverLetterPrompt: pg
+			.text("cover_letter_prompt")
+			.notNull()
+			.default(
+				"Write a clear, specific letter that connects my strongest relevant experience to this role without overstating my background.",
+			),
+		baselineResumeId: pg.text("baseline_resume_id").references(() => resume.id, { onDelete: "set null" }),
+		aiProviderId: pg.text("ai_provider_id").references(() => aiProvider.id, { onDelete: "set null" }),
+		/** Documents generated per day, counted per document on its first attempt; retries are free. */
+		dailyLimit: pg.integer("daily_limit").notNull().default(10),
+		/** The local day (in the user's timezone) `usage_count` belongs to. */
+		usageDay: pg.text("usage_day"),
+		usageCount: pg.integer("usage_count").notNull().default(0),
+	},
+	(t) => [pg.uniqueIndex().on(t.userId)],
+);
+
+/**
+ * One document to prepare for one discovered job: a row per requested kind, so what was asked for, what finished and
+ * what was canceled is explicit. Outputs are ordinary resumes and cover letters linked to the application.
+ */
+export const careerPreparation = pg.pgTable(
+	"career_preparation",
+	{
+		...owned(),
+		opportunityId: pg
+			.text("opportunity_id")
+			.notNull()
+			.references(() => careerOpportunity.id, { onDelete: "cascade" }),
+		applicationId: applicationId(),
+		kind: pg.text("kind").notNull(),
+		/** True when a person asked for this document: it then runs even if the automatic toggle is off. */
+		manual: pg.boolean("manual").notNull().default(false),
+		status: pg.text("status").notNull().default("queued"),
+		/** Bumped by an explicit regenerate; each generation is written over the same document, the last kept in History. */
+		generation: pg.integer("generation").notNull().default(1),
+		/** What a regenerate asked this job's document to focus on ("lead with the front-end work"); null for none. */
+		focus: pg.text("focus"),
+		attempts: pg.integer("attempts").notNull().default(0),
+		nextAttemptAt: pg.timestamp("next_attempt_at", { withTimezone: true }).notNull().defaultNow(),
+		lease: pg.text("lease"),
+		leaseUntil: pg.timestamp("lease_until", { withTimezone: true }),
+		/** True once this generation has taken a slot from the daily limit, so retries do not take another. */
+		counted: pg.boolean("counted").notNull().default(false),
+		error: pg.text("error"),
+		/** Things to check before using the document (information the posting or resume did not provide). */
+		issues: pg.jsonb("issues").notNull().$type<string[]>().default([]),
+		/** The resume or cover letter produced; chosen before it is created so a retry reuses it. */
+		outputId: pg.text("output_id"),
+		/**
+		 * The generation `outputId` holds. A regenerate keeps the document and writes the next generation over it, with
+		 * the one it replaces kept in History; null while a new document is being made for this generation.
+		 */
+		outputGeneration: pg.integer("output_generation"),
+		/** The History version holding the generation the last regenerate wrote over, to point people back to it. */
+		replacedVersionId: pg.text("replaced_version_id"),
+		baselineResumeId: pg.text("baseline_resume_id"),
+		/** The baseline's `updated_at` when it was read, to tell later when the document may be out of date. */
+		baselineVersion: pg.text("baseline_version"),
+		jobHash: pg.text("job_hash"),
+		startedAt: pg.timestamp("started_at", { withTimezone: true }),
+		completedAt: pg.timestamp("completed_at", { withTimezone: true }),
+	},
+	(t) => [
+		pg.uniqueIndex().on(t.userId, t.opportunityId, t.kind),
+		pg.index().on(t.status, t.nextAttemptAt),
+		pg.index().on(t.userId, t.status),
+	],
+);
+
+/** Where a person is in first-run setup. Skipping or finishing it is remembered so the guide is not shown again. */
+export const careerSetup = pg.pgTable("career_setup", {
+	userId: pg
+		.text("user_id")
+		.primaryKey()
+		.references(() => user.id, { onDelete: "cascade" }),
+	/** The resume the person confirmed as their baseline, and its `updated_at` when they did. */
+	baselineResumeId: pg.text("baseline_resume_id").references(() => resume.id, { onDelete: "set null" }),
+	baselineConfirmedAt: pg.timestamp("baseline_confirmed_at", { withTimezone: true }),
+	baselineVersion: pg.text("baseline_version"),
+	skippedAt: pg.timestamp("skipped_at", { withTimezone: true }),
+	completedAt: pg.timestamp("completed_at", { withTimezone: true }),
+	updatedAt: pg
+		.timestamp("updated_at", { withTimezone: true })
+		.notNull()
+		.defaultNow()
+		.$onUpdate(() => new Date()),
+});
+
+/** What the pipeline did, newest last. Append-only and short-lived; see ACTIVITY_RETENTION_DAYS. */
+export const careerEvent = pg.pgTable(
+	"career_event",
+	{
+		id: pg
+			.text("id")
+			.primaryKey()
+			.$defaultFn(() => generateId()),
+		userId: pg
+			.text("user_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		createdAt: pg.timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+		kind: pg.text("kind").notNull(),
+		level: pg.text("level").notNull().default("info"),
+		runId: pg.text("run_id").references(() => careerRun.id, { onDelete: "cascade" }),
+		opportunityId: pg.text("opportunity_id").references(() => careerOpportunity.id, { onDelete: "cascade" }),
+		data: pg.jsonb("data").notNull().$type<CareerEventData>().default({}),
+	},
+	(t) => [
+		pg.index().on(t.userId, t.createdAt.desc(), t.id.desc()),
+		pg.index().on(t.opportunityId, t.createdAt),
+		pg.index().on(t.createdAt),
+	],
+);
+
+/** One search result of a run and what became of it, so "why wasn't this found" has an answer. */
+export const careerRunItem = pg.pgTable(
+	"career_run_item",
+	{
+		id: pg
+			.text("id")
+			.primaryKey()
+			.$defaultFn(() => generateId()),
+		runId: pg
+			.text("run_id")
+			.notNull()
+			.references(() => careerRun.id, { onDelete: "cascade" }),
+		userId: pg
+			.text("user_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		url: pg.text("url").notNull(),
+		host: pg.text("host").notNull().default(""),
+		title: pg.text("title").notNull().default(""),
+		decision: pg.text("decision").notNull(),
+		/** Where it came from: "web", a job source ("adzuna"), or a followed board ("greenhouse:acme"). */
+		source: pg.text("source"),
+	},
+	(t) => [pg.index().on(t.runId)],
 );

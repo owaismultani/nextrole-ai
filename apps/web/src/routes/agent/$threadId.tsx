@@ -22,6 +22,6 @@ export const Route = createFileRoute("/agent/$threadId")({
 				search: { assistant: params.threadId },
 				replace: true,
 			});
-		throw redirect({ to: "/dashboard", replace: true });
+		throw redirect({ to: "/dashboard/documents", replace: true });
 	},
 });

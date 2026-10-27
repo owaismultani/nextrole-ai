@@ -1,15 +1,15 @@
 ---
 title: "Managing applications with MCP"
-description: "Track job applications from an AI client connected to Reactive Resume: add roles, move stages, schedule interviews, attach sent PDFs and draft letters."
+description: "Track job applications from an AI client connected to NextRole AI: add roles, move stages, schedule interviews, attach sent PDFs and draft letters."
 ---
 
-Once your AI client is connected to the Reactive Resume MCP server, you can run your job search from a chat: add roles you find, move applications through their stages, log notes and interviews, attach the PDFs you sent, and ask for match scores or tailored resumes. This guide gives you prompts that work well and explains what each one does behind the scenes.
+Once your AI client is connected to the NextRole AI MCP server, you can run your job search from a chat: add roles you find, move applications through their stages, log notes and interviews, attach the PDFs you sent, and ask for match scores or tailored resumes. This guide gives you prompts that work well and explains what each one does behind the scenes.
 
 ## Before you start
 
 - Connect your client to the MCP server with OAuth or an API key. See [Using the MCP server](/guides/using-the-mcp-server).
-- Ask the client to list its Reactive Resume tools. You should see `list_applications`, `create_application`, `update_application` and the other application tools.
-- For match scores, tailored resumes, drafted letters and job-posting autofill, set up and test a default AI provider in Reactive Resume. See [Connecting an AI provider](/guides/using-ai). These tools send your resume and the job description to that provider.
+- Ask the client to list its NextRole AI tools. You should see `list_applications`, `create_application`, `update_application` and the other application tools.
+- For match scores, tailored resumes, drafted letters and job-posting autofill, set up and test a default AI provider in NextRole AI. See [Connecting an AI provider](/guides/using-ai). These tools send your resume and the job description to that provider.
 
 ## How applications are organized
 
@@ -46,7 +46,7 @@ Add an application for Senior Gameplay Engineer at Northwind Games. Stage: saved
 If you have a job posting, paste it and ask the client to read it first. The autofill tool works on pasted text; it doesn't open links.
 
 ```text
-Read this job posting with the Reactive Resume autofill tool, then save it as an application in the saved stage with the job description included.
+Read this job posting with the NextRole AI autofill tool, then save it as an application in the saved stage with the job description included.
 
 [Paste the job posting here]
 ```
@@ -79,7 +79,7 @@ Add the recruiter Priya Shah (priya@example.com) as a contact on the Northwind G
 
 The client uses `update_application` for stages, contacts, tags and follow-up dates, and `add_application_note` for notes. When `update_application` changes a list such as contacts or tags, the list it sends replaces the old one, so a careful client reads the application first and sends the full list.
 
-When an application with a linked resume reaches **Applied** or a later stage, Reactive Resume saves that resume, and the linked letter, as a sent version named after the company. You can see later exactly what you sent.
+When an application with a linked resume reaches **Applied** or a later stage, NextRole AI saves that resume, and the linked letter, as a sent version named after the company. You can see later exactly what you sent.
 
 ## Schedule interviews
 
@@ -162,7 +162,7 @@ Add the tag follow-up to every application in the applied stage with a follow-up
 Add this to your client's project or session instructions so it handles your applications carefully:
 
 ```text
-Use Reactive Resume MCP for job applications. Call list_applications before creating an application so you don't duplicate one. Before update_application changes contacts or tags, read the application and send the complete list. Ask me before delete_application, bulk_delete_applications, bulk_update_applications, or replacing an attached document. Score or tailor only when the application has a job description, and never describe a drafted letter or follow-up as sent.
+Use NextRole AI MCP for job applications. Call list_applications before creating an application so you don't duplicate one. Before update_application changes contacts or tags, read the application and send the complete list. Ask me before delete_application, bulk_delete_applications, bulk_update_applications, or replacing an attached document. Score or tailor only when the application has a job description, and never describe a drafted letter or follow-up as sent.
 ```
 
 ## Troubleshooting

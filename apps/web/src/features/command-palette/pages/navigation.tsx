@@ -28,9 +28,69 @@ export function NavigationCommandGroup() {
 
 				<CommandItem
 					disabled={!session}
+					keywords={[t`Overview`, t`Dashboard`, t`Next actions`]}
+					value="navigation.overview"
+					onSelect={() => onNavigate("/dashboard/overview")}
+				>
+					<Icon name="squares-four" size={16} />
+					<Trans>Overview</Trans>
+				</CommandItem>
+
+				<CommandItem
+					disabled={!session}
+					keywords={[t`Discover`, t`Jobs`, t`Roles`, t`Search activity`]}
+					value="navigation.discover"
+					onSelect={() => onNavigate("/dashboard/discover")}
+				>
+					<Icon name="compass" size={16} />
+					<Trans>Discover</Trans>
+				</CommandItem>
+
+				<CommandItem
+					disabled={!session}
+					keywords={[t`Knowledge`, t`Facts`, t`Stories`]}
+					value="navigation.knowledge"
+					onSelect={() => onNavigate("/dashboard/knowledge/facts")}
+				>
+					<Icon name="list-checks" size={16} />
+					<Trans>Knowledge</Trans>
+				</CommandItem>
+
+				<CommandItem
+					disabled={!session}
+					keywords={[t`Coach`, t`Interview`, t`Chat`]}
+					value="navigation.coach"
+					onSelect={() => onNavigate("/dashboard/coach")}
+				>
+					<Icon name="sparkle" size={16} />
+					<Trans>Coach</Trans>
+				</CommandItem>
+
+				<CommandItem
+					disabled={!session}
+					keywords={[t`Automation`, t`Schedules`, t`Discovery`, t`Document preparation`]}
+					value="navigation.automation"
+					onSelect={() => onNavigate("/dashboard/automation")}
+				>
+					<Icon name="clock" size={16} />
+					<Trans>Automation</Trans>
+				</CommandItem>
+
+				<CommandItem
+					disabled={!session}
+					keywords={[t`Offers`, t`Compare offers`]}
+					value="navigation.offers"
+					onSelect={() => onNavigate("/dashboard/applications/offers")}
+				>
+					<Icon name="scales" size={16} />
+					<Trans>Offers</Trans>
+				</CommandItem>
+
+				<CommandItem
+					disabled={!session}
 					keywords={[t`Documents`, t`Resumes`, t`Cover letters`]}
 					value="navigation.documents"
-					onSelect={() => onNavigate("/dashboard")}
+					onSelect={() => onNavigate("/dashboard/documents")}
 				>
 					<Icon name="file-text" size={16} />
 					<Trans>Documents</Trans>
@@ -130,12 +190,30 @@ export function NavigationCommandGroup() {
 				</CommandItem>
 
 				<CommandItem
-					keywords={[t`AI & developer`, t`AI providers`, t`API Keys`, t`MCP`, t`Integrations`]}
+					keywords={[t`AI providers`, t`Web search`, t`Integrations`]}
 					value="navigation.settings.ai"
 					onSelect={() => onNavigate("/dashboard/settings/ai")}
 				>
+					<Icon name="sparkle" size={16} />
+					<Trans>Integrations</Trans>
+				</CommandItem>
+
+				<CommandItem
+					keywords={[t`Passkeys`, t`Two-factor`, t`Password`, t`Sessions`]}
+					value="navigation.settings.security"
+					onSelect={() => onNavigate("/dashboard/settings/security")}
+				>
+					<Icon name="lock" size={16} />
+					<Trans>Security</Trans>
+				</CommandItem>
+
+				<CommandItem
+					keywords={[t`API Keys`, t`MCP`, t`OAuth`, t`Connected apps`]}
+					value="navigation.settings.developer"
+					onSelect={() => onNavigate("/dashboard/settings/developer")}
+				>
 					<Icon name="key" size={16} />
-					<Trans>AI & developer</Trans>
+					<Trans>Developer</Trans>
 				</CommandItem>
 			</BaseCommandGroup>
 		</>

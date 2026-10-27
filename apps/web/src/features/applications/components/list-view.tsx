@@ -21,8 +21,17 @@ import { toast } from "@reactive-resume/ui/components/toast";
 import { useBreakpoint } from "@reactive-resume/ui/hooks/use-breakpoint";
 import { cn } from "@reactive-resume/utils/style";
 import { describeNextStep, getNextStep } from "../next-step";
-import { CLOSED_REASONS, getClosedReasonLabel, getStageColor, getStageLabel, LIST_ORDER, PIPELINE } from "../stages";
-import { useInvalidateApplications } from "../use-application-actions";
+import {
+	CLOSED_REASONS,
+	getClosedReasonLabel,
+	getNextStage,
+	getStageColor,
+	getStageLabel,
+	LIST_ORDER,
+	PIPELINE,
+} from "../stages";
+import { useApplicationActions, useInvalidateApplications } from "../use-application-actions";
+import { ApplicationActionsMenu } from "./application-actions-menu";
 import { useConfirm } from "@/hooks/use-confirm";
 import { formatRelativeTime } from "@/libs/locale";
 import { D2, EASE, EXIT } from "@/libs/motion";
@@ -45,14 +54,14 @@ const compare: Record<SortKey, (a: Application, b: Application) => number> = {
 type ListViewProps = {
 	applications: Application[];
 	showClosed: boolean;
-	selectedId: string | null;
+	selectedId?: string | null;
 	onOpen: (application: Application) => void;
 };
 
 /**
  * The default view: applications grouped by stage in the order that needs you first (Interview, Offer, Screening,
- * Applied, Saved, then Closed when shown). Groups collapse, headers sort within groups, and row checkboxes select
- * for bulk moves, tags, closing and deleting. Phones get two-line rows.
+ * Applied, Saved, then Closed when shown). Groups collapse, headers sort within groups, and row checkboxes (shown on
+ * hover) select several for bulk moves, tags, closing and deleting; each row also has its quick actions and ⋯ menu. Phones get two-line rows.
  */
 export function ApplicationList({ applications, showClosed, selectedId, onOpen }: ListViewProps) {
 	const phone = useBreakpoint() === "mobile";
@@ -143,6 +152,11 @@ export function ApplicationList({ applications, showClosed, selectedId, onOpen }
 								<Trans>Sent</Trans>
 							</th>
 							{header("updated", t`Updated`, "max-md:hidden")}
+							<th scope="col" className="w-52 px-2 max-md:hidden">
+								<span className="sr-only">
+									<Trans>Actions</Trans>
+								</span>
+							</th>
 						</tr>
 					</thead>
 				)}
@@ -153,7 +167,7 @@ export function ApplicationList({ applications, showClosed, selectedId, onOpen }
 					return (
 						<tbody key={status} aria-labelledby={groupId}>
 							<tr>
-								<th scope="colgroup" colSpan={6} className="pt-3 text-start">
+								<th scope="colgroup" colSpan={7} className="pt-3 text-start">
 									<button
 										type="button"
 										id={groupId}
@@ -184,6 +198,7 @@ export function ApplicationList({ applications, showClosed, selectedId, onOpen }
 										phone={phone}
 										selected={application.id === selectedId}
 										checked={checked.has(application.id)}
+										anySelected={checkedIds.length > 0}
 										onCheck={() => toggleRow(application.id)}
 										onOpen={() => onOpen(application)}
 									/>
@@ -217,15 +232,29 @@ type ApplicationRowProps = {
 	phone: boolean;
 	selected: boolean;
 	checked: boolean;
+	/** Something is selected, so every row shows its checkbox. */
+	anySelected: boolean;
 	onCheck: () => void;
 	onOpen: () => void;
 };
 
-function ApplicationRow({ application, phone, selected, checked, onCheck, onOpen }: ApplicationRowProps) {
+function ApplicationRow({ application, phone, selected, checked, anySelected, onCheck, onOpen }: ApplicationRowProps) {
 	const { i18n } = useLingui();
 	const next = describeNextStep(getNextStep(application), application, i18n.locale);
 	const sent = application.status !== "saved";
 	const tone = next.tone === "warn" ? "text-warn-text" : next.tone === "muted" ? "text-ink-3" : "text-ink-2";
+	const { moveTo } = useApplicationActions();
+	// The one move you most often make from the list: forward a stage (or back from closed), without opening anything.
+	const forward = getNextStage(application.status);
+	const quick =
+		application.status === "closed"
+			? { label: t`Reopen`, run: () => moveTo(application, "applied") }
+			: forward
+				? {
+						label: application.status === "saved" ? t`Mark applied` : t`Move to ${getStageLabel(forward)}`,
+						run: () => moveTo(application, forward),
+					}
+				: null;
 
 	const initial = (
 		<span
@@ -264,11 +293,16 @@ function ApplicationRow({ application, phone, selected, checked, onCheck, onOpen
 	return (
 		<tr
 			className={cn(
-				"relative border-b border-line transition-colors duration-quick hover:bg-hover",
+				"group/row relative border-b border-line transition-colors duration-quick hover:bg-hover",
 				selected && "bg-accent-soft/50",
 			)}
 		>
-			<td className="relative z-10 w-10 ps-3">
+			<td
+				className={cn(
+					"relative z-10 w-10 ps-3 transition-opacity duration-quick group-hover/row:opacity-100 focus-within:opacity-100",
+					checked || anySelected ? "opacity-100" : "opacity-0 pointer-coarse:opacity-100",
+				)}
+			>
 				<Checkbox
 					checked={checked}
 					onCheckedChange={onCheck}
@@ -311,6 +345,16 @@ function ApplicationRow({ application, phone, selected, checked, onCheck, onOpen
 			</td>
 			<td className="px-2 text-xs whitespace-nowrap text-ink-3 max-md:hidden">
 				{formatRelativeTime(application.updatedAt, i18n.locale)}
+			</td>
+			<td className="relative z-10 px-2 text-end whitespace-nowrap max-md:hidden">
+				<div className="flex items-center justify-end gap-1">
+					{quick && (
+						<Button variant="secondary" size="sm" onClick={quick.run}>
+							{quick.label}
+						</Button>
+					)}
+					<ApplicationActionsMenu application={application} size="icon-sm" />
+				</div>
 			</td>
 		</tr>
 	);

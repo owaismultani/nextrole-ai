@@ -1,7 +1,7 @@
 import type { Application } from "@/features/applications/types";
 import type { MessageContext } from "@/features/assistant/chat";
 import type { RouterOutput } from "@/libs/orpc/client";
-import type { WorkspaceTab } from "@reactive-resume/schema/career";
+import type { WorkspaceHint, WorkspaceTab } from "@reactive-resume/schema/career";
 import { t } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -34,13 +34,15 @@ export type CoachConversation = true | string;
 type CoachSheetProps = {
 	application: Application;
 	tab: WorkspaceTab;
+	/** What the coach is told they are doing: the tab, or the part of Interviews that is open. */
+	hint?: WorkspaceHint | undefined;
 	/** Undefined when the sheet is closed. */
 	conversation: CoachConversation | undefined;
 	onConversationChange: (conversation: CoachConversation | undefined) => void;
 };
 
 /** W19: chat about this job beside any tab, in as many conversations as needed. Esc closes and keeps the draft. */
-export function CoachSheet({ application, tab, conversation, onConversationChange }: CoachSheetProps) {
+export function CoachSheet({ application, tab, hint, conversation, onConversationChange }: CoachSheetProps) {
 	// The conversation stays on screen while the sheet slides out.
 	const [shown, setShown] = useState<CoachConversation>(conversation ?? true);
 	if (conversation !== undefined && conversation !== shown) setShown(conversation);
@@ -77,6 +79,7 @@ export function CoachSheet({ application, tab, conversation, onConversationChang
 				<CoachSheetBody
 					application={application}
 					tab={tab}
+					hint={hint}
 					conversation={shown}
 					hidden={hidden}
 					onConversationChange={onConversationChange}
@@ -90,6 +93,7 @@ export function CoachSheet({ application, tab, conversation, onConversationChang
 type CoachSheetBodyProps = {
 	application: Application;
 	tab: WorkspaceTab;
+	hint: WorkspaceHint | undefined;
 	conversation: CoachConversation;
 	/** Conversations deleted with Undo still pending. */
 	hidden: ReadonlySet<string>;
@@ -101,6 +105,7 @@ type CoachSheetBodyProps = {
 function CoachSheetBody({
 	application,
 	tab,
+	hint,
 	conversation,
 	hidden,
 	onConversationChange,
@@ -134,7 +139,14 @@ function CoachSheetBody({
 	const remove = (thread: ThreadSummary) => onDelete(thread.id, () => open("new"));
 
 	// The current tab is a hint, so answers fit the task at hand.
-	const context: MessageContext = { document: true, posting: true, application: true, memory: true, web: false, tab };
+	const context: MessageContext = {
+		document: true,
+		posting: true,
+		application: true,
+		memory: true,
+		web: false,
+		tab: hint ?? tab,
+	};
 
 	const createThread = async () => {
 		const thread = await client.agent.threads.start({

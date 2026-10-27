@@ -1,0 +1,88 @@
+---
+title: "Automate your job search"
+description: "Find jobs on a schedule and have a tailored resume and cover letter drafted for each new one, ready for you to review."
+---
+
+**Automation** finds jobs while you are away and can draft a tailored resume and cover letter for each new one. You review, edit and apply yourself. Nothing is sent to an employer and no application is marked as submitted.
+
+## Guided setup
+
+New accounts open a four-step guide the first time. It can be skipped at any step, and **Overview** shows a **Finish setting up** card until it is done. People who already have a discovery schedule or applications are not sent to it.
+
+1. **Baseline resume**: upload a file, start blank or pick an existing resume. A checklist shows what is present (name, email, headline, summary, dated and described experience, education, skills) plus the ATS score, with **Fix in editor** links. Gaps are warnings, not blocks. You confirm the resume as your baseline; tailored documents start from it and never change it. If you edit it later, documents made from the older version are flagged.
+2. **Connect services**: optional. Free job sources search without setup; web search and job-source keys add results, and an AI provider is needed only for documents.
+3. **Set up discovery**: a search started from your resume's headline, how often, and **Preview results**, which runs the search once and saves nothing. Optionally turn on tailored resumes and cover letters and set the daily limit.
+4. **Start**: a summary, then **Start discovery** runs the first search right away.
+
+The steps below cover the same settings if you prefer to set them up by hand.
+
+## Set it up
+
+1. Optionally connect web search and job-source keys and, for documents, an AI provider in **Settings → Integrations**.
+2. Set up discovery from **Discover** (**Set up discovery**) or **Automation → Discovery**: choose what to **Look for**, **How often** (every hour, 3 hours, 6 hours or every day), **Results per source**, **Where to look** and **What to keep**. An hourly schedule starts searching as soon as you save it. See [Find roles while you are busy](/guides/finding-roles-automatically).
+3. In **Automation → Documents**, choose a **Baseline resume**, then turn on **Generate tailored resumes automatically** and/or **Generate cover letters automatically**. The two are independent, and both are off until you turn them on. Open **Advanced writing instructions** to edit the **Additional instruction** for each type, which guides emphasis and tone. These preferences supplement the accuracy rules; they cannot authorize invented qualifications or achievements.
+4. Select **Save automation**. A missing baseline or AI connection is explained next to the setting.
+
+The search is defined in one place. **Edit search** in Discover and **Edit search** in Automation open the same editor, and every schedule (discovery, interview preparation and follow-up reminders) is listed in **Automation → Schedules**, where it can be filtered by kind, paused, edited or deleted.
+
+## What discovery does
+
+Each scheduled run searches the chosen job sources, followed company boards and web search, skips roles it already knows, and keeps open postings that pass the search's filters. New jobs appear in your applications as **Saved**. Hourly searches ask only for recent results, with some overlap so postings the search service indexed late are still seen.
+
+Web search services and job-search APIs rank results, so they cannot promise to list every job. Followed company boards are read in full, so every role a followed company posts is found. **Results per source** (5 to 100) is roughly the most each job-search source and web search return per run. Tavily returns at most 20 per search; Exa and Firecrawl return up to 100.
+
+The header of **Discover** shows your saved search, how often it runs, whether it is running or paused, and **Run now**, **Pause** and **Edit search**. **Automation → Discovery** shows the same status in full: the last attempt, the last success, the next run, and what the last run found: queries, sources, results found, duplicates, rejected results, new matches and read failures. A run that finds nothing new is different from a run that could not search or read pages, and the panel says which. A failed run never turns discovery off.
+
+In **Discover → Search activity**, the top shows your last attempted search, your last fully successful run and the next scheduled run. **Recent runs** is a table of every discovery attempt, newest first, ten at a time (use **Older** and **Newer** to page), with its outcome and how many results were new, already known, rejected or unreadable. Select **Open run** to see its counts, what the search found and why, and the jobs it led to. Each job links to its application, the posting, and the tailored resume and cover letter made for it, so you can always tell which documents came from which run. A document you moved to the trash is no longer linked.
+
+On the schedule, use **Run now** to search immediately, **Pause** to stop future searches and **Resume** to continue with one prompt run. Missed runs after an outage are not replayed.
+
+## What the documents are
+
+- **Tailored resume**: a separate copy of your baseline. The summary and experience wording are adjusted for the job and skills are reordered. Dates, employers, titles and education are untouched. A rewrite that adds a figure your resume never had is discarded and the original wording kept, with a note.
+- **Cover letter**: written from the job, your baseline resume and facts you have approved. When the posting or your resume does not say something a good letter needs, it is listed as something to fill in rather than invented.
+
+Both are linked to the application. **Ready for review** means the documents were made. It does not mean you approved them, and it is separate from your application's status.
+
+The saved additional instruction for each type is used when its document is generated, including manual preparation and regeneration. Changing an instruction does not rewrite documents already made.
+
+## Daily limit
+
+**Documents per day** caps how many documents are generated. Each resume or letter counts once, on its first attempt; retries do not count again. The count resets at midnight in your timezone. Work over the limit waits and shows when it becomes eligible again.
+
+## Turning things off and on
+
+- Turning a document type off stops new work of that type from starting, including work already waiting. A document being written finishes and is saved. Canceled work stays canceled when you turn it back on.
+- Turning a type on affects jobs found from then on. Jobs you already have are never processed in bulk. Choose **Prepare documents** on a role in Discover to do that for one job.
+- Pausing or turning off the discovery schedule stops future searches. Jobs and documents you have stay, and document preparation for jobs already found continues while its toggle is on.
+
+## Review, edit and regenerate
+
+In **Automation → Documents**, the **Document preparation** list shows each job with its status, five at a time, and can be filtered to **Needs attention** or **Ready for review**. Each cover letter lists what it could not say from your resume under **N gaps to fill**, collapsed until you open it. Open a document to edit or download it in the editor. **Retry** repeats a step that needs attention. **Regenerate** writes a new generation from the current baseline and posting over the same document, so each job keeps one tailored resume and one cover letter. The generation it replaces, including your edits, is kept in the document's History as **Generation 1**, **Generation 2** and so on (marked **your edits** if you changed it). **See what changed** compares it with the new generation, and **See the earlier version** opens it so you can restore it. On a finished tailored resume, **See what tailoring changed** compares it with the baseline it was made from. See [Compare two versions](/guides/undoing-changes-and-version-history#compare-two-versions). A document you moved to Trash or locked is not written over; regenerating makes a new one instead. A document is flagged when your baseline or the posting changed after it was made. Rediscovering a job never regenerates its documents.
+
+## See what is happening, step by step
+
+**Overview** (first in the sidebar on the web and first on the phone's bottom bar) is your home page. Its **bell** (with an unread count) opens your **Notifications** (new roles to review, follow-up drafts, finished briefings, and anything that stopped working, each with the action that fixes it):
+
+- **Banner**: when discovery is paused, **Resume discovery** is one click away; when the last run failed, it links to why. A line under it counts your saved applications and how many have documents ready.
+- **Your next actions**: what needs you, most urgent first, with tabs for **Documents ready**, **Follow-ups** and **Needs attention**. A shorter history window never hides a task that is still pending. A failed document says what failed and offers **Resolve**; an overdue follow-up shows how long ago you applied and offers **Follow up**; drafts that fell out of date after your resume or the posting changed offer **Review changes**; ready documents offer **Review**.
+- **Coming up**: your next interview with its date, time and length, whether a briefing is available and practice has started, and **Prepare interview**.
+- **Recent activity**: the last few things that happened, such as new jobs saved, documents prepared for a company, or a failure, each with a link to act.
+- **Automation**: whether discovery, tailored resumes and cover letters are on, what is generating or deferred, and today's documents against your daily limit.
+- **Application outcomes**: submitted, first responses, applications that reached an interview and offers over the last 7, 14 or 30 days, based on recorded application activity.
+- **Latest discovery**: the most recent search, how many results it checked, its first new job, and whether any pages could not be read.
+
+In **Automation → How it's working**:
+
+- **How your search is going**: the pipeline as eight steps (Schedule, Search, Read pages, Filter, Save jobs, Prepare documents, You review, You apply), each saying what it is doing right now and why. The last two are yours: the system prepares drafts and stops there, and nothing is sent to an employer for you.
+- **Is everything working?** A live checklist of discovery being on, the next search not being overdue, web search and your AI provider being connected, a baseline resume being set, documents left under today's limit, and the last search having succeeded. Each problem says what to do and links to the fix.
+- **Document preparation**: open **What happened for this job** to follow one job from the search that found it, through each document step (queued, writing, retried, waiting for the limit, ready), to your turn.
+
+In **Discover → Search activity**:
+
+- **Recent runs**: open a run to see **every result of that search** and what became of it: new, already known, not an open posting, could not be read, or an unusable address. A result that became a role links to it, and to its application when it has one. This answers "why wasn't that job found". The first 50 results of each run are kept.
+- **Activity**: a plain-language log of everything the pipeline did, newest first, with an **Only problems** filter.
+
+Runs, their results and the activity log are kept for 30 days. Your jobs and documents are not affected when history expires.
+
+For response rates, time to first reply and tailored versus base resume results, see **Applications → Insights**.

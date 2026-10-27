@@ -159,6 +159,22 @@ export function latest<K extends SavedItem["data"]["kind"]>(
 }
 
 /** The connection tab AI uses: the most recently used tested one, as on the server. */
+/** The documents prepared for one application, refetched while any are still being made. */
+export function useApplicationPreparation(applicationId: string) {
+	return useQuery({
+		...orpc.career.preparations.queryOptions({ input: { applicationId } }),
+		refetchInterval: (query) =>
+			query.state.data?.some((job) => job.steps.some((step) => step.status === "queued" || step.status === "running"))
+				? 10_000
+				: false,
+	});
+}
+
+/** How an application came to be and what was done for it, or null when it was added by hand. */
+export function useApplicationJourney(applicationId: string) {
+	return useQuery(orpc.career.applicationJourney.queryOptions({ input: { id: applicationId } }));
+}
+
 export function useDefaultProvider() {
 	const state = useHasUsableAiProvider();
 	return { ...state, provider: state.usableProviders[0] ?? null };

@@ -23,7 +23,6 @@ import {
 } from "../hooks";
 import { minutesUntil, preparePhase } from "../logic";
 import { Actions, AiNotice, Block, CheckRow, EmptyNotice, Pill, PrivacyLine, useWorking, workingSteps } from "../parts";
-import { WorkspaceScreen } from "../shell";
 import { orpc } from "@/api/client";
 import { useHasAIProvider } from "@/features/ai/providers";
 import { interviewTypeLabel, useUserTime } from "@/features/application-detail/hooks";
@@ -34,11 +33,7 @@ type Briefing = SavedItem & { data: SavedData<"briefing"> };
 
 const isBriefing = (item: SavedItem | undefined): item is Briefing => item?.data.kind === "briefing";
 
-export function PrepareTab() {
-	return <WorkspaceScreen tab="prepare">{(props) => <Prepare {...props} />}</WorkspaceScreen>;
-}
-
-function Prepare({ application, version, interview, now, go, addInterview }: WorkspaceTabProps) {
+export function Prepare({ application, version, interview, now, go, addInterview }: WorkspaceTabProps) {
 	const { t } = useLingui();
 	const { space } = useTheme();
 	const saved = useSavedItems(application.id);
@@ -138,9 +133,9 @@ function Plan({ application, interview, briefing, readOnly, go }: PlanProps) {
 	const action = (row: SavedData<"briefing">["plan"][number]) => {
 		switch (row.action) {
 			case "story":
-				return { label: t`Open story`, onPress: () => router.push(routes.career("knowledge")) };
+				return { label: t`Open story`, onPress: () => router.push(routes.knowledge("stories")) };
 			case "draft-story":
-				return { label: t`Draft story`, onPress: () => router.push(routes.career("knowledge")) };
+				return { label: t`Draft story`, onPress: () => router.push(routes.knowledge("stories")) };
 			case "practise":
 				return { label: t`Practise`, onPress: () => go("practise", { speak: true }) };
 			case "questions":
@@ -246,7 +241,7 @@ const LEADS = ["24h", "2h", "morning"] as const;
 
 type RefreshSwitchProps = { application: Application; interview: InterviewTimelineEntry };
 
-/** The prepare schedule for this interview: switching it here changes it in Career → Today too. */
+/** The prepare schedule for this interview: switching it here changes it in Automation too. */
 function RefreshSwitch({ application, interview }: RefreshSwitchProps) {
 	const { t, i18n } = useLingui();
 	const { space } = useTheme();
@@ -343,7 +338,7 @@ function StoriesToBring({ application, briefing }: StoriesToBringProps) {
 					title={story.data.title}
 					leading="book-open"
 					chevron
-					onPress={() => router.push(routes.career("knowledge"))}
+					onPress={() => router.push(routes.knowledge("stories"))}
 				/>
 			))}
 			{briefing.data.missingStory ? <Banner tone="warn" icon="question" message={briefing.data.missingStory} /> : null}

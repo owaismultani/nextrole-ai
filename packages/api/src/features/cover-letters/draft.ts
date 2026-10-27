@@ -1,7 +1,10 @@
 import type { CoverLetterDraftInput } from "../../dto/cover-letter";
 import { ORPCError } from "@orpc/client";
 import { streamText } from "ai";
+import { eq } from "drizzle-orm";
 import { letterDraftSystemPrompt } from "@reactive-resume/ai/prompts";
+import { db } from "@reactive-resume/db/client";
+import * as tables from "@reactive-resume/db/schema";
 import { buildMarkdown } from "@reactive-resume/resume/markdown";
 import { aiProvidersService } from "../ai-providers/service";
 import { getModel } from "../ai/service";
@@ -23,17 +26,23 @@ type PromptInput = {
 	posting?: string | undefined;
 	resume?: string | undefined;
 	previous?: string | undefined;
+	instruction?: string | undefined;
 };
 
-/** The request, the job, the posting, the resume and, for a revision, the draft being revised. */
+/**
+ * The request, the job, the posting, the resume, for a revision the draft being revised, and the person's saved cover
+ * letter instruction.
+ */
 function buildLetterDraftPrompt(input: PromptInput): string {
 	const previous = input.variant === "draft" ? undefined : input.previous?.trim();
+	const instruction = input.instruction?.trim();
 	return [
 		previous ? REQUESTS[input.variant] : REQUESTS.draft,
 		input.job && `## The job\n\n${input.job}`,
 		input.posting && `## The posting\n\n<<<POSTING_START>>>\n${input.posting}\n<<<POSTING_END>>>`,
 		input.resume && `## The resume\n\n<<<RESUME_START>>>\n${input.resume}\n<<<RESUME_END>>>`,
 		previous && `## The previous draft\n\n<<<DRAFT_START>>>\n${previous}\n<<<DRAFT_END>>>`,
+		instruction && `<<<ADDITIONAL_INSTRUCTION_START>>>\n${instruction}\n<<<ADDITIONAL_INSTRUCTION_END>>>`,
 	]
 		.filter(Boolean)
 		.join("\n\n");
@@ -48,11 +57,16 @@ export async function* draftLetterBody(
 ): AsyncGenerator<string> {
 	const { userId } = input;
 	const letter = await coverLetterService.getById({ id: input.id, userId });
-	const [resume, application] = await Promise.all([
+	const [resume, application, automation] = await Promise.all([
 		letter.sourceResumeId ? resumeService.getById({ id: letter.sourceResumeId, userId }).catch(() => null) : null,
 		letter.sourceApplicationId
 			? applicationService.getById({ id: letter.sourceApplicationId, userId }).catch(() => null)
 			: null,
+		db
+			.select({ instruction: tables.careerAutomation.coverLetterPrompt })
+			.from(tables.careerAutomation)
+			.where(eq(tables.careerAutomation.userId, userId))
+			.then(([row]) => row),
 	]);
 	if (!resume && !application) {
 		throw new ORPCError("BAD_REQUEST", { message: "Link the letter to a resume or an application first." });
@@ -80,6 +94,7 @@ export async function* draftLetterBody(
 			posting,
 			resume: resume ? buildMarkdown(resume.data) : undefined,
 			previous: input.previous,
+			instruction: automation?.instruction,
 		}),
 		...(input.signal ? { abortSignal: input.signal } : {}),
 	});

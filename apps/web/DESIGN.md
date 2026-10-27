@@ -88,32 +88,25 @@ motion:
   exit: 70% of the entering duration
   movement-easing: cubic-bezier(0.77, 0, 0.175, 1)
 marketing:
+  brand: { name: NextRole AI, credit: "Built on Reactive Resume", mark: "N tile, accent fill" }
+  theme: "dark only; tokens namespaced nr- in landing.css"
   typography:
-    display: { fontFamily: Anybody, fontWeight: "300–400", fontStretch: "86%–112%" }
-    write-title: { fontFamily: Anybody, fontSize: "clamp(72px, 9vw, 160px)", lineHeight: 0.9, fontWeight: 300 }
-    numeral:
-      { fontFamily: Anybody, fontSize: "clamp(56px, 7.5vw, 136px)", fontWeight: 300, fontVariantNumeric: tabular-nums }
-    body: { fontFamily: Newsreader, fontSize: "16–21px", lineHeight: "1.45–1.5", fontWeight: 400 }
-    accent: { fontFamily: Newsreader, fontStyle: italic, color: accent-text }
-    label:
-      { fontFamily: Martian Mono, fontSize: 11px, fontWeight: 500, letterSpacing: 0.08em, textTransform: uppercase }
-    wordmark: { fontFamily: Anybody, fontSize: 17.5cqw, lineHeight: 0.84, fontWeight: 800, fontStretch: 78% }
+    display:
+      { fontFamily: Bricolage Grotesque Variable, fontWeight: 800, fontStretch: "78–85%", letterSpacing: -0.03em }
+    hero: { fontSize: "clamp(54px, 8vw, 128px)", lineHeight: 0.86 }
+    headline: { fontSize: "clamp(38px, 4.8vw, 70px)", lineHeight: 0.92 }
+    body: { fontFamily: Geist Variable, fontSize: "16–18px", lineHeight: 1.62 }
+    kicker: { fontFamily: Geist Mono Variable, fontSize: 12px, letterSpacing: 0.1em, textTransform: uppercase }
+    paper: { fontFamily: Newsreader, use: "the tailored-resume excerpt only" }
   colors:
-    graphite: { light: "oklch(0.38 0.01 95 / .3)", dark: "oklch(0.9 0.01 95 / .18)" }
-    night-1: "oklch(0.24 0.03 265)"
-    night-2: "oklch(0.15 0.02 265)"
-    night-accent: "oklch(0.8 0.13 150)"
-    star: "oklch(0.72 0.14 80)"
-    receipt: "#FDFCF8"
-    bulb-glass: "oklch(0.95 0.11 92)"
-    bulb-filament: "oklch(0.7 0.16 60)"
-  shadow:
-    paper:
-      light: "0 1px 2px oklch(0.2 0.01 95 / 0.12), 0 40px 80px -30px oklch(0.2 0.01 95 / 0.5), 0 0 0 1px oklch(0.2 0.01 95 / 0.04)"
-      dark: "0 1px 2px oklch(0 0 0 / 0.5), 0 40px 80px -30px oklch(0 0 0 / 0.8)"
-  motion:
-    pull-easing: cubic-bezier(0.3, 1.7, 0.5, 1)
-  doodles: { opacity: { light: 0.72, dark: 0.42 }, darkFilter: "invert(1) brightness(1.1)" }
+    void: "#04050B"
+    ink: "#F1F2FF"
+    ink-2: "#B6BAD6"
+    ink-3: "#8C92B4"
+    accent: "#B3A6FF"
+    on-accent: "#110D2B"
+    spectrum: ["#6BE4FF", "#B3A6FF", "#FF7AD9", "#FFC46B"]
+  field: { points: "22,000 (9,000 below 900px)", formations: 10, pixelRatio: "≤ 2 (≤ 1.5 on phones)" }
 ---
 
 ## Overview
@@ -228,55 +221,59 @@ The shared `theme` cookie stores `light`, `dark`, or `system` (the default). Sys
 
 ## Marketing site
 
-The public homepage in `apps/web/src/features/homepage` shares app colors and themes but has its own typography, illustrations, and motion. `landing.css` defines its fonts, graphite color, paper shadows, and ambient animations. Other illustration colors in the front matter are scene values, not global app tokens.
+The public homepage in `apps/web/src/features/homepage` presents **NextRole AI**, built on Reactive Resume. It is a dark world of its own, separate from the app's tokens: `landing.css` defines `nr-` colours, three landing font families and a few utilities (`nr-pane`, `nr-spectrum`, `nr-veil`, `nr-fallback`). It stays dark whatever the app theme; there is no theme switch on the page.
+
+### Story
+
+"A career team that works while you sleep." The product is sold as a crew of six specialists (Scout, Writer, Editor, Coach, Tracker, Advisor) that prepare everything and leave each decision to the visitor.
+
+| Stage | Section              | Copy                                                                | Field formation                                      |
+| ----- | -------------------- | ------------------------------------------------------------------- | ---------------------------------------------------- |
+| 0     | Hero, Crew           | The promise; the six specialists and what each hands you            | A three-armed galaxy (the job market) around a core  |
+| 1     | Know you             | Facts, five-part stories, preferences, import                       | A crystal lattice, facts gathered at its joints      |
+| 2     | Scout                | Eleven job boards, followed companies, web search; Fit              | A terrain of postings swept by a scan ring           |
+| 3     | Write                | Tailored resume, cover letter and answers; accuracy guards          | Three resume pages, each with its own phrases lit    |
+| 4     | Studio               | The Reactive Resume builder: templates, fonts, ATS check, assistant | A curved wall, one page per template                 |
+| 5     | Coach                | Briefings, practice aloud, debriefs                                 | A sphere that ripples like a voice, with sound rings |
+| 6     | Track                | Board, calendar, insights, recruiter replies, offers                | Board columns in the app's stage colours             |
+| 7     | Everywhere           | iPhone and Android, languages, MCP, WebMCP, APIs                    | A globe with one light per language, and an orbit    |
+| 8     | Rules, Tour, Pricing | Six promises; the recorded tour; free, not freemium                 | A protective ring, dimmed behind the copy            |
+| 9     | Finale               | "Your next role is out there. Send the crew."                       | The N mark                                           |
+
+Copy must match what the product does. The system prepares drafts and stops; it never applies or sends anything in the visitor's name. AI features use the visitor's own key. Figures come from the code where they can (`templateSchema`, `localeSchema`); example figures in panes are labelled as fictional.
 
 ### Brand and type
 
-- **Header:** a 30px logomark from `apps/web/public/icon/{light,dark}.svg`. Keep “Reactive Resume” as visually hidden text inside the home link.
-- **Footer:** a 140px logo from `apps/web/public/logo/{light,dark}.svg`, followed by community and MIT license copy.
-- **Wordmark:** Anybody 800, at 17.5cqw and 78% width, with “Reactive” in `ink` and “Resume” in `accent-text`. A 23cqw container crops it through a gradient mask. It rises from 60% translation as the footer enters and is decorative (`aria-hidden`).
-- **Anybody:** hero and closing headlines, selected scene titles, large numerals, and the wordmark. Use weights 300–400 for main display text; reserve 800 for the wordmark.
-- **Newsreader:** body copy, italic accents, and serif title treatments in the Design scene. The app's `font-display` still maps to Newsreader; use `font-anybody` explicitly.
-- **Martian Mono:** 11px uppercase labels at weight 500, with 0.08em tracking. Use `font-martian`.
-- **Hanken Grotesk:** buttons and mock app UI. All four families are self-hosted.
+- **Mark:** an "N" in an accent tile beside the "NextRole" wordmark and an "AI" badge (`Brand` in `ui.tsx`).
+- **Headlines:** Bricolage Grotesque 800, condensed with `font-stretch`, tight tracking (`headlineClass`). One phrase per headline at most takes `nr-spectrum`, the page's only decorative type treatment.
+- **Body:** Geist (`leadClass`). **Kickers and metadata:** Geist Mono, uppercase for kickers (`kickerClass`, `monoClass`).
+- **Paper:** the tailored-resume excerpt keeps Newsreader (`font-serif-display`), so documents still read as documents.
 
 ### Controls
 
-- Repeat the same primary CTA, “Build your resume,” in the header, hero, and closing section. Buttons are pills in Hanken Grotesk 600, at 38px, 54px, and 56px respectively.
-- Scene navigation appears from 1240px. Martian Mono labels use `ink` when active and `ink-3` when inactive; a 6px accent dot marks the active scene. The Share night scene uses its own light inks.
-- The GitHub link appears from 1024px, with the GitHub mark, a filled gold star, and a live compact count in Martian Mono. Format counts with the locale's `Intl.NumberFormat`; include the full count in the accessible name.
-- The homepage theme control is a fixed 30px pull-cord button at the top end corner. Its height is 92px at rest, 112px on hover, and 124px during a pull. It uses a 450ms spring curve, toggles the shared theme after 170ms, and sways every seven seconds until first activated. The bulb glows in dark mode.
+- One primary action, "Start free", in the header, hero and finale, linking to `/dashboard/overview`. Secondary actions are glass (`GhostLink`).
+- The header is a floating glass bar with the section links (from 900px), the live GitHub star count (from 1024px) and "Start free".
+- The journey rail lists the seven acts at the start edge from 1320px and marks the current one.
+- The tour's chapters are buttons that seek the video.
 
-### Motion
+### The particle field
 
-Pinned scenes contain a sticky `100svh` stage. Scroll progress is `p = clamp(0, −top / max(1, height − viewportHeight), 1)`; `scroll.ts` writes it to `--p` through one animation-frame-throttled scroll listener. CSS derives continuous motion from progress; React receives only coarse scene and step changes.
+`stage.tsx` renders a fixed, decorative canvas and imports `scene.ts` (three.js) after the page has painted. `formations.ts` builds ten formations of the same point count from a seeded generator, so the field looks the same on every visit. `progress.ts` turns the `[data-stage]` sections into a continuous stage: a section holds its stage for its first half and blends into the next over its second, unless the next section shares its stage.
 
-| Scene  | Below 900px | From 900px |
-| ------ | ----------- | ---------- |
-| Hero   | 190vh       | 260vh      |
-| Write  | 280vh       | 330vh      |
-| Design | 380vh       | 440vh      |
-| Check  | 260vh       | 320vh      |
-| Tailor | 280vh       | 330vh      |
-| Share  | 240vh       | 300vh      |
+- One `Points` draw call. The vertex shader morphs between the current pair of formations with a per-point delay and a mid-flight burst, ripples the coach's sphere and sweeps the scout's scan ring; colours blend with the positions. An iridescent fresnel core sits inside formations with a centre.
+- Each stage has a pose (position beside its copy, rotation, scale, core, dim, nebula colours); poses mirror in RTL. Phones centre the field above the copy at a smaller scale.
+- Rendering stops while the tab is hidden. Without WebGL, or if the context is lost, `nr-fallback` paints a still gradient instead.
+- Reduced motion: the field jumps to each stage's pose with no drift, spin or pointer parallax; CSS animations stop and smooth scrolling is off.
 
-Light mode combines breathing window light (16 seconds), a drifting mullion shadow (90 seconds), and 18 dust motes. Dark mode adds a neutral 620px cursor glow at 6% opacity. These are decorative and must not obscure text.
+### Assets
 
-Reduced motion fixes scenes at their end state and collapses pinned sections to `100svh`. Disable scroll scrubbing, parallax, ambient movement, cord sway, and count animations. The Languages word rotation has a pause control and stays still with reduced motion.
-
-### Illustration
-
-- Ten graphite doodles live in `apps/web/public/doodles/` as WebP: pencil, paperclip, eraser, curve, magnifier, scissors, plane, globe, jar, and note.
-- Doodles appear through a 110° mask wipe with subtle parallax. Default opacity is 0.72 in light mode and 0.42 in dark, with inversion and a slight brightness increase. The Share plane uses a brighter treatment against the night sky.
-- Most doodles hide below 900px; pencil and plane remain. Keep them decorative, noninteractive, and clear of readable text.
-- Construction guides use `graphite` lines with an SVG turbulence filter for a pencil effect.
+- **Tour:** `public/landing/tour.{webm,mp4}` with `tour-poster.webp`, recorded from the real app on a seeded, fictional account (`tooling/landing/record-tour.ts`). No sound. Chapters in `closing.tsx` must match the recording's timings.
 
 ### Content and delivery
 
-- Prerender the homepage and public ATS checker per locale at build time through `prerender.tsx` and `apps/web/vite.config.ts`. The app is a client-rendered SPA; `apps/server/src/static/web.ts` serves the generated HTML and adds canonical, Open Graph, `hreflang`, and structured data. Keep headings and body copy in the initial HTML.
-- Include title and description metadata and `SoftwareApplication` structured data with a zero-price offer.
-- Use one `h1`, section headings, landmarks, and a skip link. Animated character treatments expose the complete string once to assistive technology. Nothing relies on hover alone.
-- Translate copy, accessible labels, and demo resume text through Lingui. Names and addresses may stay literal; the Languages display intentionally preserves native words and language names. Allow text expansion and RTL layouts.
+- Prerender the homepage and public ATS checker per locale at build time through `prerender.tsx` and `apps/web/vite.config.ts`. `apps/server/src/static/web.ts` serves the generated HTML and adds canonical, Open Graph, `hreflang`, and `SoftwareApplication` structured data with a zero-price offer and a feature list. Keep headings and body copy in the initial HTML.
+- Use one `h1`, section headings, landmarks and a skip link.
+- Translate copy and accessible labels through Lingui. Names of fictional people, companies and job boards stay literal. Allow text expansion and RTL layouts.
 
 ## Do and don't
 

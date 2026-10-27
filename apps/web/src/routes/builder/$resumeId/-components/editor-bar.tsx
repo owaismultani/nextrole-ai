@@ -12,7 +12,7 @@ import { DocumentMenu } from "./document-menu";
 import { AssistantButton } from "@/features/assistant/assistant-button";
 import { useCurrentBuilderResumeSelector, useCurrentResume, useResumeStore } from "@/features/resume/builder/draft";
 import { useOpenIssueCount } from "@/features/resume/editor/check/use-check";
-import { BackLink, DrawerControls } from "@/features/resume/editor/chrome";
+import { ApplicationCrumb, BackLink, DrawerControls } from "@/features/resume/editor/chrome";
 import { useEditorStore } from "@/features/resume/editor/store";
 import { useResumeExport } from "@/features/resume/export/use-resume-export";
 
@@ -29,14 +29,16 @@ type EditorBarProps = {
 export function EditorBar({ layout, pinnable }: EditorBarProps) {
 	// Download and Share need a connection.
 	const offline = useResumeStore((state) => state.saveStatus === "offline");
+	const applicationId = useCurrentBuilderResumeSelector((resume) => resume.applicationId);
 	const wide = useBreakpoint() === "wide";
 
 	return (
 		<header className="grid h-(--editor-bar) grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-line bg-surface px-3">
 			<div className="flex min-w-0 items-center gap-1.5">
-				<BackLink />
+				<BackLink applicationId={applicationId} />
 				{layout === "tablet" && <DrawerControls pinnable={pinnable} />}
 				<div className="flex min-w-0 flex-col items-start">
+					{layout !== "mobile" && <ApplicationCrumb applicationId={applicationId} />}
 					<DocumentMenu />
 				</div>
 			</div>

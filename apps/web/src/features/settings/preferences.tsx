@@ -11,7 +11,6 @@ import { Icon } from "@reactive-resume/ui/components/icon";
 import { toast } from "@reactive-resume/ui/components/toast";
 import { cn } from "@reactive-resume/utils/style";
 import { SettingsSection } from "./section";
-import { PageHeader } from "@/components/layout/page-header";
 import { Combobox } from "@/components/ui/combobox";
 import { LocaleCombobox } from "@/features/locale/combobox";
 import { useTheme } from "@/features/theme/provider";
@@ -32,7 +31,6 @@ export function PreferencesSettings() {
 
 	return (
 		<>
-			<PageHeader title={<Trans>Preferences</Trans>} />
 			<SettingsSection title={<Trans>Appearance</Trans>}>
 				<ThemeTiles />
 				<p className="text-xs text-ink-3">
@@ -108,7 +106,7 @@ function TimezoneSetting({ id }: { id: string }) {
 				/>
 			</div>
 			<p className="flex flex-wrap items-center gap-x-1 text-xs text-ink-3">
-				<Trans>Interview times, reminders and schedules in Career use it.</Trans>
+				<Trans>Interview times, reminders and schedules use it.</Trans>
 				{device && device !== value && (
 					<Button variant="link" className="h-auto p-0 text-xs text-ink-2 underline" onClick={() => void save(device)}>
 						<Trans>Use this device's timezone ({device})</Trans>

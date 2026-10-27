@@ -46,7 +46,7 @@ export function Header() {
 							nativeButton={false}
 							aria-label={t`Go to dashboard`}
 							render={
-								<Link to="/dashboard">
+								<Link to="/dashboard/overview">
 									<ArrowRightIcon aria-hidden="true" />
 								</Link>
 							}

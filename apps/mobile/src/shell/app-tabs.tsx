@@ -19,11 +19,22 @@ import { Button, Icon, IconButton, Text, haptics, useReducedMotion, useTheme } f
 
 /** The tab routes of `app/(tabs)`, in tab-bar order. `create` is the raised "+" that opens New. */
 const appTabIcons: Record<string, IconName> = {
-	documents: "file-text",
+	overview: "squares-four",
+	discover: "compass",
 	applications: "briefcase",
-	career: "compass",
+	documents: "file-text",
+	knowledge: "books",
+	coach: "sparkle",
+	automation: "clock",
 	settings: "gear-six",
+	more: "dots-three",
 };
+
+/** The destinations the phone bar leaves to its More tab; the tablet sidebar lists them itself. */
+const moreRoutes = new Set(["more", "knowledge", "coach", "automation", "settings"]);
+/** The tablet sidebar: the primary destinations, then the utilities below a divider. */
+const primaryRoutes = ["overview", "discover", "applications", "documents", "knowledge", "coach"];
+const utilityRoutes = ["automation", "settings"];
 
 // tokens.md §7: the active-tab marker on the bar's top rule; Android tab cells are 64 tall (app.html).
 const railMarker = { width: 28, height: 3 };
@@ -37,6 +48,10 @@ const badgeMinWidth = 18;
 const quietBadges = new Set(["applications"]);
 
 type TabRoute = BottomTabBarProps["state"]["routes"][number];
+
+/** A tab hidden from the bar (`href: null`) is still a screen: it can be opened, and keeps the bar around it. */
+const isHidden = ({ descriptors }: BottomTabBarProps, route: TabRoute) =>
+	(descriptors[route.key]?.options as { href?: unknown } | undefined)?.href === null;
 
 function useTabPress({ state, emitter, navigateToTab }: BottomTabBarProps) {
 	return (route: TabRoute) => {
@@ -258,22 +273,28 @@ export function Bar({ children, activeIndex }: BarProps) {
 }
 
 /**
- * The phone tab bar (app.html): five cells, the active tab with a filled icon and the `accent` 28×3 marker on the top
- * rule (both platforms), and the raised "+" pill in the middle. Labels stay under the icons at every text
+ * The phone tab bar (app.html): Overview, Discover, the raised "+" pill, Applications, Documents and More, the active tab
+ * with a filled icon and the `accent` 28×3 marker on the top rule (both platforms). Labels stay under the icons at every text
  * size (`micro` caps its scale); the bar grows taller instead of truncating.
  */
 export function PhoneTabBar(props: BottomTabBarProps) {
 	const { t } = useLingui();
 	const onPress = useTabPress(props);
+	const cells = props.state.routes.filter((route) => !isHidden(props, route));
+	const focusedName = props.state.routes[props.state.index]?.name ?? "";
+	// A hidden destination (Profile, Coach, Automation, Settings) lights up More, which leads to it.
+	const focusedCell = cells.findIndex((route) =>
+		route.name === "more" ? moreRoutes.has(focusedName) : route.name === focusedName,
+	);
 
 	return (
-		<Bar activeIndex={props.state.index}>
-			{props.state.routes.map((route, index) => (
+		<Bar activeIndex={focusedCell}>
+			{cells.map((route, index) => (
 				<BarItem
 					key={route.key}
 					label={route.name === "create" ? t`New` : tabLabel(props, route)}
 					icon={appTabIcons[route.name]}
-					focused={index === props.state.index}
+					focused={index === focusedCell}
 					badge={tabBadge(props, route)}
 					badgeTone={quietBadges.has(route.name) ? "quiet" : "accent"}
 					onPress={() => onPress(route)}
@@ -430,25 +451,30 @@ export function AppSidebar(props: BottomTabBarProps) {
 				</Pressable>
 			)}
 			<ScrollView contentContainerStyle={{ flexGrow: 1, gap: space.s0 }} showsVerticalScrollIndicator={false}>
-				{state.routes.map((route, index) => {
-					const icon = appTabIcons[route.name];
-					if (!icon) return null;
-					const badge = tabBadge(props, route);
-					return (
-						<SidebarItem
-							key={route.key}
-							icon={icon}
-							label={tabLabel(props, route)}
-							active={index === state.index && !inTrash}
-							badge={badge}
-							quiet={quietBadges.has(route.name)}
-							compact={compact}
-							onPress={() =>
-								inTrash && route.name === "documents" ? router.navigate(routes.documents()) : onPress(route)
-							}
-						/>
-					);
-				})}
+				{[primaryRoutes, utilityRoutes].map((names, group) => (
+					<View key={group} style={{ gap: space.s0, marginTop: group === 0 ? 0 : space.s2 }}>
+						{names.map((name) => {
+							const index = state.routes.findIndex((route) => route.name === name);
+							const route = state.routes[index];
+							const icon = appTabIcons[name];
+							if (!route || !icon) return null;
+							return (
+								<SidebarItem
+									key={route.key}
+									icon={icon}
+									label={tabLabel(props, route)}
+									active={index === state.index && !inTrash}
+									badge={tabBadge(props, route)}
+									quiet={quietBadges.has(route.name)}
+									compact={compact}
+									onPress={() =>
+										inTrash && route.name === "documents" ? router.navigate(routes.documents()) : onPress(route)
+									}
+								/>
+							);
+						})}
+					</View>
+				))}
 				<View style={{ flex: 1 }} />
 				<SidebarItem
 					icon="trash"

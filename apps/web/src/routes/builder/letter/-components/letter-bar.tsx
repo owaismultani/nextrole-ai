@@ -23,7 +23,7 @@ import { cn } from "@reactive-resume/utils/style";
 import { AssistantButton } from "@/features/assistant/assistant-button";
 import { createLetterFile, letterFileName } from "@/features/letters/export";
 import { useLetterEditorStore } from "@/features/letters/store";
-import { BackLink, DocumentMenuTrigger, DrawerControls } from "@/features/resume/editor/chrome";
+import { ApplicationCrumb, BackLink, DocumentMenuTrigger, DrawerControls } from "@/features/resume/editor/chrome";
 import { useEditorStore } from "@/features/resume/editor/store";
 import { usePrompt } from "@/hooks/use-confirm";
 import { getOrpcErrorMessage, getReadableErrorMessage } from "@/libs/error-message";
@@ -42,15 +42,17 @@ type LetterBarProps = {
  */
 export function LetterBar({ layout, pinnable }: LetterBarProps) {
 	const setShareTab = useEditorStore((state) => state.setShareTab);
+	const applicationId = useLetterEditorStore((state) => state.letter?.sourceApplicationId);
 	// Below 1280 the bar is too narrow for Share's label next to everything else.
 	const wide = useBreakpoint() === "wide";
 
 	return (
 		<header className="grid h-(--editor-bar) grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-line bg-surface px-3">
 			<div className="flex min-w-0 items-center gap-1.5">
-				<BackLink />
+				<BackLink applicationId={applicationId} />
 				{layout === "tablet" && <DrawerControls pinnable={pinnable} />}
 				<div className="flex min-w-0 flex-col items-start">
+					{layout !== "mobile" && <ApplicationCrumb applicationId={applicationId} />}
 					<LetterMenu />
 				</div>
 			</div>
@@ -216,7 +218,7 @@ function LetterMenu() {
 				throw new Error(t`Couldn't save your changes. Try again before continuing.`);
 			await client.documents.trash(ref);
 			void queryClient.invalidateQueries({ queryKey: orpc.documents.key() });
-			void navigate({ to: "/dashboard" });
+			void navigate({ to: "/dashboard/documents" });
 			toast.add({
 				description: t`“${name}” moved to Trash`,
 				actionProps: {

@@ -2,14 +2,16 @@
 // in the tab that made it.
 import type { SavedItem } from "../hooks";
 import type { WorkspaceTabProps } from "../shell";
+import type { ApplicationTarget } from "@/routes";
 import type { IconName } from "@/ui";
-import type { SavedItemKind, WorkspaceTab } from "@reactive-resume/schema/career";
+import type { SavedItemKind } from "@reactive-resume/schema/career";
 import { plural, t } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
+import { resolveWorkspaceTab } from "@reactive-resume/schema/career";
 import { useFacts, useSavedItems } from "../hooks";
 import { Actions, Block, EmptyNotice, tabLabel } from "../parts";
 import { WorkspaceScreen } from "../shell";
@@ -22,7 +24,8 @@ import { withUndo } from "@/features/career/undo";
 import { routes } from "@/routes";
 import { Button, Chip, Icon, IconButton, Skeleton, Text, showToast, useTheme } from "@/ui";
 
-const KINDS: { kind: SavedItemKind; icon: IconName; tab: WorkspaceTab | null }[] = [
+/** The tool each kind of saved work belongs to; the interview tools are sections of Interviews. */
+const KINDS: { kind: SavedItemKind; icon: IconName; tab: ApplicationTarget | null }[] = [
 	{ kind: "fit", icon: "list-checks", tab: "fit" },
 	{ kind: "briefing", icon: "clipboard-text", tab: "prepare" },
 	{ kind: "practice", icon: "user-sound", tab: "practise" },
@@ -121,7 +124,7 @@ type SavedRowProps = {
 	applicationId: string;
 	expanded: boolean;
 	onToggle: () => void;
-	onOpen: (tab: WorkspaceTab) => void;
+	onOpen: (tab: ApplicationTarget) => void;
 	onDelete: () => void;
 };
 
@@ -135,7 +138,7 @@ function SavedRow({ item, applicationId, expanded, onToggle, onOpen, onDelete }:
 	const used = sourcesOf(item);
 	const usedFacts = item.evidence.factIds.flatMap((id) => facts.data?.find((fact) => fact.id === id)?.text ?? []);
 	const tab = meta?.tab ?? null;
-	const tabName = tab ? tabLabel(tab) : "";
+	const tabName = tab ? tabLabel(resolveWorkspaceTab(tab)?.tab ?? "summary") : "";
 	const subtitle = [kindLabel(item.data.kind), when(item.createdAt), used ? t`used ${used}` : ""]
 		.filter(Boolean)
 		.join(" · ");
@@ -181,12 +184,7 @@ function SavedRow({ item, applicationId, expanded, onToggle, onOpen, onDelete }:
 			{tab ? (
 				<Button variant="secondary" size="sm" label={t`Open in ${tabName}`} onPress={() => onOpen(tab)} />
 			) : (
-				<Button
-					variant="secondary"
-					size="sm"
-					label={t`Open in Offers`}
-					onPress={() => router.push(routes.career("offers"))}
-				/>
+				<Button variant="secondary" size="sm" label={t`Open in Offers`} onPress={() => router.push(routes.offers())} />
 			)}
 		</Block>
 	);

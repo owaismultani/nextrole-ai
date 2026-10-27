@@ -1,5 +1,5 @@
 import type { RouterOutput } from "@/libs/orpc/client";
-import type { careerScheduleInputSchema } from "@reactive-resume/schema/career";
+import type { careerScheduleInputSchema, DiscoveryFilters, DiscoverySources } from "@reactive-resume/schema/career";
 import type { IconName } from "@reactive-resume/ui/components/icon";
 import type { ReactNode } from "react";
 import type z from "zod";
@@ -9,6 +9,12 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useRouteContext } from "@tanstack/react-router";
 import { m } from "motion/react";
 import { useId, useState } from "react";
+import {
+	defaultDiscoveryFilters,
+	discoverySourcesSchema,
+	RETRIEVAL_BUDGET,
+	RETRIEVAL_BUDGET_CHOICES,
+} from "@reactive-resume/schema/career";
 import { Button } from "@reactive-resume/ui/components/button";
 import { Icon } from "@reactive-resume/ui/components/icon";
 import { Input } from "@reactive-resume/ui/components/input";
@@ -20,6 +26,8 @@ import { SwitchRow } from "@reactive-resume/ui/components/switch";
 import { toast } from "@reactive-resume/ui/components/toast";
 import { useBreakpoint } from "@reactive-resume/ui/hooks/use-breakpoint";
 import { fromZonedDateTime } from "@reactive-resume/utils/timezone";
+import { cadenceOf, EVERY_VALUES, everyLabel, everyOf, rollForwardMinutes } from "./discovery-run";
+import { FiltersEditor, SearchPreview, SourcesEditor } from "./discovery-sources";
 import { PrivacyLine, Swap, useCareerTime, useNow } from "./shared";
 import { collectInterviews, interviewKindOf } from "@/features/applications/interviews";
 import { applicationsListQueryOptions } from "@/features/applications/queries";
@@ -83,6 +91,17 @@ export function rollForward(at: Date, intervalDays: number, timeZone: string, no
 	return Number.isFinite(candidate.getTime()) ? candidate : at;
 }
 
+/** A repeating schedule's first run after `now`: hours keep a fixed gap, days keep the wall-clock time. */
+export function rollForwardRepeat(
+	at: Date,
+	repeat: Pick<Schedule, "intervalDays" | "intervalMinutes">,
+	timeZone: string,
+	now = new Date(),
+) {
+	if (repeat.intervalMinutes) return rollForwardMinutes(at, repeat.intervalMinutes, now);
+	return repeat.intervalDays ? rollForward(at, repeat.intervalDays, timeZone, now) : at;
+}
+
 /** When a briefing runs; mirrors the server, which recomputes it from the interview on save. */
 const prepareRunAt = (start: Date, lead: Lead, timeZone: string) =>
 	lead === "morning"
@@ -95,6 +114,10 @@ type Draft = {
 	kind: Kind;
 	query: string;
 	every: string;
+	/** Results one discovery run may retrieve from each source. */
+	budget: string;
+	sources: DiscoverySources;
+	filters: DiscoveryFilters;
 	date: string;
 	time: string;
 	interviewId: string;
@@ -153,14 +176,18 @@ export function ScheduleSheet({ schedule, onScheduleChange, onDelete }: Schedule
 		const [head, kind, applicationId] = shown.split(":");
 		const existing = head === "new" ? null : (schedules.find((row) => row.id === shown) ?? null);
 		const at = existing
-			? existing.intervalDays
-				? rollForward(new Date(existing.nextRunAt), existing.intervalDays, timeZone, now)
-				: new Date(existing.nextRunAt)
+			? rollForwardRepeat(new Date(existing.nextRunAt), existing, timeZone, now)
 			: fromZoned(toZoned(new Date(now.getTime() + 86_400_000), timeZone).date, "08:00", timeZone);
 		const initial: Draft = {
 			kind: existing ? (existing.kind as Kind) : (KINDS.find((item) => item === kind) ?? "discovery"),
 			query: existing?.query || [...profile.targetRoles, ...profile.locations].join(" · "),
-			every: String(existing?.intervalDays ?? 1),
+			every: existing ? everyOf(existing) : "m60",
+			budget: String(existing?.retrievalBudget ?? RETRIEVAL_BUDGET.default),
+			// A search saved before sources existed searched the web alone; a new one starts with the free sources too.
+			sources:
+				existing?.sources ??
+				(existing ? { web: true, apis: [], companies: [], followFromSearch: false } : discoverySourcesSchema.parse({})),
+			filters: existing?.filters ?? defaultDiscoveryFilters(profile),
 			...toZoned(at, timeZone),
 			interviewId: existing?.interviewId ?? upcoming[0]?.interview.id ?? "",
 			lead: (existing?.lead as Lead | null) ?? "24h",
@@ -185,10 +212,12 @@ export function ScheduleSheet({ schedule, onScheduleChange, onDelete }: Schedule
 	const runAt =
 		draft?.kind === "prepare" ? (interview ? prepareRunAt(interview.start, draft.lead, timeZone) : null) : null;
 	const enteredAt = draft ? fromZoned(draft.date, draft.time, timeZone) : null;
+	// A schedule on a fixed gap starts as soon as it is saved, so it has no first-run time to choose.
+	const immediate = draft?.kind === "discovery" && Boolean(cadenceOf(draft.every).intervalMinutes);
 	const errors = {
 		query: draft?.kind === "discovery" && draft.query.trim().length < 3 ? t`Add a role or company to look for.` : null,
 		when:
-			draft && draft.kind !== "prepare" && enteredAt && !(enteredAt > now)
+			draft && draft.kind !== "prepare" && !immediate && enteredAt && !(enteredAt > now)
 				? Number.isNaN(enteredAt.getTime())
 					? t`This time does not exist in your timezone. Choose another time.`
 					: t`Pick a time after now.`
@@ -201,7 +230,12 @@ export function ScheduleSheet({ schedule, onScheduleChange, onDelete }: Schedule
 	const blocked =
 		(draft?.kind === "prepare" && (!interview || providers.length === 0)) ||
 		(draft?.kind === "follow-up" && open.length === 0);
-	const needsWebSearch = draft?.kind === "discovery" && webAccess?.search === false;
+	// Job sources and followed companies need no connection; only a web-search-only search does.
+	const needsWebSearch =
+		draft?.kind === "discovery" &&
+		webAccess?.search === false &&
+		!draft.sources.apis.length &&
+		!draft.sources.companies.length;
 
 	const onSave = () => {
 		if (!form || !draft) return;
@@ -222,10 +256,15 @@ export function ScheduleSheet({ schedule, onScheduleChange, onDelete }: Schedule
 				lead: draft.kind === "prepare" ? draft.lead : null,
 				enabled: draft.enabled,
 				email: smtp && verified && draft.email,
-				nextRunAt: runAt ?? fromZoned(draft.date, draft.time, timeZone),
+				nextRunAt: immediate
+					? new Date(form.existing?.nextRunAt ?? now)
+					: (runAt ?? fromZoned(draft.date, draft.time, timeZone)),
+				retrievalBudget: draft.kind === "discovery" ? Number(draft.budget) : null,
+				sources: draft.kind === "discovery" ? draft.sources : null,
+				filters: draft.kind === "discovery" ? draft.filters : null,
 				timezone: timeZone,
 				locale,
-				intervalDays: draft.kind === "discovery" ? Number(draft.every) : null,
+				...(draft.kind === "discovery" ? cadenceOf(draft.every) : { intervalDays: null, intervalMinutes: null }),
 				aiProviderId: draft.kind === "prepare" ? draft.aiProviderId || null : null,
 			},
 			{
@@ -308,21 +347,65 @@ export function ScheduleSheet({ schedule, onScheduleChange, onDelete }: Schedule
 											/>
 										)}
 									</Field>
-									<Segments
+									<Link
+										to="/dashboard/discover"
+										search={{ preferences: true }}
+										className="-mt-3 w-fit text-xs text-accent-text underline underline-offset-2"
+									>
+										<Trans>Edit your job preferences</Trans>
+									</Link>
+									<Field
 										label={t`How often`}
-										value={draft.every}
-										onChange={(every) => set({ every })}
-										options={[
-											{ value: "1", label: t`Every day` },
-											{ value: "3", label: t`Every 3 days` },
-											{ value: "7", label: t`Every week` },
-										]}
+										hint={t`Hourly runs keep a fixed gap. Daily and longer keep the same time of day in ${timeZone}.`}
+									>
+										{(props) => (
+											<NativeSelect
+												{...props}
+												value={draft.every}
+												onChange={(event) => set({ every: event.target.value })}
+												className="pointer-coarse:text-base"
+											>
+												{/* A saved cadence outside the list (2 to 30 days) keeps its own entry. */}
+												{(EVERY_VALUES.includes(draft.every) ? EVERY_VALUES : [...EVERY_VALUES, draft.every]).map(
+													(value) => (
+														<option key={value} value={value}>
+															{everyLabel(value)}
+														</option>
+													),
+												)}
+											</NativeSelect>
+										)}
+									</Field>
+									<Field
+										label={t`Results per source`}
+										hint={t`Roughly the most each job-search source and web search return per run. Followed company boards are always read in full.`}
+									>
+										{(props) => (
+											<NativeSelect
+												{...props}
+												value={draft.budget}
+												onChange={(event) => set({ budget: event.target.value })}
+												className="pointer-coarse:text-base"
+											>
+												{[...new Set([...RETRIEVAL_BUDGET_CHOICES.map(String), draft.budget])].map((value) => (
+													<option key={value} value={value}>
+														{value}
+													</option>
+												))}
+											</NativeSelect>
+										)}
+									</Field>
+									<SourcesEditor
+										sources={draft.sources}
+										country={draft.filters.country}
+										onChange={(sources) => set({ sources })}
 									/>
+									<FiltersEditor filters={draft.filters} locale={locale} onChange={(filters) => set({ filters })} />
+									<SearchPreview query={draft.query} sources={draft.sources} filters={draft.filters} />
 									<p className="flex gap-2.5 rounded-lg bg-info-soft px-3 py-2.5 text-[13px] leading-[19px] text-ink">
 										<Icon name="globe-simple" size={18} className="mt-px shrink-0 text-info-text" />
 										<Trans>
-											Uses the web search service set up in Settings. Results wait in Today for your review;
-											applications and documents are never created for you.
+											New roles wait in Today for your review; applications and documents are never created for you.
 										</Trans>
 									</p>
 								</>
@@ -438,7 +521,12 @@ export function ScheduleSheet({ schedule, onScheduleChange, onDelete }: Schedule
 								</Field>
 							)}
 
-							{draft.kind !== "prepare" && (
+							{immediate && (
+								<p className="text-xs text-ink-3">
+									<Trans>Starts as soon as you save, then repeats on this gap.</Trans>
+								</p>
+							)}
+							{draft.kind !== "prepare" && !immediate && (
 								<div className="grid gap-1.5">
 									<div className="grid grid-cols-2 gap-3">
 										<Field label={dateLabel}>

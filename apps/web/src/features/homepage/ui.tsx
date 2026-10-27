@@ -131,6 +131,7 @@ export function Act({ id, stage, side, kicker, title, lead, children }: ActProps
 		>
 			<div className="mx-auto w-full max-w-[1280px] px-(--gutter)">
 				<div
+					data-copy
 					className={cn(
 						"sticky top-[14vh] grid max-w-[540px] gap-[22px] py-6 max-[900px]:static max-[900px]:pt-[48svh] max-[900px]:pb-[10vh]",
 						side === "end" ? "ms-auto" : "min-[1320px]:ms-24",

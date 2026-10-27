@@ -25,7 +25,7 @@ import {
 	WebGLRenderer,
 } from "three";
 import { createField } from "./formations";
-import { lastStage, readStages, stageAt } from "./progress";
+import { coverAt, lastStage, readCopy, readStages, stageAt } from "./progress";
 
 type SceneOptions = {
 	canvas: HTMLCanvasElement;
@@ -37,7 +37,17 @@ type SceneOptions = {
 	languages: number;
 	/** Called when the GPU drops the context, so the page can show its still fallback. */
 	onLost: () => void;
+	/** Called when the GPU gives the context back, so the page can show the field again. */
+	onRestored: () => void;
 };
+
+/**
+ * On phones the field rides in the top half of the screen above the copy, and every act's copy scrolls up through it.
+ * It glows at this fraction of its full strength while the band is clear and fades to `phoneCovered` of that as copy
+ * fills it, so the copy always reads.
+ */
+const phoneGlow = 0.7;
+const phoneCovered = 0.28;
 
 type Vec = [number, number, number];
 
@@ -371,7 +381,7 @@ export async function startScene(options: SceneOptions): Promise<() => void> {
 		uMix: { value: 0 },
 		uTime: { value: 0 },
 		uPixelRatio: { value: 1 },
-		uSize: { value: narrow() ? 3.6 : 3 },
+		uSize: { value: narrow() ? 2.4 : 3 },
 		uSpinFrom: { value: 0 },
 		uSpinTo: { value: 0 },
 		uScanAmount: { value: 0 },
@@ -457,20 +467,24 @@ export async function startScene(options: SceneOptions): Promise<() => void> {
 	};
 
 	const resize = () => {
+		const width = canvas.clientWidth || window.innerWidth;
+		const height = canvas.clientHeight || window.innerHeight;
 		const pixelRatio = Math.min(window.devicePixelRatio, narrow() ? 1.5 : 2);
 		renderer.setPixelRatio(pixelRatio);
-		renderer.setSize(window.innerWidth, window.innerHeight, false);
-		camera.aspect = window.innerWidth / window.innerHeight;
+		renderer.setSize(width, height, false);
+		camera.aspect = width / height;
 		camera.updateProjectionMatrix();
 		fieldUniforms.uPixelRatio.value = pixelRatio;
-		const height = 2 * Math.tan(MathUtils.degToRad(camera.fov / 2)) * (camera.position.z - nebula.position.z) * 1.2;
-		nebula.scale.set(height * camera.aspect, height, 1);
+		const span = 2 * Math.tan(MathUtils.degToRad(camera.fov / 2)) * (camera.position.z - nebula.position.z) * 1.2;
+		nebula.scale.set(span * camera.aspect, span, 1);
 		nebulaUniforms.uAspect.value = camera.aspect;
 	};
 	resize();
 
 	const pointer = { x: 0, y: 0, targetX: 0, targetY: 0 };
 	const onPointer = (event: PointerEvent) => {
+		// A finger scrolling the page isn't pointing at anything; following it would swing the camera with every swipe.
+		if (event.pointerType !== "mouse") return;
 		pointer.targetX = (event.clientX / window.innerWidth) * 2 - 1;
 		pointer.targetY = (event.clientY / window.innerHeight) * 2 - 1;
 	};
@@ -478,6 +492,7 @@ export async function startScene(options: SceneOptions): Promise<() => void> {
 	const spun = spin.map(() => 0);
 	let current = poseAt(0);
 	let smoothed = stageAt(readStages(root), window.innerHeight);
+	let covered = 0;
 	let time = 0;
 	let last = performance.now();
 	let frame = 0;
@@ -497,14 +512,18 @@ export async function startScene(options: SceneOptions): Promise<() => void> {
 		current = reducedMotion ? target : mixPose(current, target, 1 - Math.exp(-delta * 5));
 
 		const phone = narrow();
+		const cover = phone ? coverAt(readCopy(root), window.innerHeight / 2) : 0;
+		covered = reducedMotion ? cover : covered + (cover - covered) * (1 - Math.exp(-delta * 8));
+		const dim = current.dim * (phone ? phoneGlow * (1 - covered * (1 - phoneCovered)) : 1);
+
 		const side = rtl ? -1 : 1;
 		group.position.set(
 			phone ? 0 : current.position[0] * side,
-			phone ? current.position[1] * 0.3 + 1.9 : current.position[1],
+			phone ? current.position[1] * 0.3 + 1.75 : current.position[1],
 			current.position[2],
 		);
 		group.rotation.set(current.rotation[0], current.rotation[1] * side, current.rotation[2] * side);
-		group.scale.setScalar(phone ? current.scale * 0.56 : current.scale);
+		group.scale.setScalar(phone ? current.scale * 0.5 : current.scale);
 
 		const uniforms = fieldUniforms;
 		uniforms.uMix.value = Math.max(0, Math.min(1, smoothed - index));
@@ -514,13 +533,13 @@ export async function startScene(options: SceneOptions): Promise<() => void> {
 		uniforms.uScanAmount.value = current.scan;
 		uniforms.uScan.value = (time * 1.7) % 9;
 		uniforms.uVoice.value = current.voice;
-		uniforms.uDim.value = current.dim;
+		uniforms.uDim.value = dim;
 
 		const pulse = 1 + Math.sin(time * 1.4) * 0.03 + current.voice * 0.06 * Math.sin(time * 6);
 		core.visible = current.core > 0.02;
 		core.scale.setScalar(Math.max(1e-4, current.core * pulse));
 		coreUniforms.uTime.value = time;
-		coreUniforms.uAlpha.value = Math.min(1, current.core * 1.4) * current.dim;
+		coreUniforms.uAlpha.value = Math.min(1, current.core * 1.4) * dim;
 
 		pointer.x += (pointer.targetX - pointer.x) * 0.045;
 		pointer.y += (pointer.targetY - pointer.y) * 0.045;
@@ -549,19 +568,28 @@ export async function startScene(options: SceneOptions): Promise<() => void> {
 		cancelAnimationFrame(frame);
 		options.onLost();
 	};
+	// Phones drop the context when the browser goes to the background; three.js rebuilds its state when it comes back.
+	const onRestored = () => {
+		options.onRestored();
+		onVisibility();
+	};
 
-	window.addEventListener("resize", resize);
+	// The canvas, not the window: its height is fixed to the large viewport, so a phone's toolbar doesn't resize it.
+	const observer = new ResizeObserver(resize);
+	observer.observe(canvas);
 	window.addEventListener("pointermove", onPointer, { passive: true });
 	document.addEventListener("visibilitychange", onVisibility);
 	canvas.addEventListener("webglcontextlost", onLost);
+	canvas.addEventListener("webglcontextrestored", onRestored);
 	frame = requestAnimationFrame(render);
 
 	return () => {
 		cancelAnimationFrame(frame);
-		window.removeEventListener("resize", resize);
+		observer.disconnect();
 		window.removeEventListener("pointermove", onPointer);
 		document.removeEventListener("visibilitychange", onVisibility);
 		canvas.removeEventListener("webglcontextlost", onLost);
+		canvas.removeEventListener("webglcontextrestored", onRestored);
 		for (const disposable of [
 			geometry,
 			fieldMaterial,

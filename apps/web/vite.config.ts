@@ -85,6 +85,7 @@ export default defineConfig({
 
 	define: {
 		__APP_VERSION__: appVersion,
+		__VERCEL__: JSON.stringify(process.env.VERCEL === "1"),
 	},
 
 	// `vite build` builds the app, then the marketing pages' server entry, then prerenders the pages with it.

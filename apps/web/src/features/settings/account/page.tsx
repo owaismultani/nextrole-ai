@@ -5,8 +5,6 @@ import { Button } from "@reactive-resume/ui/components/button";
 import { Icon } from "@reactive-resume/ui/components/icon";
 import { DataSection } from "./data";
 import { ProfileSection } from "./profile";
-import { SecuritySection } from "./security";
-import { PageHeader } from "@/components/layout/page-header";
 import { authClient } from "@/libs/auth/client";
 
 export function AccountSettings() {
@@ -15,9 +13,7 @@ export function AccountSettings() {
 
 	return (
 		<>
-			<PageHeader title={<Trans>Account</Trans>} />
 			<ProfileSection session={session} />
-			<SecuritySection />
 			<DataSection openDeletion={deleteAccount ?? false} />
 			<div className="border-t border-line pt-6">
 				<SignOutButton />

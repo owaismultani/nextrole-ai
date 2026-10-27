@@ -19,6 +19,8 @@ it("suggests current text models with provider-specific IDs and tolerates incomp
 					audio: { ...model, id: "audio", modalities: { input: ["audio"], output: ["text"] } },
 					image: { ...model, id: "image", modalities: { input: ["text"], output: ["image"] } },
 					embedding: { ...model, id: "embedding", limit: { context: 8192, output: 0 } },
+					reranker: { ...model, id: "reranker", type: "reranking" },
+					typedChat: { ...model, id: "typed-chat", type: "chat", release_date: "2026-07-01" },
 					incomplete: { name: "Incomplete entry" },
 				},
 			},
@@ -33,6 +35,7 @@ it("suggests current text models with provider-specific IDs and tolerates incomp
 		expect(catalog.vercel?.map(({ id, name }) => ({ id, name }))).toEqual([
 			{ id: "openai/gpt-example", name: "GPT Example" },
 			{ id: "anthropic/claude-example", name: "Claude Example" },
+			{ id: "typed-chat", name: "GPT Example" },
 		]);
 		expect(catalog.google?.[0]?.id).toBe("gemini-example");
 		expect(catalog["fireworks-ai"]?.[0]?.id).toBe("accounts/fireworks/models/example");

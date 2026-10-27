@@ -1,26 +1,47 @@
 import z from "zod";
 import {
+	careerAutomationInputSchema,
 	careerFactInputSchema,
 	careerProfileDataSchema,
 	careerScheduleInputSchema,
+	careerSetupLaunchSchema,
 	careerScopeSchema,
 	careerStoryInputSchema,
+	offerTermsSchema,
 	careerWorkspaceSchema,
 	generateTaskSchema,
 } from "@reactive-resume/schema/career";
 import { protectedProcedure } from "../../context";
 import {
+	careerAutomationSchema,
 	careerFactSchema,
+	careerActivityListSchema,
+	careerBaselineReportSchema,
+	careerJourneySchema,
+	careerRunDetailSchema,
+	careerOverviewSchema,
+	careerSearchPreviewSchema,
+	careerSetupStateSchema,
+	careerDocumentOriginSchema,
+	careerPreparationJobSchema,
+	careerRunListSchema,
 	careerNotificationSchema,
+	careerOpportunityDetailSchema,
 	careerOpportunitySchema,
+	careerScheduleListItemSchema,
 	careerScheduleSchema,
 	careerStorySchema,
 	savedItemSchema,
 } from "../../dto/career";
 import { aiRequestRateLimit } from "../../middleware/rate-limit";
+import { paginationShape } from "../../pagination";
+import { careerActivity } from "./activity";
+import { careerAutomation } from "./automation";
 import { generateCareer } from "./generate";
 import { careerJobs } from "./jobs";
+import { careerOverview } from "./overview";
 import { careerService } from "./service";
+import { careerSetup } from "./setup";
 import { careerVoiceRouter } from "./voice";
 
 const id = z.object({ id: z.string().min(1) });
@@ -41,7 +62,7 @@ export const careerRouter = {
 			summary: "List career schedules",
 		})
 		.input(z.object({}))
-		.output(z.array(careerScheduleSchema))
+		.output(z.array(careerScheduleListItemSchema))
 		.handler(({ context }) => careerJobs.list(context.user.id)),
 	saveSchedule: protectedProcedure
 		.route({
@@ -54,6 +75,275 @@ export const careerRouter = {
 		.input(careerScheduleInputSchema.extend({ id: z.string().optional() }))
 		.output(careerScheduleSchema)
 		.handler(({ context, input }) => careerJobs.save(context.user.id, input)),
+	runSchedule: protectedProcedure
+		.route({
+			method: "POST",
+			path: "/career/schedules/{id}/run",
+			tags: ["Career"],
+			operationId: "runCareerSchedule",
+			summary: "Run a discovery schedule now",
+			description:
+				"Queues one discovery run that starts on the next scheduler tick, even if the schedule is paused. The schedule's own timing is unchanged. Returns queued: false when a run is already queued or running.",
+		})
+		.input(id)
+		.output(z.object({ queued: z.boolean() }))
+		.handler(({ context, input }) => careerJobs.runNow(context.user.id, input.id)),
+	setScheduleEnabled: protectedProcedure
+		.route({
+			method: "POST",
+			path: "/career/schedules/{id}/enabled",
+			tags: ["Career"],
+			operationId: "setCareerScheduleEnabled",
+			summary: "Pause or resume a discovery schedule",
+			description:
+				"Pausing cancels queued runs and keeps the schedule's settings. Resuming continues on the schedule's cadence from its next future run.",
+		})
+		.input(id.extend({ enabled: z.boolean() }))
+		.output(careerScheduleSchema)
+		.handler(({ context, input }) => careerJobs.setEnabled(context.user.id, input.id, input.enabled)),
+	automation: protectedProcedure
+		.route({
+			method: "GET",
+			path: "/career/automation",
+			tags: ["Career"],
+			operationId: "getCareerAutomation",
+			summary: "Get automation settings",
+			description:
+				"Discovery (its query, interval and on/off state live on the discovery schedule), automatic document preparation, the baseline resume, the daily generation limit and today's use of it.",
+		})
+		.input(z.object({}))
+		.output(careerAutomationSchema)
+		.handler(({ context }) => careerAutomation.get(context.user.id)),
+	saveAutomation: protectedProcedure
+		.route({
+			method: "PUT",
+			path: "/career/automation",
+			tags: ["Career"],
+			operationId: "saveCareerAutomation",
+			summary: "Save automation settings",
+			description:
+				"Turning discovery on queues the first run at once. Turning a document type off cancels its waiting automatic work; finished documents stay. Turning one on affects future discoveries only.",
+		})
+		.input(careerAutomationInputSchema)
+		.output(careerAutomationSchema)
+		.handler(({ context, input }) => careerAutomation.save(context.user.id, input)),
+	setup: protectedProcedure
+		.route({
+			method: "GET",
+			path: "/career/setup",
+			tags: ["Career"],
+			operationId: "getCareerSetup",
+			summary: "Get first-run setup state",
+			description:
+				"Where guided setup stands: the confirmed baseline resume, whether a search and an AI connection exist, and the discovery schedule. Derived from what is configured.",
+		})
+		.input(z.object({}))
+		.output(careerSetupStateSchema)
+		.handler(({ context }) => careerSetup.get(context.user.id)),
+	validateBaseline: protectedProcedure
+		.route({
+			method: "POST",
+			path: "/career/setup/baseline/check",
+			tags: ["Career"],
+			operationId: "checkCareerBaseline",
+			summary: "Check a resume as a baseline",
+			description:
+				"Completeness checks (contact, summary, dated and detailed experience, education, skills) plus the ATS score. Warnings never block confirming.",
+		})
+		.input(z.object({ resumeId: z.string().min(1) }))
+		.output(careerBaselineReportSchema)
+		.handler(({ context, input }) => careerSetup.validateBaseline(context.user.id, input.resumeId)),
+	confirmBaseline: protectedProcedure
+		.route({
+			method: "POST",
+			path: "/career/setup/baseline",
+			tags: ["Career"],
+			operationId: "confirmCareerBaseline",
+			summary: "Confirm the baseline resume",
+			description:
+				"Records the person's choice of baseline resume. Automation tailors documents from it and never changes it.",
+		})
+		.input(z.object({ resumeId: z.string().min(1) }))
+		.output(careerSetupStateSchema)
+		.handler(({ context, input }) => careerSetup.confirmBaseline(context.user.id, input.resumeId)),
+	previewSearch: protectedProcedure
+		.use(aiRequestRateLimit)
+		.route({
+			method: "POST",
+			path: "/career/setup/preview",
+			tags: ["Career"],
+			operationId: "previewCareerSearch",
+			summary: "Preview a discovery search",
+			description:
+				"Runs the search once with the person's search connection and returns up to eight results. Nothing is saved.",
+		})
+		.input(z.object({ query: z.string().trim().min(3).max(500) }))
+		.output(careerSearchPreviewSchema)
+		.handler(({ context, input }) => careerSetup.previewSearch(context.user.id, input.query)),
+	skipSetup: protectedProcedure
+		.route({
+			method: "POST",
+			path: "/career/setup/skip",
+			tags: ["Career"],
+			operationId: "skipCareerSetup",
+			summary: "Skip guided setup",
+		})
+		.input(z.object({}))
+		.output(careerSetupStateSchema)
+		.handler(({ context }) => careerSetup.skip(context.user.id)),
+	launchSetup: protectedProcedure
+		.route({
+			method: "POST",
+			path: "/career/setup/launch",
+			tags: ["Career"],
+			operationId: "launchCareerSetup",
+			summary: "Finish guided setup and start discovery",
+			description:
+				"Saves document settings and the discovery schedule (reusing an existing one), starts the first search at once and marks setup done. Requires a confirmed baseline.",
+		})
+		.input(careerSetupLaunchSchema)
+		.output(careerSetupStateSchema)
+		.handler(({ context, input }) => careerSetup.launch(context.user.id, input)),
+	overview: protectedProcedure
+		.route({
+			method: "GET",
+			path: "/career/overview",
+			tags: ["Career"],
+			operationId: "getCareerOverview",
+			summary: "Get the job-search overview",
+			description:
+				"One read for the dashboard: what needs attention, where each pipeline step stands and why, a live checklist, discovery health over the window, automation use and upcoming interviews. `days` (7, 14 or 30) bounds the window totals.",
+		})
+		.input(z.object({ days: z.union([z.literal(7), z.literal(14), z.literal(30)]).default(7) }))
+		.output(careerOverviewSchema)
+		.handler(({ context, input }) => careerOverview(context.user.id, input.days)),
+	activity: protectedProcedure
+		.route({
+			method: "GET",
+			path: "/career/activity",
+			tags: ["Career"],
+			operationId: "listCareerActivity",
+			summary: "List what the pipeline did",
+			description:
+				"Recent events (runs, saved jobs, document steps, setting changes), newest first, kept for 30 days. `problems` keeps only warnings and errors. Paginated with limit (default 20) and offset.",
+		})
+		.input(z.object({ ...paginationShape, problems: z.boolean().optional() }))
+		.output(careerActivityListSchema)
+		.handler(({ context, input }) => careerActivity.list(context.user.id, input)),
+	runDetail: protectedProcedure
+		.route({
+			method: "GET",
+			path: "/career/runs/{id}",
+			tags: ["Career"],
+			operationId: "getCareerRun",
+			summary: "Get one discovery run's results",
+			description:
+				"Every search result of the run and what became of it: new, already known, rejected, unreadable or invalid.",
+		})
+		.input(id)
+		.output(careerRunDetailSchema)
+		.handler(({ context, input }) => careerActivity.runDetail(context.user.id, input.id)),
+	journey: protectedProcedure
+		.route({
+			method: "GET",
+			path: "/career/opportunities/{id}/journey",
+			tags: ["Career"],
+			operationId: "getCareerJobJourney",
+			summary: "Get a job's story",
+			description: "The run that found a job and every step taken for it since, oldest first.",
+		})
+		.input(id)
+		.output(careerJourneySchema)
+		.handler(({ context, input }) => careerActivity.journey(context.user.id, input.id)),
+	applicationJourney: protectedProcedure
+		.route({
+			method: "GET",
+			path: "/career/applications/{id}/journey",
+			tags: ["Career"],
+			operationId: "getCareerApplicationJourney",
+			summary: "Get how an application came to be, and what was prepared for it",
+			description:
+				"The discovery run that found the application's job and every step taken for it since. Null for an application added by hand.",
+		})
+		.input(id)
+		.output(careerJourneySchema.nullable())
+		.handler(({ context, input }) => careerActivity.applicationJourney(context.user.id, input.id)),
+	runs: protectedProcedure
+		.route({
+			method: "GET",
+			path: "/career/runs",
+			tags: ["Career"],
+			operationId: "listCareerRuns",
+			summary: "List discovery runs",
+			description:
+				"Discovery runs, newest first, with what each found and the jobs it led to, including the resume and cover letter made for each. Paginated with limit (default 10) and offset. Pass id to get just that run.",
+		})
+		.input(z.object({ ...paginationShape, id: z.string().optional() }))
+		.output(careerRunListSchema)
+		.handler(({ context, input }) => careerAutomation.runs(context.user.id, input)),
+	preparations: protectedProcedure
+		.route({
+			method: "GET",
+			path: "/career/preparations",
+			tags: ["Career"],
+			operationId: "listCareerPreparations",
+			summary: "List document preparation",
+		})
+		.input(z.object({ applicationId: z.string().min(1).optional() }))
+		.output(z.array(careerPreparationJobSchema))
+		.handler(({ context, input }) => careerAutomation.preparations(context.user.id, input.applicationId)),
+	documentOrigins: protectedProcedure
+		.route({
+			method: "GET",
+			path: "/career/document-origins",
+			tags: ["Career"],
+			operationId: "listCareerDocumentOrigins",
+			summary: "List where prepared documents came from",
+			description:
+				"For each document made by document preparation: its application, the baseline resume it started from, and whether it is out of date. Other documents are not listed.",
+		})
+		.input(z.object({}))
+		.output(z.array(careerDocumentOriginSchema))
+		.handler(({ context }) => careerAutomation.documentOrigins(context.user.id)),
+	prepareDocuments: protectedProcedure
+		.route({
+			method: "POST",
+			path: "/career/preparations",
+			tags: ["Career"],
+			operationId: "prepareCareerDocuments",
+			summary: "Prepare documents for chosen jobs",
+			description:
+				"Queues a tailored resume and/or cover letter for existing discovered jobs, using the baseline resume. This is the only way existing jobs are processed.",
+		})
+		.input(
+			z.object({ opportunityIds: z.array(z.string().min(1)).min(1).max(25), resume: z.boolean(), letter: z.boolean() }),
+		)
+		.output(z.object({ queued: z.number() }))
+		.handler(({ context, input }) => careerAutomation.prepare(context.user.id, input)),
+	retryPreparation: protectedProcedure
+		.route({
+			method: "POST",
+			path: "/career/preparations/{id}/retry",
+			tags: ["Career"],
+			operationId: "retryCareerPreparation",
+			summary: "Retry a document step",
+		})
+		.input(id)
+		.output(z.void())
+		.handler(({ context, input }) => careerAutomation.retry(context.user.id, input.id)),
+	regeneratePreparation: protectedProcedure
+		.route({
+			method: "POST",
+			path: "/career/preparations/{id}/regenerate",
+			tags: ["Career"],
+			operationId: "regenerateCareerPreparation",
+			summary: "Regenerate a document",
+			description:
+				"Writes a new generation from the current baseline and posting over the same document. The generation it replaces, including any edits, is kept in the document's version history. A trashed or locked document gets a new one instead. `focus` says what this job's document should lead with; left out, the last focus is kept, and an empty string clears it.",
+		})
+		.input(id.extend({ focus: z.string().trim().max(500).optional() }))
+		.output(z.void())
+		.handler(({ context, input }) => careerAutomation.regenerate(context.user.id, input.id, input.focus)),
 	deleteSchedule: protectedProcedure
 		.route({
 			method: "DELETE",
@@ -95,9 +385,31 @@ export const careerRouter = {
 			operationId: "listCareerOpportunities",
 			summary: "List discovered opportunities",
 		})
-		.input(z.object({}))
+		.input(z.object({ dismissed: z.boolean().default(false) }))
 		.output(z.array(careerOpportunitySchema))
-		.handler(({ context }) => careerJobs.opportunities(context.user.id)),
+		.handler(({ context, input }) => careerJobs.opportunities(context.user.id, input.dismissed)),
+	opportunity: protectedProcedure
+		.route({
+			method: "GET",
+			path: "/career/opportunities/{id}",
+			tags: ["Career"],
+			operationId: "getCareerOpportunity",
+			summary: "Get a discovered opportunity's posting and the run that found it",
+		})
+		.input(id)
+		.output(careerOpportunityDetailSchema)
+		.handler(({ context, input }) => careerJobs.opportunity(context.user.id, input.id)),
+	restoreOpportunity: protectedProcedure
+		.route({
+			method: "POST",
+			path: "/career/opportunities/{id}/restore",
+			tags: ["Career"],
+			operationId: "restoreCareerOpportunity",
+			summary: "Bring a dismissed opportunity back",
+		})
+		.input(id)
+		.output(z.void())
+		.handler(({ context, input }) => careerJobs.restoreOpportunity(context.user.id, input.id)),
 	dismissOpportunity: protectedProcedure
 		.route({
 			method: "DELETE",
@@ -249,6 +561,19 @@ export const careerRouter = {
 		)
 		.output(z.array(savedItemOutput))
 		.handler(({ context, input }) => careerService.savedItems({ userId: context.user.id, ...input })),
+	saveOffer: protectedProcedure
+		.route({
+			method: "POST",
+			path: "/career/offers",
+			tags: ["Career"],
+			operationId: "saveCareerOffer",
+			summary: "Add or correct an offer",
+			description:
+				"Saves the terms of an offer for an application so it can be compared. Pass id to correct an offer already saved. Does not change the application's stage.",
+		})
+		.input(applicationInput.extend({ id: z.string().min(1).optional(), terms: offerTermsSchema }))
+		.output(savedItemOutput)
+		.handler(({ context, input }) => careerService.saveOffer({ userId: context.user.id, ...input })),
 	deleteSavedItem: protectedProcedure
 		.route({
 			method: "DELETE",

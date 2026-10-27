@@ -22,6 +22,7 @@ vi.mock("@/libs/orpc/client", () => ({
 	client: { applications: { ai: { parsePosting: api.parsePosting } } },
 	orpc: {
 		applications: {
+			update: { mutationOptions: () => ({ mutationFn: vi.fn() }) },
 			bulkDelete: { mutationOptions: () => ({ mutationFn: api.bulkDelete }) },
 			bulkUpdate: { mutationOptions: () => ({ mutationFn: api.bulkUpdate }) },
 			create: { mutationOptions: () => ({ mutationFn: api.create }) },
@@ -40,7 +41,7 @@ vi.mock("../use-application-actions", () => ({
 	useInvalidateApplications: () => api.invalidate,
 	useApplicationActions: () => ({ moveTo: api.moveTo, close: api.close, remove: { mutate: api.remove } }),
 }));
-vi.mock("@/hooks/use-confirm", () => ({ useConfirm: () => api.confirm }));
+vi.mock("@/hooks/use-confirm", () => ({ useConfirm: () => api.confirm, usePrompt: () => vi.fn() }));
 vi.mock("@reactive-resume/ui/hooks/use-breakpoint", () => ({ useBreakpoint: () => "desktop" }));
 vi.mock("@/features/settings/integrations/hooks/use-has-usable-ai-provider", () => ({
 	useHasUsableAiProvider: () => ({ hasUsableProvider: true }),

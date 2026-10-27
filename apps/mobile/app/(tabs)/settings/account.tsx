@@ -1,7 +1,6 @@
 import { useLingui } from "@lingui/react/macro";
 import { useQueryClient } from "@tanstack/react-query";
 import { orpc } from "@/api/client";
-import { ApiKeys } from "@/features/settings/api-keys";
 import { openAccountSettings } from "@/features/settings/browser";
 import { ExportDataRow } from "@/features/settings/export";
 import { SettingsGroup, SettingsPage } from "@/features/settings/layout";
@@ -15,14 +14,6 @@ export default function AccountScreen() {
 	const profile = useProfile();
 	const queryClient = useQueryClient();
 	const { size } = useTheme();
-	const browse = () => {
-		void openAccountSettings()
-			.then(async () => {
-				await profile.refetch();
-				await queryClient.invalidateQueries({ queryKey: orpc.auth.apiKeys.list.key() });
-			})
-			.catch(() => showToast({ message: t`Couldn't open the browser. Try again.` }));
-	};
 	return (
 		<SettingsPage
 			title={t`Account`}
@@ -46,43 +37,6 @@ export default function AccountScreen() {
 					<SettingsGroup title={t`Profile`}>
 						<ProfileEditor key={profile.data.id} profile={profile.data} />
 					</SettingsGroup>
-					<SettingsGroup
-						title={t`Sign-in & security`}
-						note={t`These open your server's account settings in a browser tab inside the app. You may need to sign in there.`}
-					>
-						<ListRow
-							title={t`Email`}
-							subtitle={profile.data.email}
-							leading="envelope-simple"
-							trailing={<Icon name="arrow-square-out" />}
-							onPress={browse}
-						/>
-						<ListRow
-							title={t`Password`}
-							leading="password"
-							trailing={<Icon name="arrow-square-out" />}
-							onPress={browse}
-						/>
-						<ListRow
-							title={t`Two-factor authentication`}
-							leading="shield-check"
-							trailing={<Icon name="arrow-square-out" />}
-							onPress={browse}
-						/>
-						<ListRow
-							title={t`Passkeys`}
-							leading="fingerprint"
-							trailing={<Icon name="arrow-square-out" />}
-							onPress={browse}
-						/>
-						<ListRow
-							title={t`Linked accounts`}
-							leading="plugs-connected"
-							trailing={<Icon name="arrow-square-out" />}
-							onPress={browse}
-						/>
-					</SettingsGroup>
-					<ApiKeys userId={profile.data.id} />
 					<SettingsGroup title={t`Your data`}>
 						<ExportDataRow />
 						<ListRow

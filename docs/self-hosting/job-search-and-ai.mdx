@@ -12,15 +12,17 @@ API accounts. This guide adds optional keyword search, enhanced page reading and
 | Built-in reader          | Reads supported public pages.                                                     | Active without credentials.                   |
 | Firecrawl, Tavily or Exa | One selected connection supplies search and enhanced reading.                     | Optional keyword search and enhanced reading. |
 | SearXNG                  | Supplies web search results to your self-hosted Firecrawl service.                | Optional alternative search backend.          |
+| Keyless job sources      | Job APIs, public feeds and company job boards searched by discovery.              | Active without credentials.                   |
+| Keyed job sources        | Adzuna, Reed, Jooble, USAJOBS (and an optional The Muse key).                     | Optional; one key per source.                 |
 | AI provider              | Extracts role, company, salary, requirements and other details from posting text. | AI extraction and other AI features.          |
 
-Reactive Resume calls the selected web service and AI provider separately. Only self-hosted Firecrawl uses SearXNG.
+NextRole AI calls the selected web service and AI provider separately. Only self-hosted Firecrawl uses SearXNG.
 Assistant web search requires a configured Firecrawl, Tavily or Exa connection. Without one, the assistant can
 read supplied public URLs with the built-in reader or work from pasted text.
 
 ## 1. Choose shared services or personal keys
 
-For shared web access, set one provider and key on the Reactive Resume server:
+For shared web access, set one provider and key on the NextRole AI server:
 
 ```dotenv
 WEB_ACCESS_PROVIDER="tavily" # firecrawl, tavily or exa
@@ -43,13 +45,13 @@ You can mix these choices, such as shared web access with personal AI keys. See 
 ## 2. Connect Firecrawl
 
 Follow the official [Firecrawl self-hosting guide](https://docs.firecrawl.dev/contributing/self-host) to deploy its
-API and supporting services. Use the release and Compose files recommended there. Reactive Resume connects to
+API and supporting services. Use the release and Compose files recommended there. NextRole AI connects to
 that service over HTTP.
 
-Add the connection to **Reactive Resume's** environment:
+Add the connection to **NextRole AI's** environment:
 
 ```dotenv
-# Replace with the address reachable from the Reactive Resume server.
+# Replace with the address reachable from the NextRole AI server.
 WEB_ACCESS_PROVIDER="firecrawl"
 WEB_ACCESS_API_URL="http://firecrawl-api:3002"
 # Set only if your Firecrawl deployment requires a bearer key.
@@ -59,7 +61,7 @@ WEB_ACCESS_API_URL="http://firecrawl-api:3002"
 Use the API base URL without `/v2`. A URL alone enables a keyless self-hosted service globally. Keep such a service
 private and follow Firecrawl's [production guidance](https://docs.firecrawl.dev/contributing/self-host#before-production).
 Keep its protections against private destination URLs, unsafe redirects and DNS rebinding enabled; job-posting URLs
-in Reactive Resume must point to public HTTPS destinations.
+in NextRole AI must point to public HTTPS destinations.
 
 For Firecrawl Cloud, use its [quickstart](https://docs.firecrawl.dev/introduction) to get a key, set only
 `WEB_ACCESS_PROVIDER="firecrawl"` and `WEB_ACCESS_API_KEY`, and leave `WEB_ACCESS_API_URL` unset. Requests then go to
@@ -71,11 +73,11 @@ is rejected. Incomplete web-access configuration fails startup.
 `firecrawl-api` above is an example network alias. Replace it with your service's actual name or alias. Containers in
 separate Compose projects need a [shared external network](https://docs.docker.com/compose/how-tos/networking/#use-an-existing-external-network).
 Inside a container, `localhost` points to that container; use the service's container port on a shared network.
-On Kubernetes or another platform, use an address reachable from the Reactive Resume server.
+On Kubernetes or another platform, use an address reachable from the NextRole AI server.
 
 For host-run local development, publish Firecrawl's container port `3002` as host port `3102` to avoid Reactive
 Resume's email preview on `3002`. Add `WEB_ACCESS_PROVIDER="firecrawl"` and
-`WEB_ACCESS_API_URL="http://localhost:3102"` to Reactive Resume's `.env.local`.
+`WEB_ACCESS_API_URL="http://localhost:3102"` to NextRole AI's `.env.local`.
 
 ## 3. Add SearXNG to self-hosted Firecrawl (optional)
 
@@ -101,7 +103,7 @@ SEARXNG_ENDPOINT="http://searxng:8080"
 
 Replace `searxng` with your service name or network alias. Use the base URL without `/search`: Firecrawl appends that
 path and requests JSON, as shown in its [SearXNG adapter](https://github.com/firecrawl/firecrawl/blob/v2.11.162/apps/api/src/search/v2/searxng.ts).
-These variables belong to Firecrawl, not Reactive Resume. Your own SearXNG service is used only when Reactive Resume
+These variables belong to Firecrawl, not NextRole AI. Your own SearXNG service is used only when NextRole AI
 connects to your self-hosted Firecrawl.
 
 Restart SearXNG after changing settings, and recreate Firecrawl's services after changing its environment. To check
@@ -122,7 +124,7 @@ For OpenAI, follow its [API quickstart](https://developers.openai.com/api/docs/q
 [API dashboard](https://platform.openai.com/api-keys), and enable API billing. API usage is
 [billed separately from ChatGPT subscriptions](https://help.openai.com/en/articles/9039756-managing-billing-settings-on-the-chatgpt-web-and-api-platform).
 
-Set these variables on **Reactive Resume**:
+Set these variables on **NextRole AI**:
 
 ```dotenv
 AI_PROVIDER="openai"
@@ -141,12 +143,12 @@ identifier and model. An OpenAI-compatible gateway also needs `AI_BASE_URL`. For
 [AI environment reference](/self-hosting/environment-variables#ai-and-redis). Local or private AI endpoints need
 `FLAG_ALLOW_UNSAFE_AI_BASE_URL=true`; enable it only where you trust every user. Ollama can omit `AI_API_KEY`.
 
-The AI key belongs to Reactive Resume for this workflow. Web services receive search queries and selected public URLs;
+The AI key belongs to NextRole AI for this workflow. Web services receive search queries and selected public URLs;
 they do not need the AI-provider key or candidate resume data.
 
 ## 5. Apply settings and verify the workflow
 
-For the [Docker guide's setup](/self-hosting/docker), put Reactive Resume variables in `.env` and run
+For the [Docker guide's setup](/self-hosting/docker), put NextRole AI variables in `.env` and run
 `docker compose up -d reactive-resume`. The source repository's Compose service is named `reactive_resume` instead.
 For local development, edit `.env.local` and restart `pnpm dev`. On other platforms, update the server's environment
 and restart or redeploy it. Keep keys in server configuration or secret storage, never browser build variables.
@@ -192,9 +194,40 @@ Repeat with `firecrawl` and `exa` after selecting the matching connection. These
 tests establish application behavior; a live provider is verified only when this command succeeds with actual test
 credentials. Do not commit credentials or shell output containing them.
 
+## Job sources
+
+Discovery searches job sources without any setup: Bundesagentur für Arbeit, Himalayas, Jobicy, The Muse, Arbeitnow,
+Remote OK and We Work Remotely, plus the Greenhouse, Lever, Ashby, SmartRecruiters, Recruitee, Personio, Workable and
+Workday boards of companies users follow. The server needs outbound HTTPS to those hosts. Board lists are reused for
+10 minutes within one server process, so many users following one company don't each fetch it.
+
+Keyed sources work with a free account each. Set them for everyone on the server:
+
+```dotenv
+JOB_SOURCE_ADZUNA_APP_ID="replace-with-app-id"
+JOB_SOURCE_ADZUNA_APP_KEY="replace-with-app-key"
+JOB_SOURCE_REED_API_KEY="replace-with-reed-key"
+JOB_SOURCE_JOOBLE_API_KEY="replace-with-jooble-key"
+JOB_SOURCE_USAJOBS_API_KEY="replace-with-usajobs-key"
+JOB_SOURCE_USAJOBS_EMAIL="registered-email@example.com"
+# Optional; raises The Muse's rate limit.
+JOB_SOURCE_THEMUSE_API_KEY="replace-with-muse-key"
+```
+
+A source set here is managed for everyone, and its personal key option is off. Without server keys, users save
+personal keys under **Settings → Integrations → Job sources**; these are encrypted in `job_source_credentials`
+with `ENCRYPTION_SECRET`, like web access keys. Several sources require visible credit and a followed link back to
+the posting; Discover shows each role's source for that reason, so keep it if you customize the interface.
+
+To check that the keyless sources still answer in their documented formats, run the opt-in live test:
+
+```sh
+JOB_SOURCES_LIVE=1 pnpm --filter @reactive-resume/api test src/features/job-sources/live.test.ts
+```
+
 ## Career schedules
 
-The same web connection supports [automatic role discovery](/guides/finding-roles-automatically). Users enable a search schedule in **Career → Today**. Interview briefings use AI separately, and users must enable their preparation schedule too. Work runs on the server while the browser is closed.
+Web search and the job sources above supply [automatic role discovery](/guides/finding-roles-automatically). Users enable a search schedule in **Discover**. Interview briefings use AI separately, and users must enable their preparation schedule too. Work runs on the server while the browser is closed.
 
 Node.js and Docker run the scheduler in the long-running server. Vercel uses the checked-in cron configuration and requires `CRON_SECRET`; Cloudflare uses its Cron Trigger. Check platform limits and verify a due reminder in a dedicated test installation. See [Operating scheduled work](/contributing/career-platform#operate-scheduled-work) for setup, delivery and retry details.
 

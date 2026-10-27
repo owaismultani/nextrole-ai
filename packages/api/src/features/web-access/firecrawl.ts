@@ -1,7 +1,7 @@
 import type { ProviderRequest } from "./contracts";
 import z from "zod";
 import { htmlToText } from "./builtin";
-import { MAX_PAGE_BYTES, WebAccessError } from "./contracts";
+import { MAX_PAGE_BYTES, searchLimit, WebAccessError } from "./contracts";
 import { normalizeSearch, parseResponse, postJson } from "./transport";
 
 function request(path: string, body: unknown, { connection, signal }: ProviderRequest) {
@@ -51,10 +51,26 @@ const itemSchema = z.object({
 	title: z.string(),
 	description: z.string().optional(),
 });
+/** Firecrawl filters by coarse recency buckets (hour, day, week, month); pick the smallest that covers `since`. */
+const recencyBucket = (since: Date) => {
+	const hours = (Date.now() - since.getTime()) / 3_600_000;
+	return hours <= 1 ? "qdr:h" : hours <= 24 ? "qdr:d" : hours <= 168 ? "qdr:w" : "qdr:m";
+};
+
 export async function searchFirecrawl(query: string, options: ProviderRequest) {
 	const { data: result } = parseResponse(
 		z.object({ success: z.literal(true), data: searchSchema }),
-		await request("search", { query, sources: ["web"], limit: 5, timeout: 14_000 }, options),
+		await request(
+			"search",
+			{
+				query,
+				sources: ["web"],
+				limit: searchLimit(options.search, "firecrawl"),
+				timeout: 14_000,
+				...(options.search?.since ? { tbs: recencyBucket(options.search.since) } : {}),
+			},
+			options,
+		),
 	);
 	return normalizeSearch(
 		result.web.flatMap((value) => {

@@ -1,9 +1,9 @@
 ---
 title: "Environment variables"
-description: "Every environment variable a self-hosted Reactive Resume server reads: required settings, database, sign-in, email, storage, AI, Redis and feature flags."
+description: "Every environment variable a self-hosted NextRole AI server reads: required settings, database, sign-in, email, storage, AI, Redis and feature flags."
 ---
 
-Reactive Resume is configured entirely through environment variables. This page lists every variable the server reads,
+NextRole AI is configured entirely through environment variables. This page lists every variable the server reads,
 grouped by what it controls. Only three are required: `APP_URL`, `DATABASE_URL` and `AUTH_SECRET`.
 
 For a working setup, start with [Self-hosting with Docker](/self-hosting/docker) and come back here when you want to
@@ -105,8 +105,8 @@ whitespace around each value is ignored.
 
 | Variable                     | Description                                                                                                                                                                                   |
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `MOBILE_IOS_APP_IDS`         | Apple application identifiers, such as `ABCDE12345.me.rxresu` (`TEAMID.bundle.id`). Serves `/.well-known/apple-app-site-association` with `applinks` and `webcredentials`.                    |
-| `MOBILE_ANDROID_PACKAGES`    | Android package names, such as `me.rxresu`. Together with the fingerprints below, serves `/.well-known/assetlinks.json`.                                                                      |
+| `MOBILE_IOS_APP_IDS`         | Apple application identifiers, such as `ABCDE12345.com.example.nextrole` (`TEAMID.bundle.id`). Serves `/.well-known/apple-app-site-association` with `applinks` and `webcredentials`.         |
+| `MOBILE_ANDROID_PACKAGES`    | Android package names, such as `com.example.nextrole`. Together with the fingerprints below, serves `/.well-known/assetlinks.json`.                                                           |
 | `MOBILE_ANDROID_CERT_SHA256` | Colon-separated SHA-256 certificate fingerprints (32 hexadecimal byte pairs). Every listed package trusts every listed fingerprint; include the Play app-signing certificate for Play builds. |
 
 The app must also configure its associated domains or Android intent filters for your HTTPS host. Links cover
@@ -132,7 +132,7 @@ Its callback URL is `APP_URL` followed by `/api/auth/callback/custom`.
 
 ## Email
 
-Reactive Resume sends email for account verification, password resets and email changes. Sending turns on only when
+NextRole AI sends email for account verification, password resets and email changes. Sending turns on only when
 `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS` and `SMTP_FROM` are all set. Until then, each email is written to the server log
 instead, so you can still copy verification links from there.
 
@@ -142,7 +142,7 @@ instead, so you can still copy verification links from there.
 | `SMTP_PORT`   | `587`   | SMTP server port.                                                                                                                                           |
 | `SMTP_USER`   | unset   | SMTP username.                                                                                                                                              |
 | `SMTP_PASS`   | unset   | SMTP password.                                                                                                                                              |
-| `SMTP_FROM`   | unset   | Sender address, for example `Reactive Resume <noreply@example.com>`.                                                                                        |
+| `SMTP_FROM`   | unset   | Sender address, for example `NextRole AI <noreply@example.com>`.                                                                                            |
 | `SMTP_SECURE` | `false` | `true` connects with TLS from the start (usually port `465`). `false` upgrades the connection with STARTTLS when the server offers it (usually port `587`). |
 
 ## Storage

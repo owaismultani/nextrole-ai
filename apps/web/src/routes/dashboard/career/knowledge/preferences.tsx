@@ -1,6 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { PreferencesPage } from "@/features/career/knowledge/preferences";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/dashboard/career/knowledge/preferences")({
-	component: PreferencesPage,
+	beforeLoad: () => {
+		throw redirect({ to: "/dashboard/discover", search: { preferences: true }, replace: true });
+	},
 });

@@ -13,7 +13,6 @@ import { Linking, Pressable, View } from "react-native";
 import { latest, useDraft, useGenerate, useSavedItems, useStories, workspaceError } from "../hooks";
 import { acceptedAudioType, clock, MAX_SECONDS, writeNumbersAsDigits } from "../logic";
 import { Actions, Block, PrivacyLine, Progress, useWorking, workingSteps } from "../parts";
-import { WorkspaceScreen } from "../shell";
 import { afterTranscribed, createRequests, playLatest } from "../state";
 import { deleteQuietly, speak, transcribe, usePlayer, useRecorder, useVoiceSettings } from "../voice";
 import { client } from "@/api/client";
@@ -53,11 +52,7 @@ type Step =
 
 const isAttempt = (item: SavedItem): item is Attempt => item.data.kind === "practice";
 
-export function PractiseTab() {
-	return <WorkspaceScreen tab="practise">{(props) => <Practise {...props} />}</WorkspaceScreen>;
-}
-
-function Practise({ application, version, interview, speak: speakFirst, story, now, go }: WorkspaceTabProps) {
+export function Practise({ application, version, interview, speak: speakFirst, story, now, go }: WorkspaceTabProps) {
 	const { t } = useLingui();
 	const { space } = useTheme();
 	const saved = useSavedItems(application.id);

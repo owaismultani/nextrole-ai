@@ -11,7 +11,6 @@ import { useState } from "react";
 import { View } from "react-native";
 import { latest, useFacts, useGenerate, useSavedItems, useWorkspace, workspaceError } from "../hooks";
 import { Actions, AiNotice, Block, EmptyNotice, StatusPill, useWorking, workingSteps } from "../parts";
-import { WorkspaceScreen } from "../shell";
 import { orpc } from "@/api/client";
 import { useHasAIProvider } from "@/features/ai/providers";
 import { Button, Icon, Skeleton, Text, TextArea, showToast, useTheme } from "@/ui";
@@ -19,11 +18,7 @@ import { Button, Icon, Skeleton, Text, TextArea, showToast, useTheme } from "@/u
 type FitItem = SavedItem & { data: SavedData<"fit"> };
 type Requirement = SavedData<"fit">["requirements"][number];
 
-export function FitTab() {
-	return <WorkspaceScreen tab="fit">{(props) => <Fit {...props} />}</WorkspaceScreen>;
-}
-
-function Fit({ application, version }: WorkspaceTabProps) {
+export function Fit({ application, version }: WorkspaceTabProps) {
 	const { t } = useLingui();
 	const { space } = useTheme();
 	const queryClient = useQueryClient();

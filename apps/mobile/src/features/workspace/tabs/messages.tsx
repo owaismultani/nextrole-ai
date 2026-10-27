@@ -230,7 +230,7 @@ function ProposalCard({ reply, application, now, readOnly }: ProposalCardProps) 
 					: "";
 				return {
 					title: t`Save these offer terms to compare`,
-					detail: summary ? t`${summary}. Opens in Career → Offers.` : t`Opens in Career → Offers.`,
+					detail: summary ? t`${summary}. Opens in Applications → Offers.` : t`Opens in Applications → Offers.`,
 				};
 			}
 		}

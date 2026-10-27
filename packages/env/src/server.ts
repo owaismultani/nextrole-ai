@@ -200,6 +200,15 @@ export const env = createEnv({
 		WEB_ACCESS_PROVIDER: z.enum(["firecrawl", "tavily", "exa"]).optional(),
 		WEB_ACCESS_API_KEY: z.string().trim().min(1).optional(),
 		WEB_ACCESS_API_URL: z.url({ protocol: /^https?$/ }).optional(),
+
+		// Optional shared keys for keyed job sources. When set, users can't save a personal key for that source.
+		JOB_SOURCE_ADZUNA_APP_ID: z.string().trim().min(1).optional(),
+		JOB_SOURCE_ADZUNA_APP_KEY: z.string().trim().min(1).optional(),
+		JOB_SOURCE_REED_API_KEY: z.string().trim().min(1).optional(),
+		JOB_SOURCE_JOOBLE_API_KEY: z.string().trim().min(1).optional(),
+		JOB_SOURCE_USAJOBS_API_KEY: z.string().trim().min(1).optional(),
+		JOB_SOURCE_USAJOBS_EMAIL: z.email().optional(),
+		JOB_SOURCE_THEMUSE_API_KEY: z.string().trim().min(1).optional(),
 		AI_PROVIDER: aiProviderSchema.optional(),
 		AI_MODEL: z.string().trim().min(1).optional(),
 		AI_API_KEY: z.string().trim().min(1).optional(),

@@ -18,8 +18,8 @@ import { useIsTablet } from "@/shell/use-is-tablet";
 import { useReducedMotion, useTheme } from "@/ui";
 
 /**
- * Five tabs: Documents, Applications, the raised "+" (opens New as a modal), Career, Settings. Phone: the bottom tab
- * bar. Tablet: the 240 pt sidebar. The offline strip (from the network state) sits under the status bar above every
+ * Overview, Discover, the raised "+" (opens New as a modal), Applications, Documents and More on the phone bar; Profile,
+ * Coach, Automation and Settings are hidden tabs reached from More. Tablet: the 240 pt sidebar lists them all. The offline strip (from the network state) sits under the status bar above every
  * tab. Screens end at the top of the keyboard.
  */
 export default function TabsLayout() {
@@ -69,8 +69,8 @@ export default function TabsLayout() {
 										tabBarPosition: tablet ? "left" : "bottom",
 									}}
 								>
-									<Tabs.Screen name="documents" options={{ title: t`Documents` }} />
-									<Tabs.Screen name="applications" options={{ title: t`Applications` }} />
+									<Tabs.Screen name="overview" options={{ title: t`Overview` }} />
+									<Tabs.Screen name="discover" options={{ title: t`Discover` }} />
 									<Tabs.Screen
 										name="create"
 										options={{ title: t`New` }}
@@ -81,8 +81,15 @@ export default function TabsLayout() {
 											},
 										}}
 									/>
-									<Tabs.Screen name="career" options={{ title: t`Career` }} />
-									<Tabs.Screen name="settings" options={{ title: t`Settings` }} />
+									<Tabs.Screen name="applications" options={{ title: t`Applications` }} />
+									<Tabs.Screen name="documents" options={{ title: t`Documents` }} />
+									<Tabs.Screen name="more" options={{ title: t`More` }} />
+									{/* Reached from More (phone) or the sidebar (tablet), not from a bar cell. */}
+									<Tabs.Screen name="knowledge" options={{ title: t`Knowledge`, href: null }} />
+									<Tabs.Screen name="coach" options={{ title: t`Coach`, href: null }} />
+									<Tabs.Screen name="automation" options={{ title: t`Automation`, href: null }} />
+									<Tabs.Screen name="settings" options={{ title: t`Settings`, href: null }} />
+									<Tabs.Screen name="career" options={{ title: t`Career`, href: null }} />
 								</Tabs>
 							</SafeAreaProvider>
 						</SafeAreaView>

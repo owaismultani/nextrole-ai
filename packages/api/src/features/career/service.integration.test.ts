@@ -8,7 +8,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as tables from "@reactive-resume/db/schema";
 import { copyCoverLetterStyle } from "@reactive-resume/resume/cover-letter";
-import { careerProfileDataSchema, savedItemDataSchema } from "@reactive-resume/schema/career";
+import { careerProfileDataSchema, offerTermsSchema, savedItemDataSchema } from "@reactive-resume/schema/career";
 import { defaultResumeData } from "@reactive-resume/schema/resume/default";
 
 const fixture = vi.hoisted(() => ({
@@ -1333,4 +1333,33 @@ describe.skipIf(!databaseUrl)("career knowledge, context and data lifecycle", ()
 			}
 		},
 	);
+
+	it("saves an offer for an application, corrects it in place, and keeps it private to its owner", async () => {
+		const terms = offerTermsSchema.parse({ currency: "EUR", period: "year", base: 90_000, variable: null });
+		const saved = await service.saveOffer({ userId: "alice", applicationId: "alice-app", terms });
+		expect(saved).toMatchObject({
+			title: "ACME · Written offer",
+			data: { kind: "offer", base: 90_000 },
+			application: { company: "ACME" },
+			outdated: false,
+		});
+
+		const corrected = await service.saveOffer({
+			userId: "alice",
+			applicationId: "alice-app",
+			id: saved.id,
+			terms: { ...terms, base: 95_000, version: "verbal" },
+		});
+		expect(corrected).toMatchObject({ id: saved.id, title: "ACME · Verbal offer", data: { base: 95_000 } });
+		expect(await service.savedItems({ userId: "alice", kind: "offer" })).toHaveLength(1);
+
+		// An offer that is not this application's, or does not exist, cannot be corrected.
+		await expect(
+			service.saveOffer({ userId: "alice", applicationId: "alice-app", id: "missing", terms }),
+		).rejects.toMatchObject({ code: "NOT_FOUND" });
+		await expect(service.saveOffer({ userId: "bob", applicationId: "alice-app", terms })).rejects.toBeDefined();
+		expect(await service.savedItems({ userId: "bob", kind: "offer" })).toEqual([]);
+		// Recording an offer leaves the application where it was.
+		expect((await applications.getById({ id: "alice-app", userId: "alice" })).status).toBe("saved");
+	});
 });

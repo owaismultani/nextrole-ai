@@ -9,7 +9,7 @@ import { ORPCError } from "@orpc/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { buttonVariants } from "@reactive-resume/ui/components/button";
+import { Button, buttonVariants } from "@reactive-resume/ui/components/button";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -25,10 +25,10 @@ import {
 } from "@reactive-resume/ui/components/dropdown-menu";
 import { Icon } from "@reactive-resume/ui/components/icon";
 import { IconButton } from "@reactive-resume/ui/components/icon-button";
-import { Sheet, SheetContent, SheetTitle } from "@reactive-resume/ui/components/sheet";
+import { Popover, PopoverContent, PopoverTrigger } from "@reactive-resume/ui/components/popover";
 import { Spinner } from "@reactive-resume/ui/components/spinner";
+import { SwitchRow } from "@reactive-resume/ui/components/switch";
 import { toast } from "@reactive-resume/ui/components/toast";
-import { useBreakpoint } from "@reactive-resume/ui/hooks/use-breakpoint";
 import { cn } from "@reactive-resume/utils/style";
 import {
 	CoachThread,
@@ -40,7 +40,9 @@ import {
 	useConversationDate,
 } from "./coach-thread";
 import { CareerLoadError } from "./load-state";
-import { ContextChip, Eyebrow, PrivacyLine } from "./shared";
+import { useDayOffset } from "./section";
+import { Eyebrow, PrivacyLine, useNow } from "./shared";
+import { applicationsListQueryOptions } from "@/features/applications/queries";
 import { transcriptOf, useConversationConnection } from "@/features/assistant/chat";
 import { ProviderSetup } from "@/features/assistant/provider-setup";
 import { AiProviderLoadState } from "@/features/settings/integrations/ai-provider-load-state";
@@ -105,8 +107,6 @@ export function CoachPage({ conversationId, offerIds: routeOfferIds }: CoachPage
 	const { i18n } = useLingui();
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
-	const breakpoint = useBreakpoint();
-	const wide = breakpoint === "desktop" || breakpoint === "wide";
 	const providers = useHasUsableAiProvider();
 	const threads = useQuery(orpc.agent.threads.list.queryOptions());
 	const knowledge = useCoachKnowledge(null);
@@ -186,7 +186,7 @@ export function CoachPage({ conversationId, offerIds: routeOfferIds }: CoachPage
 		writeOfferIds(id, offerIds);
 		setSession((current) => ({ ...current, created: id }));
 		void navigate({
-			to: "/dashboard/career/coach/{-$conversationId}",
+			to: "/dashboard/coach/{-$conversationId}",
 			params: { conversationId: id },
 			search: offerIds.length > 0 ? { offers: offerIds } : {},
 			replace: true,
@@ -236,7 +236,7 @@ export function CoachPage({ conversationId, offerIds: routeOfferIds }: CoachPage
 			() => {
 				setHidden((current) => new Set(current).add(thread.id));
 				if (thread.id === threadId)
-					void navigate({ to: "/dashboard/career/coach/{-$conversationId}", params: { conversationId: undefined } });
+					void navigate({ to: "/dashboard/coach/{-$conversationId}", params: { conversationId: undefined } });
 			},
 			() =>
 				setHidden((current) => {
@@ -274,50 +274,116 @@ export function CoachPage({ conversationId, offerIds: routeOfferIds }: CoachPage
 		</PrivacyLine>
 	);
 
+	const activeContext = [chips.application, chips.memory, chips.web, offerIds.length > 0 && chips.offers].filter(
+		Boolean,
+	).length;
 	const contextChips = (
 		<>
 			{chips.memory && knowledge.isError && <CareerLoadError onRetry={knowledge.retry} />}
-			<ContextChip
-				pressed={chips.application}
-				onPressedChange={(application) => setChips({ ...chips, application })}
-				label={t`Applications`}
-				tooltip={t`Summaries of your open applications`}
-			/>
-			<ContextChip
-				pressed={chips.memory}
-				onPressedChange={(memory) => setChips({ ...chips, memory })}
-				label={plural(knowledge.active.length, { one: "Knowledge · # fact", other: "Knowledge · # facts" })}
-				tooltip={t`Facts, stories and preferences that are switched on in Knowledge`}
-			/>
-			<ContextChip
-				pressed={chips.web}
-				onPressedChange={(web) => setChips({ ...chips, web })}
-				label={t`Web research`}
-				tooltip={t`Lets the coach search public pages through your web search service`}
-				offIcon="globe-hemisphere-west"
-			/>
-			{offerIds.length > 0 && (
-				<ContextChip
-					pressed={chips.offers}
-					onPressedChange={(offers) => setChips({ ...chips, offers })}
-					label={plural(offerIds.length, { one: "# saved offer", other: "# saved offers" })}
-					tooltip={t`The offers you chose to compare, with their terms`}
-				/>
-			)}
+			<Popover>
+				<PopoverTrigger
+					render={
+						<button
+							type="button"
+							aria-label={t`Choose what the coach can use`}
+							className="inline-flex h-7 items-center gap-1.5 rounded-sm border border-line-2 bg-sunken px-2.5 text-xs font-medium text-ink-2 transition-colors duration-quick hover:text-ink aria-expanded:text-ink"
+						/>
+					}
+				>
+					<Icon name="sliders-horizontal" size={16} />
+					<Trans>Context</Trans>
+					<span className="font-mono text-ink-3">{activeContext}</span>
+				</PopoverTrigger>
+				<PopoverContent align="start" side="top" className="w-[340px] gap-1 p-2">
+					<p className="px-2 pt-1 pb-1 text-xs text-ink-3">
+						<Trans>What this message can use. Earlier messages in this chat always go.</Trans>
+					</p>
+					<SwitchRow
+						checked={chips.application}
+						onCheckedChange={(application) => setChips({ ...chips, application })}
+						label={<span className="font-medium">{t`Applications`}</span>}
+						description={t`Summaries of your open applications`}
+						className="rounded-lg px-2 py-2"
+					/>
+					<SwitchRow
+						checked={chips.memory}
+						onCheckedChange={(memory) => setChips({ ...chips, memory })}
+						label={
+							<span className="font-medium">
+								{plural(knowledge.active.length, { one: "Knowledge · # fact", other: "Knowledge · # facts" })}
+							</span>
+						}
+						description={t`Facts, stories and preferences that are switched on in Knowledge`}
+						className="rounded-lg px-2 py-2"
+					/>
+					<SwitchRow
+						checked={chips.web}
+						onCheckedChange={(web) => setChips({ ...chips, web })}
+						label={<span className="font-medium">{t`Web research`}</span>}
+						description={t`Lets the coach search public pages through your web search service`}
+						className="rounded-lg px-2 py-2"
+					/>
+					{offerIds.length > 0 && (
+						<SwitchRow
+							checked={chips.offers}
+							onCheckedChange={(offers) => setChips({ ...chips, offers })}
+							label={
+								<span className="font-medium">
+									{plural(offerIds.length, { one: "# saved offer", other: "# saved offers" })}
+								</span>
+							}
+							description={t`The offers you chose to compare, with their terms`}
+							className="rounded-lg px-2 py-2"
+						/>
+					)}
+				</PopoverContent>
+			</Popover>
 		</>
 	);
 
 	const header = (messages: readonly UIMessage[]) => (
-		<header className="flex h-12 shrink-0 items-center gap-2 border-b border-line ps-4 pe-2">
-			{!wide && (
-				<IconButton
-					icon="clock-counter-clockwise"
-					label={t`Conversations`}
-					size="icon-sm"
-					className="-ms-2 text-ink-2"
-					onClick={() => setRailOpen(true)}
-				/>
-			)}
+		<header className="flex h-12 shrink-0 items-center gap-2 border-b border-line px-6 max-sm:px-3">
+			<Popover open={railOpen} onOpenChange={setRailOpen}>
+				<PopoverTrigger
+					render={
+						<button
+							type="button"
+							aria-label={t`Conversations`}
+							className="-ms-2 inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-ink-2 transition-colors duration-quick hover:bg-hover hover:text-ink aria-expanded:bg-hover aria-expanded:text-ink"
+						/>
+					}
+				>
+					<Icon name="clock-counter-clockwise" size={18} />
+					<span className="text-xs font-medium max-sm:sr-only">
+						<Trans>History</Trans>
+					</span>
+				</PopoverTrigger>
+				<PopoverContent align="start" side="bottom" className="flex max-h-[70svh] w-[340px] gap-0 overflow-hidden p-3">
+					{rail}
+				</PopoverContent>
+			</Popover>
+			<Button
+				variant="ghost"
+				size="sm"
+				className="text-ink-2"
+				nativeButton={false}
+				render={<Link to="/dashboard/knowledge/facts" />}
+			>
+				<Icon name="list-checks" size={18} />
+				<span className="max-sm:sr-only">
+					<Trans>Knowledge</Trans>
+				</span>
+			</Button>
+			<Button
+				variant="ghost"
+				size="icon-sm"
+				className="text-ink-2"
+				aria-label={t`New conversation`}
+				nativeButton={false}
+				render={<Link to="/dashboard/coach/{-$conversationId}" params={{ conversationId: undefined }} />}
+			>
+				<Icon name="note-pencil" size={18} />
+			</Button>
 			<Icon name="sparkle" size={20} className="shrink-0 text-accent-text" />
 			<h2 className="me-auto min-w-0 truncate text-sm font-semibold">{titleFor(summary)}</h2>
 			{(usable.length > 0 || summary) && (
@@ -349,9 +415,13 @@ export function CoachPage({ conversationId, offerIds: routeOfferIds }: CoachPage
 	const notSetUp = threads.error instanceof ORPCError && threads.error.code === "PRECONDITION_FAILED";
 	const noProvider = !providers.isUnavailable && !providers.hasUsableProvider;
 
+	const jobConversations = (threads.data ?? [])
+		.filter((thread) => thread.scope === "application" && thread.applicationId && !hidden.has(thread.id))
+		.slice(0, 8);
 	const rail = (
 		<ConversationRail
 			threads={conversations}
+			jobThreads={jobConversations}
 			currentId={threadId}
 			onNavigate={() => setRailOpen(false)}
 			onRename={(thread, title) => void rename(thread, title)}
@@ -361,25 +431,9 @@ export function CoachPage({ conversationId, offerIds: routeOfferIds }: CoachPage
 
 	return (
 		// The card fills what's left of the page height and scrolls inside.
-		<div className="relative min-h-[560px] flex-1">
-			<div className="absolute inset-0 grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
-				{wide ? (
-					rail
-				) : (
-					<Sheet open={railOpen} onOpenChange={setRailOpen}>
-						<SheetContent side="left" closeLabel={t`Close`} className="p-4 pt-5 data-[side=left]:sm:max-w-[320px]">
-							<SheetTitle>
-								<Trans>Conversations</Trans>
-							</SheetTitle>
-							{rail}
-						</SheetContent>
-					</Sheet>
-				)}
-
-				<section
-					aria-label={t`Coach`}
-					className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-line bg-surface"
-				>
+		<div className="relative min-h-[480px] flex-1">
+			<div className="absolute inset-0 grid">
+				<section aria-label={t`Coach`} className="flex min-h-0 min-w-0 flex-col">
 					{notSetUp ? (
 						<>
 							{header([])}
@@ -466,7 +520,7 @@ function EmptyState({ disabled, onPick }: EmptyStateProps) {
 	return (
 		<div className="grid gap-6 pt-[clamp(0px,6vh,48px)]">
 			<div className="grid gap-3">
-				<h3 className="font-display text-[30px] leading-9 font-medium">
+				<h3 className="font-display text-[30px] leading-9 font-[750] tracking-[-0.035em]">
 					<Trans>What are you working on?</Trans>
 				</h3>
 				<p className="text-[15px] leading-[23px] text-ink-2">
@@ -483,7 +537,7 @@ function EmptyState({ disabled, onPick }: EmptyStateProps) {
 						type="button"
 						disabled={disabled}
 						onClick={() => onPick(starter.text)}
-						className="flex min-h-[112px] flex-col items-start gap-3 rounded-xl border border-line bg-raised p-3.5 text-start text-sm leading-5 shadow-e1 transition-[box-shadow,scale] duration-quick ease-enter hover:shadow-e2 enabled:active:scale-[0.98] disabled:opacity-60"
+						className="flex min-h-[128px] flex-col items-start gap-3 rounded-xl border border-line bg-raised p-3.5 text-start text-sm leading-5 shadow-e1 transition-[box-shadow,scale] duration-quick ease-enter hover:shadow-e2 enabled:active:scale-[0.98] disabled:opacity-60"
 					>
 						<Icon name={starter.icon} size={22} className="text-accent-text" />
 						{starter.text}
@@ -543,20 +597,29 @@ function ModelChip({ open, onOpenChange, providers, current, label, onChoose }: 
 
 type ConversationRailProps = {
 	threads: ThreadSummary[];
+	/** Conversations about one job, which live in that job's workspace. */
+	jobThreads: ThreadSummary[];
 	currentId: string | null;
 	onNavigate: () => void;
 	onRename: (thread: ThreadSummary, title: string) => void;
 	onDelete: (thread: ThreadSummary) => void;
 };
 
-function ConversationRail({ threads, currentId, onNavigate, onRename, onDelete }: ConversationRailProps) {
+function ConversationRail({ threads, jobThreads, currentId, onNavigate, onRename, onDelete }: ConversationRailProps) {
 	const when = useConversationDate();
+	const now = useNow();
+	const dayOffset = useDayOffset();
+	const dayGroup = (thread: ThreadSummary) => {
+		const offset = dayOffset(thread.lastMessageAt, now);
+		return offset === 0 || offset === 1 ? "today" : offset === -1 ? "yesterday" : "earlier";
+	};
+	const applications = useQuery(applicationsListQueryOptions());
 	const [renaming, setRenaming] = useState<string | null>(null);
 
 	return (
 		<nav aria-label={t`Conversations`} className="flex min-h-0 flex-1 flex-col gap-4">
 			<Link
-				to="/dashboard/career/coach/{-$conversationId}"
+				to="/dashboard/coach/{-$conversationId}"
 				params={{ conversationId: undefined }}
 				onClick={onNavigate}
 				className={cn(buttonVariants({ variant: "secondary" }), "justify-start gap-2")}
@@ -565,42 +628,84 @@ function ConversationRail({ threads, currentId, onNavigate, onRename, onDelete }
 				<Trans>New conversation</Trans>
 			</Link>
 
-			<div className="flex min-h-0 flex-1 flex-col gap-1.5">
-				<Eyebrow className="px-2.5">
-					<Trans>Recent</Trans>
-				</Eyebrow>
-				<ul className="-mx-1 grid min-h-0 flex-1 content-start gap-0.5 overflow-y-auto px-1">
-					{currentId === null && (
-						<li aria-current="page" className="grid gap-0.5 rounded-lg bg-sunken px-2.5 py-2">
-							<span className="text-[13px] leading-[18px] font-medium">
+			<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
+				{currentId === null && (
+					<ul className="grid gap-0.5">
+						<li aria-current="page" className="grid gap-0.5 rounded-lg bg-accent-soft px-2.5 py-2">
+							<span className="text-[13px] leading-[18px] font-bold text-accent-text">
 								<Trans>New conversation</Trans>
 							</span>
 							<span className="text-xs text-ink-3">
 								<Trans>Now</Trans>
 							</span>
 						</li>
-					)}
-					{threads.map((thread) => (
-						<RailItem
-							key={thread.id}
-							thread={thread}
-							current={thread.id === currentId}
-							date={when(new Date(thread.lastMessageAt))}
-							renaming={renaming === thread.id}
-							onRenameStart={() => setRenaming(thread.id)}
-							onRenameEnd={(title) => {
-								setRenaming(null);
-								if (title !== null) onRename(thread, title);
-							}}
-							onDelete={() => onDelete(thread)}
-							onNavigate={onNavigate}
-						/>
-					))}
-				</ul>
+					</ul>
+				)}
+				{(
+					[
+						["today", t`Today`],
+						["yesterday", t`Yesterday`],
+						["earlier", t`Earlier`],
+					] as const
+				).map(([key, label]) => {
+					const rows = threads.filter((thread) => dayGroup(thread) === key);
+					if (rows.length === 0) return null;
+					return (
+						<div key={key} className="flex flex-col gap-1.5">
+							<Eyebrow className="px-2.5">{label}</Eyebrow>
+							<ul className="-mx-1 grid content-start gap-0.5 px-1">
+								{rows.map((thread) => (
+									<RailItem
+										key={thread.id}
+										thread={thread}
+										current={thread.id === currentId}
+										date={when(new Date(thread.lastMessageAt))}
+										renaming={renaming === thread.id}
+										onRenameStart={() => setRenaming(thread.id)}
+										onRenameEnd={(title) => {
+											setRenaming(null);
+											if (title !== null) onRename(thread, title);
+										}}
+										onDelete={() => onDelete(thread)}
+										onNavigate={onNavigate}
+									/>
+								))}
+							</ul>
+						</div>
+					);
+				})}
 			</div>
 
-			<p className="px-2.5 text-xs leading-[17px] text-ink-3">
-				<Trans>Conversations about one job live in its workspace.</Trans>
+			{jobThreads.length > 0 && (
+				<div className="flex flex-col gap-1.5">
+					<Eyebrow className="px-2.5">
+						<Trans>About a job</Trans>
+					</Eyebrow>
+					<ul className="grid gap-0.5">
+						{jobThreads.map((thread) => {
+							const application = applications.data?.find((item) => item.id === thread.applicationId);
+							return (
+								<li key={thread.id}>
+									<Link
+										to="/dashboard/applications/$applicationId/{-$tab}"
+										params={{ applicationId: thread.applicationId ?? "", tab: undefined }}
+										search={{ coach: thread.id }}
+										onClick={onNavigate}
+										className="grid gap-0.5 rounded-lg px-2.5 py-2 transition-colors duration-quick hover:bg-hover"
+									>
+										<span className="truncate text-[13px] leading-[18px] font-medium">{titleFor(thread)}</span>
+										<span className="truncate text-xs text-ink-3">
+											{application ? `${application.company} · ${application.role}` : t`Open the application`}
+										</span>
+									</Link>
+								</li>
+							);
+						})}
+					</ul>
+				</div>
+			)}
+			<p className="rounded-xl border border-accent/20 bg-accent-soft px-3 py-2.5 text-xs leading-[1.6] text-ink">
+				<Trans>Conversations about one job live in its workspace; open them from here or from the job.</Trans>
 			</p>
 		</nav>
 	);
@@ -662,7 +767,7 @@ function RailItem({
 					/>
 				) : (
 					<Link
-						to="/dashboard/career/coach/{-$conversationId}"
+						to="/dashboard/coach/{-$conversationId}"
 						params={{ conversationId: thread.id }}
 						aria-current={current ? "page" : undefined}
 						onClick={onNavigate}

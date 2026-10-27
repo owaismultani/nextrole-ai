@@ -3,7 +3,7 @@ import type { SavedItem } from "../hooks";
 import type { Application } from "@/features/applications/types";
 import type { CareerWorkspace } from "@reactive-resume/schema/career";
 import type { ReactNode } from "react";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { i18n } from "@lingui/core";
 import { I18nProvider } from "@lingui/react";
@@ -27,12 +27,14 @@ vi.mock("@/libs/orpc/client", () => {
 	});
 	return {
 		orpc: {
-			applications: { getById: endpoint("application") },
+			applications: { getById: endpoint("application"), update: endpoint("update") },
 			documents: { list: endpoint("documents", api.documents) },
 			career: {
 				workspace: endpoint("workspace", api.workspace),
 				savedItems: endpoint("saved", api.saved),
 				facts: endpoint("facts"),
+				preparations: endpoint("preparations"),
+				applicationJourney: endpoint("journey", async () => null),
 				saveWorkspace: endpoint("save", undefined, api.save),
 				submitApplication: endpoint("submit"),
 				generate: endpoint("generate"),
@@ -43,14 +45,20 @@ vi.mock("@/libs/orpc/client", () => {
 vi.mock("@tanstack/react-router", () => ({
 	useNavigate: () => api.navigate,
 	useRouteContext: () => ({ session: { user: { id: "shell-user", timezone: "UTC" } } }),
-	useRouter: () => ({ state: { location: { state: { __TSR_index: 0 } } } }),
+	useRouter: () => ({ state: { location: { state: { __TSR_index: 0 } } }, history: { push: vi.fn() } }),
 	Link: ({ children }: { children: ReactNode }) => <a href="#test-link">{children}</a>,
 }));
 vi.mock("@reactive-resume/ui/hooks/use-breakpoint", () => ({ useBreakpoint: () => "desktop" }));
 vi.mock("@/features/settings/integrations/hooks/use-has-usable-ai-provider", () => ({
 	useHasUsableAiProvider: () => ({ usableProviders: [], isLoading: false }),
 }));
-vi.mock("@/features/applications/use-application-actions", () => ({ useInvalidateApplications: () => vi.fn() }));
+vi.mock("@/features/applications/use-application-actions", () => ({
+	useInvalidateApplications: () => vi.fn(),
+	useApplicationActions: () => ({ moveTo: vi.fn(), close: vi.fn(), remove: { mutate: vi.fn() } }),
+}));
+vi.mock("@/features/applications/components/application-form-sheet", () => ({ ApplicationFormSheet: () => null }));
+vi.mock("@/hooks/use-confirm", () => ({ useConfirm: () => vi.fn(), usePrompt: () => vi.fn() }));
+vi.mock("@/features/applications/components/detail/key-facts", () => ({ KeyFacts: () => null, Tags: () => null }));
 vi.mock("@/features/applications/components/application-notes", () => ({ ApplicationNotes: () => null }));
 vi.mock("@/features/applications/components/interview-dialog", () => ({ InterviewDialog: () => null }));
 vi.mock("./coach-sheet", () => ({ CoachSheet: () => null }));
@@ -59,6 +67,11 @@ vi.mock("./prepare", () => ({ PrepareTab: () => null }));
 vi.mock("./practise", () => ({ PractiseTab: () => null }));
 vi.mock("./debrief", () => ({ DebriefTab: () => null }));
 vi.mock("./messages", () => ({ MessagesTab: () => null }));
+vi.mock("./summary", () => ({ SummaryTab: () => null }));
+vi.mock("./documents", () => ({ DocumentsTab: () => null }));
+vi.mock("./interviews", () => ({ InterviewsTab: () => null }));
+vi.mock("./activity", () => ({ ActivityTab: () => null }));
+vi.mock("./offer-dialog", () => ({ OfferDialog: () => null }));
 vi.mock("./saved", () => ({ SavedTab: () => null }));
 vi.mock("@reactive-resume/ui/components/toast", () => ({ toast: { add: vi.fn() } }));
 
@@ -119,7 +132,10 @@ const archive = (data: SavedItem["data"]): SavedItem =>
 	}) as SavedItem;
 const answers = () => archive({ kind: "answers", answers: [{ question: "Why this role?", answer: "Sent answer" }] });
 const clients: QueryClient[] = [];
-function mount(version?: string, options: { workspace?: boolean; resumeId?: string } = {}) {
+function mount(
+	version?: string,
+	options: { workspace?: boolean; resumeId?: string; tab?: "summary" | "answers" } = {},
+) {
 	const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
 	clients.push(client);
 	client.setQueryData(["application"], { ...application, resumeId: options.resumeId ?? null });
@@ -127,7 +143,7 @@ function mount(version?: string, options: { workspace?: boolean; resumeId?: stri
 	const view = render(
 		<QueryClientProvider client={client}>
 			<I18nProvider i18n={i18n}>
-				<Workspace applicationId={application.id} tab="apply" search={version ? { version } : {}} />
+				<Workspace applicationId={application.id} tab="answers" search={version ? { version } : {}} />
 			</I18nProvider>
 		</QueryClientProvider>,
 	);
@@ -228,20 +244,4 @@ it("retains a typed answer if a background workspace refresh fails", async () =>
 	});
 	expect(screen.getByRole("textbox", { name: "Why this role?" })).toBe(field);
 	expect(field).toHaveValue("My unsaved draft");
-});
-
-it("explains a missing linked document during loading and offers retry after failure", async () => {
-	let reject = (_error: Error) => {};
-	api.documents.mockReturnValueOnce(
-		new Promise((_resolve, fail) => {
-			reject = fail;
-		}),
-	);
-	mount(undefined, { resumeId: "linked-resume" });
-	expect(screen.getByText("Loading linked documents…")).toHaveAttribute("role", "status");
-	await act(async () => reject(new Error("Offline")));
-	expect(await screen.findByRole("alert")).toHaveTextContent("Linked documents couldn't be loaded");
-	api.documents.mockResolvedValue([{ id: "linked-resume", type: "resume", name: "Harbor resume" }]);
-	fireEvent.click(screen.getByRole("button", { name: "Try again" }));
-	await waitFor(() => expect(screen.getByRole("link", { name: /Harbor resume/ })).toBeTruthy());
 });

@@ -3,13 +3,13 @@ title: "Find roles while you are busy"
 description: "Set a discovery schedule, review open postings and track only the jobs you choose."
 ---
 
-You have a job already and little time to scroll job boards. Set up a search once, then review new roles in **Career → Today** when you have time.
+You have a job already and little time to scroll job boards. Set up a search once, then review new roles in **Discover** when you have time.
 
-Discovery reads new search results to check that they are individual open job postings. It skips results it cannot confirm as postings, including recognized closed roles. A posting can close after that check, so read it before applying. The number of new roles varies; there is no promised daily quota.
+Discovery searches job sources, the company job boards you follow and, when connected, the web. It keeps only individual open postings that pass your filters. A posting can close after that check, so read it before applying. The number of new roles varies; there is no promised daily quota.
 
 ## Set what you are looking for
 
-In **Career → Knowledge → Preferences**, record target roles, places, minimum base salary, maximum office days and what matters to you. These help explain matches and unknown details.
+In **Profile → Job preferences**, record target roles, places, minimum base salary, maximum office days and what matters to you. These help explain matches and unknown details.
 
 Enter salary as a full amount, such as **95000**, rather than **95k**. Invalid shorthand stays visible until corrected. Choose **Any** for maximum office days when you have no requirement; it clears a previous choice.
 
@@ -22,16 +22,48 @@ Enter salary as a full amount, such as **95000**, rather than **95k**. Invalid s
 
 Set your timezone in **Settings → Preferences**. Schedule times use that timezone.
 
-Discovery needs a web search connection. Check **Settings → AI & developer → Web access**, or ask your installation's administrator if services are configured centrally. AI text coaching is a separate connection; it is not required just to schedule a discovery search.
+Discovery works without any connection: free job sources and company job boards need no setup. Web search is optional and adds results from across the web; check **Settings → Integrations → Web access**. Some job-search services need a free key, added under **Settings → Integrations → Job sources**. Your installation's administrator may configure these centrally. AI text coaching is a separate connection; it is not required just to schedule a discovery search.
+
+## Where discovery looks
+
+Each search chooses its sources in **Where to look**:
+
+| Source                                         | Covers                                | Setup                                                           |
+| ---------------------------------------------- | ------------------------------------- | --------------------------------------------------------------- |
+| Bundesagentur für Arbeit                       | Germany's public job exchange         | None. Runs when the country is Germany.                         |
+| Himalayas, Jobicy, Remote OK, We Work Remotely | Remote roles worldwide                | None                                                            |
+| Arbeitnow                                      | Europe, mostly Germany                | None                                                            |
+| The Muse                                       | Mostly US companies, by place         | None; a key raises its limits                                   |
+| Adzuna                                         | About 20 countries, every kind of job | Free key. Runs once a country is chosen.                        |
+| Reed                                           | United Kingdom                        | Free key. Runs when the country is the United Kingdom.          |
+| Jooble                                         | Worldwide                             | Key                                                             |
+| USAJOBS                                        | US federal government                 | Free key and email. Runs when the country is the United States. |
+| Web search                                     | The whole web                         | Firecrawl, Tavily or Exa connection                             |
+
+**Companies you follow** read a company's own job board in full, so nothing it posts is missed. Paste a careers page or any job link from Greenhouse, Lever, Ashby, SmartRecruiters, Recruitee, Personio, Workable or Workday and select **Follow**. With **Follow companies web search finds** on, a company board that web search turns up is followed automatically. When a followed company removes a role from its board, the role closes and leaves Discover.
+
+## Filter what you keep
+
+**What to keep** applies to every source's postings, so each search obeys the same rules. Filters start from your preferences:
+
+- **Job titles**: a title must match one. Leave empty to use what you look for.
+- **Leave out titles with**: words such as _intern_ or _principal_.
+- **Places**, **Country** and **Within**: places match any part, so _Berlin, Germany_ keeps roles in Berlin or Germany. Remote roles open worldwide are kept. The country also decides which country-bound sources run.
+- **Workplace**, **Employment** and **Posted within**.
+- **Minimum salary**, compared a year in the same currency, and **Leave out postings that don't say**.
+- **Leave out companies**.
+
+A posting that doesn't state something (no salary, no place, no workplace) is kept unless you ask otherwise. Select **Preview results** to run the search once without saving: it lists the roles kept, the roles filtered out and why, and each source's outcome.
 
 ## Schedule the search
 
-1. Open **Career → Today**.
-2. In **Schedules**, select **Add**, then **Find roles**.
-3. Edit **Look for**. It starts from your preferences; include roles, places or companies to focus the search.
-4. Choose **Every day**, **Every 3 days** or **Every week**.
-5. Set **First run** and **Time**. For morning results, choose a morning time such as 08:00.
-6. Leave **Turn this schedule on** enabled and select **Save schedule**.
+1. Open **Discover** and select **Set up discovery** (or **Edit search** when you already have one). The same editor opens from **Automation → Discovery**, and **Automation → Schedules** lists every schedule.
+2. Edit **Look for**. It starts from your preferences; include roles, places or companies to focus the search.
+3. Choose **How often**: **Every hour**, **Every 3 hours**, **Every 6 hours**, **Every day**, **Every 3 days** or **Every week**.
+4. Choose **Results per source** (5 to 100), roughly the most each job-search source and web search return per run. Followed company boards are always read in full. Tavily returns at most 20.
+5. Choose sources in **Where to look** and set **What to keep** (see above), then **Preview results** to check them.
+6. For hourly schedules, the first search starts as soon as you save. For daily and longer ones, set **First run** and **Time**. For morning results, choose a morning time such as 08:00.
+7. Leave **Turn this schedule on** enabled and select **Save schedule**.
 
 <Frame caption="A focused search and a recurring time are enough to start. Results wait for your review; the schedule does not apply for jobs.">
   <img
@@ -42,14 +74,14 @@ Discovery needs a web search connection. Check **Settings → AI & developer →
 
 The server runs the schedule while your browser is closed. Search services may charge for usage. See [Schedule controls](/guides/career-workspace-reference#schedules) for delivery and email options.
 
-## Review the roles on Today
+## Review the roles in Discover
 
-When discovery finishes, **Needs you** tells you there are results to review. Under **New roles from your search**, each role has a summary, posting link and match details.
+When discovery finishes, **Discover** shows the new roles, and a reminder tells you there are results to review. In **New opportunities**, each role has a summary, match details and an **Original posting** link. Select a role to see its posting text, what it matches in your preferences, and the search that found it. Roles you have tracked stay in the list with an **In Applications** badge, and each opens its application (never a second one). The **Dismissed** tab keeps the roles you dismissed so you can **Restore** them. You can search the list, filter by source, and keep only roles that match your preferences.
 
-<Frame caption="Review discovered roles alongside reminders. This demo shows two roles and paused schedules; unknown salary remains visible.">
+<Frame caption="Review discovered roles. This demo shows two roles and paused schedules; unknown salary remains visible.">
   <img
     src="/images/guides/career/today.png"
-    alt="Today showing two discovered roles, match chips, Salary not listed, Track in Applications, Read posting and Not for me controls"
+    alt="Discovered roles with match chips, Salary not listed, Track in Applications, Read posting and Not for me controls"
   />
 </Frame>
 
@@ -57,15 +89,38 @@ Read match chips as a starting point. **Salary not listed** or **Office days not
 
 For each role:
 
-- **Read posting** to inspect the job before deciding.
-- **Track in Applications** to create a Saved application with its posting and match notes. This does not submit an application.
-- **Not for me** to dismiss it. Use **Undo** if you change your mind.
+- **Original posting** to inspect the job before deciding.
+- **Track job** to create a Saved application with its posting and match notes. This does not submit an application. A role that already has an application, including one automation created, shows **Open application** instead and never creates a second one.
+- **Dismiss** to hide it. Use **Undo** if you change your mind, or find it later in the **Dismissed** tab and choose **Restore**.
 
 Once tracked, [check Fit](/guides/checking-job-fit) using your experience, then prepare the application.
 
+## See what each run did
+
+The **Discover** header shows your saved search and whether it is running or paused. **Automation → Discovery** shows the last attempt, the last success and the next scheduled run, then what the last run did:
+
+| Count             | Meaning                                                                          |
+| ----------------- | -------------------------------------------------------------------------------- |
+| **Queries**       | Searches sent to your web search connection.                                     |
+| **Sources**       | Sites the results came from.                                                     |
+| **Found**         | Results the search returned.                                                     |
+| **Duplicates**    | Results already known, or listed more than once in the same run.                 |
+| **Rejected**      | Results that are not open postings, such as closed roles or listing pages.       |
+| **New matches**   | Roles added to **New** in Discover.                                              |
+| **Read failures** | Pages that could not be fetched or read. They are skipped and tried again later. |
+
+The counts add up: found = duplicates + rejected + read failures + new matches. They tell you why a schedule looks quiet:
+
+- **Last run failed** with a search problem means the search did not run. Check the web search connection.
+- **Last run failed** because no page could be read means the search worked but extraction did not. The sites may block automated reading.
+- **Last run partly succeeded** means some pages were skipped; the rest were processed.
+- **Every result was already known** means scheduling is working, but the search keeps returning the same roles. Try changing **Look for**.
+
+Select **Run now** to start a run without waiting; it begins within a minute and does not change the schedule's timing. It also works on a paused schedule. Select **Pause** to stop scheduled runs and keep the settings; **Resume** continues on the original cadence from the next future run.
+
 ## Adjust or pause the search
 
-Select a schedule's row to edit its search, frequency or time. Use its switch to pause it without losing those settings. Delete it when you no longer need it; the notice offers **Undo**.
+Select a schedule's row to edit its search, frequency, results per search or time. Use its switch to pause it without losing those settings. Delete it when you no longer need it; the notice offers **Undo**.
 
 Pausing or changing a schedule cancels its old work still in progress. A cancelled run does not publish a briefing or notification.
 

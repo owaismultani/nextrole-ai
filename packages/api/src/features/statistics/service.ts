@@ -4,14 +4,15 @@ import { db } from "@reactive-resume/db/client";
 import * as schema from "@reactive-resume/db/schema";
 
 const CACHE_DURATION_MS = 6 * 60 * 60 * 1000; // 6 hours
-const GITHUB_API_URL = "https://api.github.com/repos/reactive-resume/reactive-resume";
+const GITHUB_API_URL = "https://api.github.com/repos/owaismultani/nextrole-ai";
 const GITHUB_REQUEST_TIMEOUT_MS = 5_000;
 const GITHUB_REQUEST_MAX_ATTEMPTS = 2;
 
 const LAST_KNOWN = {
 	users: 1_213_116,
 	resumes: 1_651_895,
-	stars: 42_315,
+	// NextRole AI's own repository; no count is better than another project's when GitHub can't be reached.
+	stars: 0,
 } as const;
 
 // ponytail: file-based disk cache replaced with module-level memo; LAST_KNOWN fallbacks cover restarts

@@ -88,7 +88,7 @@ function SocialAuthButtons({ providers }: SocialAuthButtonsProps) {
 					runSignIn(() =>
 						authClient.signIn.social({
 							provider: "apple",
-							callbackURL: callbackURL ?? "/dashboard",
+							callbackURL: callbackURL ?? "/dashboard/overview",
 							...getOAuthSignInOptions(callbackURL),
 						}),
 					)
@@ -105,7 +105,7 @@ function SocialAuthButtons({ providers }: SocialAuthButtonsProps) {
 					runSignIn(() =>
 						authClient.signIn.social({
 							provider: "custom",
-							callbackURL: callbackURL ?? "/dashboard",
+							callbackURL: callbackURL ?? "/dashboard/overview",
 							...getOAuthSignInOptions(callbackURL),
 						}),
 					)
@@ -132,7 +132,7 @@ function SocialAuthButtons({ providers }: SocialAuthButtonsProps) {
 					runSignIn(() =>
 						authClient.signIn.social({
 							provider: "google",
-							callbackURL: callbackURL ?? "/dashboard",
+							callbackURL: callbackURL ?? "/dashboard/overview",
 							...getOAuthSignInOptions(callbackURL),
 						}),
 					)
@@ -151,7 +151,7 @@ function SocialAuthButtons({ providers }: SocialAuthButtonsProps) {
 					runSignIn(() =>
 						authClient.signIn.social({
 							provider: "github",
-							callbackURL: callbackURL ?? "/dashboard",
+							callbackURL: callbackURL ?? "/dashboard/overview",
 							...getOAuthSignInOptions(callbackURL),
 						}),
 					)
@@ -170,7 +170,7 @@ function SocialAuthButtons({ providers }: SocialAuthButtonsProps) {
 					runSignIn(() =>
 						authClient.signIn.social({
 							provider: "linkedin",
-							callbackURL: callbackURL ?? "/dashboard",
+							callbackURL: callbackURL ?? "/dashboard/overview",
 							...getOAuthSignInOptions(callbackURL),
 						}),
 					)

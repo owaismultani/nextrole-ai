@@ -1,4 +1,4 @@
-// The embeddable chat (wave 5 contract): the builder Assistant, Career → Coach and the workspace Coach sheet (M6-T2)
+// The embeddable chat (wave 5 contract): the builder Assistant, Coach and the workspace Coach sheet (M6-T2)
 // render it with their own context. Ported from apps/web/src/features/assistant/conversation.tsx and
 // apps/web/src/features/career/coach-thread.tsx.
 import type { ChatAttachment, MessageContext } from "./chat";

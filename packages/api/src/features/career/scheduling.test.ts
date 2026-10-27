@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { canonicalOpportunityUrl, nextCareerRun, parseListingTitle, plainSnippet, prepareRunAt } from "./scheduling";
+import {
+	advanceRun,
+	canonicalOpportunityUrl,
+	nextCareerRun,
+	parseListingTitle,
+	plainSnippet,
+	prepareRunAt,
+} from "./scheduling";
 
 describe("career schedule recurrence", () => {
 	it.each([
@@ -29,6 +36,45 @@ describe("career schedule recurrence", () => {
 		expect(nextCareerRun(new Date("2026-03-28T01:30:00Z"), 1, "Europe/Berlin").toISOString()).toBe(
 			"2026-03-29T01:30:00.000Z",
 		);
+	});
+});
+
+describe("advancing a repeating schedule", () => {
+	const hourly = { intervalDays: null, intervalMinutes: 60, timezone: "Europe/Berlin" };
+
+	it("steps a minute interval by its fixed gap", () => {
+		const now = new Date("2026-10-19T10:30:00Z");
+		expect(advanceRun(new Date("2026-10-19T10:00:00Z"), hourly, now).toISOString()).toBe("2026-10-19T11:00:00.000Z");
+		expect(advanceRun(new Date("2026-10-19T10:00:00Z"), { ...hourly, intervalMinutes: 180 }, now).toISOString()).toBe(
+			"2026-10-19T13:00:00.000Z",
+		);
+	});
+
+	it("coalesces an outage into the next future slot, on the original cadence", () => {
+		const now = new Date("2026-10-19T15:20:00Z");
+		expect(advanceRun(new Date("2026-10-19T08:00:00Z"), { ...hourly, intervalMinutes: 360 }, now).toISOString()).toBe(
+			"2026-10-19T20:00:00.000Z",
+		);
+	});
+
+	it("moves a due slot to the following one rather than repeating it", () => {
+		const at = new Date("2026-10-19T10:00:00Z");
+		expect(advanceRun(at, hourly, at).toISOString()).toBe("2026-10-19T11:00:00.000Z");
+	});
+
+	it("keeps wall time for day intervals, including through a clock change", () => {
+		const daily = { intervalDays: 1, intervalMinutes: null, timezone: "Europe/Berlin" };
+		expect(advanceRun(new Date("2026-10-24T07:00:00Z"), daily, new Date("2026-10-24T08:00:00Z")).toISOString()).toBe(
+			"2026-10-25T08:00:00.000Z",
+		);
+		expect(advanceRun(new Date("2026-10-23T07:00:00Z"), daily, new Date("2026-10-25T12:00:00Z")).toISOString()).toBe(
+			"2026-10-26T08:00:00.000Z",
+		);
+	});
+
+	it("leaves a one-off schedule alone", () => {
+		const at = new Date("2026-10-19T10:00:00Z");
+		expect(advanceRun(at, { intervalDays: null, intervalMinutes: null, timezone: "UTC" }, new Date())).toBe(at);
 	});
 });
 

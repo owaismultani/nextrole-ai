@@ -375,7 +375,7 @@ async function followInterviewSchedules(
 		applicationId,
 		key: `interview-removed:${generateId()}`,
 		notice: { type: "briefing-paused" },
-		url: `/dashboard/career?schedule=${encodeURIComponent(schedules[0]?.id ?? "")}`,
+		url: `/dashboard/automation?schedule=${encodeURIComponent(schedules[0]?.id ?? "")}`,
 	});
 }
 

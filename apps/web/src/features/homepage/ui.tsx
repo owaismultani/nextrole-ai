@@ -1,175 +1,149 @@
-import type { CSSProperties, ReactNode } from "react";
-import { useLingui } from "@lingui/react";
+import type { ReactNode } from "react";
 import { Trans } from "@lingui/react/macro";
 import { Link } from "@tanstack/react-router";
-import { Icon } from "@reactive-resume/ui/components/icon";
 import { cn } from "@reactive-resume/utils/style";
 
-/** A UI label: section kickers, scene numbers, small caps metadata. */
-export const labelClass =
-	"font-martian font-medium text-[11px] uppercase leading-[1.4] tracking-[.08em] font-stretch-[87.5%]";
+/** A mono kicker above a headline: the act, its role and the part of the app it lives in. */
+export const kickerClass = "font-landing-mono text-[12px] leading-[1.3] tracking-[.1em] uppercase text-nr-accent";
 
-type CtaLinkProps = { size: "header" | "hero" | "closing"; className?: string };
+/** The section headline: Bricolage Grotesque, heavy and condensed. */
+export const headlineClass =
+	"font-landing-display font-extrabold [font-stretch:82%] tracking-[-.03em] leading-[.92] text-balance text-nr-ink text-[clamp(38px,4.8vw,70px)]";
 
-/** "Build your resume": the page's one call to action, in the header, the hero and the closing section. */
-export function CtaLink({ size, className }: CtaLinkProps) {
+/** Body copy beside a headline. */
+export const leadClass = "text-[clamp(16px,1.3vw,18px)] leading-[1.62] text-pretty text-nr-ink-2 max-w-[60ch]";
+
+/** Small tabular metadata inside a pane. */
+export const monoClass = "font-landing-mono text-[12px] leading-[1.4] tabular-nums text-nr-ink-3";
+
+type BrandProps = { className?: string };
+
+/** The NextRole AI mark: an "N" tile, the wordmark and its AI badge. */
+export function Brand({ className }: BrandProps) {
+	return (
+		<span className={cn("flex items-center gap-2.5", className)}>
+			<span
+				aria-hidden="true"
+				className="bg-nr-accent font-landing-display text-nr-on-accent grid size-7 place-items-center rounded-lg text-base font-extrabold"
+			>
+				N
+			</span>
+			<span className="font-landing-display text-nr-ink flex items-center gap-2 text-[19px] font-extrabold tracking-[-.03em]">
+				NextRole
+				<span className="border-nr-line-2 font-landing-mono text-nr-ink-2 rounded-md border px-1.5 py-px text-[10px] font-medium tracking-normal">
+					AI
+				</span>
+			</span>
+		</span>
+	);
+}
+
+const buttonClass =
+	"inline-flex shrink-0 items-center justify-center gap-2 rounded-full font-semibold whitespace-nowrap transition-[transform,box-shadow,background-color] duration-quick ease-enter motion-safe:hover:-translate-y-px";
+
+type ButtonSize = "sm" | "lg";
+const buttonSize: Record<ButtonSize, string> = { sm: "h-[38px] px-4 text-sm", lg: "h-14 px-7 text-base" };
+
+/** "Start free": the page's one call to action, in the header, the hero and the finale. */
+export function StartLink({ size, className }: { size: ButtonSize; className?: string }) {
 	return (
 		<Link
-			to="/dashboard"
+			to="/dashboard/overview"
 			className={cn(
-				"inline-flex shrink-0 items-center rounded-full bg-accent font-ui font-semibold text-on-accent transition-[background-color,transform] duration-[160ms] ease-out-strong hover:bg-accent-hover motion-safe:active:[transform:scale(.97)]",
-				size === "header" && "h-[38px] px-4 text-sm",
-				size === "hero" && "h-[54px] gap-2.5 px-6 text-base shadow-e2",
-				size === "closing" && "h-14 gap-2.5 px-7 text-[17px] shadow-e2",
+				buttonClass,
+				buttonSize[size],
+				"bg-nr-accent text-nr-on-accent hover:shadow-[0_12px_44px_-10px_rgb(179_166_255/.7)]",
 				className,
 			)}
 		>
-			<Trans>Build your resume</Trans>
-			{size !== "header" && <Icon name="arrow-right" size={20} />}
+			<Trans>Start free</Trans>
 		</Link>
 	);
 }
 
-type SceneCaptionProps = {
-	number: string;
-	title: string;
-	children: ReactNode;
-	/** A link under the sentence. */
-	action?: ReactNode;
-	className?: string;
-};
+type GhostLinkProps = { href: string; children: ReactNode; external?: boolean };
 
-/** A pinned scene's caption: "01 / Write" over a sentence or two in the display family. */
-export function SceneCaption({ number, title, children, action, className }: SceneCaptionProps) {
+/** A secondary action on glass. */
+export function GhostLink({ href, children, external }: GhostLinkProps) {
 	return (
-		<div className={cn("flex flex-col gap-3", className)}>
-			<span className={cn(labelClass, "text-accent-text")}>
-				{number} / {title}
-			</span>
-			<p className="font-display text-base leading-[1.45] text-pretty text-ink min-[900px]:text-[clamp(17px,1.35vw,20px)]">
-				{children}
-			</p>
-			{action}
-		</div>
-	);
-}
-
-const doodleSizes = {
-	curve: [394, 312],
-	eraser: [346, 283],
-	globe: [301, 374],
-	jar: [264, 347],
-	magnifier: [403, 390],
-	note: [400, 380],
-	paperclip: [335, 299],
-	pencil: [363, 378],
-	plane: [369, 344],
-	scissors: [403, 400],
-} as const;
-
-type DoodleProps = {
-	name: keyof typeof doodleSizes;
-	/** Mask wipe progress, usually derived from the section's --p. */
-	wipe: string;
-	className?: string;
-	style?: CSSProperties;
-	eager?: boolean;
-};
-
-/** A graphite doodle. Decorative, so it's hidden from assistive tech and never takes the pointer. */
-export function Doodle({ name, wipe, className, style, eager = false }: DoodleProps) {
-	const [width, height] = doodleSizes[name];
-	return (
-		<img
-			src={`/doodles/${name}.webp`}
-			srcSet={`/doodles/${name}-small.webp ${Math.round(width / 2)}w, /doodles/${name}.webp ${width}w`}
-			sizes="(min-width: 900px) 16vw, 30vw"
-			alt=""
-			aria-hidden="true"
-			width={width}
-			height={height}
-			loading={eager ? "eager" : "lazy"}
-			decoding="async"
-			draggable={false}
-			className={cn("doodle", className)}
-			style={{ "--wipe": wipe, ...style } as CSSProperties}
-		/>
-	);
-}
-
-/** Splits text into words, preserving spaces and punctuation while reducing decorative DOM nodes. */
-function useGraphemes(text: string, characters: boolean) {
-	const { i18n } = useLingui();
-	const segmenter = new Intl.Segmenter(i18n.locale, { granularity: characters ? "grapheme" : "word" });
-	return Array.from(segmenter.segment(text), (part) => part.segment);
-}
-
-type TypedTextProps = {
-	text: string;
-	/** The CSS variable, from 0 to 1, that types the text in. */
-	progress: string;
-	className?: string;
-	charClassName?: string;
-	charStyle?: (index: number) => CSSProperties | undefined;
-	/** How sharply each character fades in; higher is more like a keystroke. */
-	rate?: number;
-};
-
-/**
- * Text that types in as `progress` rises. The characters are decorative, drawn as generated content: the whole string
- * is in the page once, as visually hidden text, so screen readers and search engines read it as a sentence.
- */
-export function TypedText({ text, progress, className, charClassName, charStyle, rate }: TypedTextProps) {
-	const characters = useGraphemes(text, Boolean(charStyle));
-	const style = {
-		"--typed": `var(${progress})`,
-		"--typed-rate": rate,
-		"--typed-step": (1 / Math.max(1, characters.length)).toFixed(5),
-	} as CSSProperties;
-
-	return (
-		<span className={className} style={style}>
-			<span className="sr-only">{text}</span>
-			<span aria-hidden="true">
-				{characters.map((character, index) => (
-					<span
-						key={index}
-						data-char={character}
-						className={cn("typed", charClassName)}
-						style={{ "--f": (index / characters.length).toFixed(4), ...charStyle?.(index) } as CSSProperties}
-					/>
-				))}
-			</span>
-		</span>
-	);
-}
-
-type StampProps = {
-	tone: "supported" | "partial" | "missing" | "applied";
-	children: ReactNode;
-	/** The CSS variable, from 0 to 1, that inks the stamp in. */
-	stamp: string;
-	className?: string;
-};
-
-/**
- * A rubber stamp in pencil-roughened ink, landing as `stamp` reaches 1: it comes down large and tilted, then settles.
- * Tailor stamps the posting Applied; Prepare stamps each requirement with what the evidence says.
- */
-export function Stamp({ tone, children, stamp, className }: StampProps) {
-	return (
-		<span
+		<a
+			href={href}
+			{...(external ? { target: "_blank", rel: "noopener" } : {})}
 			className={cn(
-				"font-martian inline-flex h-[2em] shrink-0 [transform:scale(calc(1.7-var(--s)*.7))_rotate(calc(-5deg-(1-var(--s))*10deg))] items-center rounded-[.3em] border-2 border-current px-[.6em] text-[.72em] font-bold tracking-[.1em] whitespace-nowrap uppercase opacity-[calc(var(--s)*.88)] mix-blend-multiply [filter:url(#landing-pencil)] [transition:transform_.2s_var(--ease-out-strong)] dark:mix-blend-normal",
-				tone === "supported" && "text-[oklch(0.48_0.11_150)]",
-				tone === "partial" && "text-[oklch(0.55_0.12_70)]",
-				tone === "missing" && "text-[oklch(0.5_0.01_95)]",
-				tone === "applied" && "text-[oklch(0.5_0.12_250)] dark:text-[oklch(0.72_0.11_250)]",
-				className,
+				buttonClass,
+				buttonSize.lg,
+				"border-nr-line-2 text-nr-ink border bg-[rgb(214_218_255/.06)] backdrop-blur-md hover:bg-[rgb(214_218_255/.1)]",
 			)}
-			style={{ "--s": `var(${stamp})` } as CSSProperties}
 		>
 			{children}
-		</span>
+		</a>
+	);
+}
+
+/** A glass panel holding a slice of the product. */
+export function Pane({ children, className }: { children: ReactNode; className?: string }) {
+	return <div className={cn("nr-pane p-[18px] text-sm", className)}>{children}</div>;
+}
+
+/** A row of feature names under an act. */
+export function Chips({ items, accent = [] }: { items: string[]; accent?: string[] }) {
+	return (
+		<ul className="flex flex-wrap gap-1.5">
+			{[...items, ...accent].map((item) => (
+				<li
+					key={item}
+					className={cn(
+						"rounded-full border px-2.5 py-1.5 text-[12px] leading-none font-medium whitespace-nowrap",
+						accent.includes(item)
+							? "border-nr-accent/40 text-nr-accent bg-[rgb(81_70_217/.16)]"
+							: "border-nr-line-2 bg-nr-void/35 text-nr-ink-2",
+					)}
+				>
+					{item}
+				</li>
+			))}
+		</ul>
+	);
+}
+
+type ActProps = {
+	id: string;
+	stage: number;
+	/** Which side the copy holds; the field takes the other. */
+	side: "start" | "end";
+	kicker: ReactNode;
+	title: ReactNode;
+	lead: ReactNode;
+	children: ReactNode;
+};
+
+/**
+ * One act of the journey. On wide screens the copy holds still (sticky) while the field morphs beside it; on phones
+ * the field rides above the copy instead.
+ */
+export function Act({ id, stage, side, kicker, title, lead, children }: ActProps) {
+	return (
+		<section
+			id={id}
+			data-stage={stage}
+			aria-labelledby={`${id}-title`}
+			className="relative grid min-h-[160vh] max-[900px]:min-h-0"
+		>
+			<div className="mx-auto w-full max-w-[1280px] px-(--gutter)">
+				<div
+					className={cn(
+						"sticky top-[14vh] grid max-w-[540px] gap-[22px] py-6 max-[900px]:static max-[900px]:pt-[48svh] max-[900px]:pb-[10vh]",
+						side === "end" ? "ms-auto" : "min-[1320px]:ms-24",
+					)}
+				>
+					<p className={kickerClass}>{kicker}</p>
+					<h2 id={`${id}-title`} className={headlineClass}>
+						{title}
+					</h2>
+					<p className={leadClass}>{lead}</p>
+					{children}
+				</div>
+			</div>
+		</section>
 	);
 }

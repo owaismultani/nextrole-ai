@@ -1,16 +1,19 @@
 ---
 title: "Contributing translations"
-description: "Help translate Reactive Resume on Crowdin: read the glossary, keep placeholders intact, request a new language, and update catalogs in a checkout."
+description: "Help translate NextRole AI: read the glossary, keep placeholders intact, edit a language catalog in a pull request, and update catalogs in a checkout."
 ---
 
-Reactive Resume is available in more than 50 languages, and every translation comes from volunteers. If you speak a language other than English, you can help people build their resume in it. You don't need to write code: translations happen in your browser on Crowdin.
+NextRole AI is available in 55 languages. Most strings were translated by volunteers of
+[Reactive Resume](https://github.com/reactive-resume/reactive-resume), the project NextRole AI is built on; strings added
+for NextRole AI, such as the career workspace and the landing page, start in English and need translating. If you speak
+a language other than English, you can help.
 
 ## How translations reach the app
 
 1. Developers write every interface string in English. The strings are collected in one source catalog, `apps/web/locales/en-US.po`.
-2. Translators work on that catalog in the [Reactive Resume project on Crowdin](https://crowdin.com/project/reactive-resume).
-3. After each change to the `main` branch, a GitHub workflow uploads the source catalog, downloads the latest translations, and opens a pull request titled "Sync Translations from Crowdin".
-4. Once that pull request is merged, your translations ship with the next release of the app. There's usually a delay of a few days to a few weeks, depending on the release cycle.
+2. Running `pnpm lingui:extract` adds new strings to every other catalog, `apps/web/locales/<locale>.po`, with an empty translation.
+3. Translators fill in those empty entries and open a pull request.
+4. Once the pull request is merged, the translations ship with the next release. Untranslated strings show in English until then.
 
 The same translations also label the default section headings in downloaded PDFs, such as "Experience" and "Education", and the word "Present" in date ranges.
 
@@ -18,30 +21,26 @@ The same translations also label the default section headings in downloaded PDFs
 
 Most of the interface is made of short, standalone labels like `Board`, `Resume`, or `Check`. Without a sentence around them, it's easy to pick the wrong meaning. For example, **Resume** is always the document, never the verb "to resume".
 
-The [glossary](https://github.com/reactive-resume/reactive-resume/blob/main/GLOSSARY.md) explains what each recurring term means in Reactive Resume, lists the wrong senses that earlier translations used, and names the terms that stay in English: the product name, technology names such as PDF, DOCX, JSON, API, and MCP, AI provider names, and template names such as Azurill and Pikachu. Read the entry for a term before you translate it.
+The [glossary](https://github.com/owaismultani/nextrole-ai/blob/main/GLOSSARY.md) explains what each recurring term means in NextRole AI, lists the wrong senses that earlier translations used, and names the terms that stay in English: the product name, technology names such as PDF, DOCX, JSON, API, and MCP, AI provider names, and template names such as Azurill and Pikachu. Read the entry for a term before you translate it.
 
-## Translate on Crowdin
+## Translate in a pull request
 
 <Steps>
-  <Step title="Create a Crowdin account">
-    Sign up at [crowdin.com](https://crowdin.com/) with your email or an existing account such as GitHub or Google. Crowdin's [guide for translators](https://support.crowdin.com/for-translators/) explains the basics.
+  <Step title="Open your language's catalog">
+    Find your language in `apps/web/locales`, for example `de-DE.po` for German. A `.po` editor such as
+    [Poedit](https://poedit.net/) lists untranslated strings first; any text editor works too.
   </Step>
-
-    <Step title="Join the project">
-      Open the [Reactive Resume project](https://crowdin.com/project/reactive-resume) and select **Join**.
-    </Step>
-
-    <Step title="Choose your language">
-      Select your language on the project dashboard to see how much is already translated.
-    </Step>
-
-    <Step title="Translate strings">
-      Open the file to start the Crowdin editor. The English source is on one side and your translation on the other. Use translation memory and machine suggestions as a starting point, and vote for existing translations you agree with. Crowdin saves your work as you go.
-    </Step>
-
+  <Step title="Translate the empty entries">
+    Each entry has an English `msgid` and a `msgstr` to fill in. Comments above an entry show where in the code it
+    appears. Leave `msgid` unchanged.
+  </Step>
+  <Step title="Open a pull request">
+    Commit only the `.po` files you changed and open a pull request on
+    [GitHub](https://github.com/owaismultani/nextrole-ai/pulls). Mention the language in the title.
+  </Step>
 </Steps>
 
-If a string is unclear, leave a comment on it in Crowdin. You can also search the source code for the English text to see where it appears.
+If a string is unclear, ask in the pull request or search the source code for the English text to see where it appears.
 
 ## Translation guidelines
 
@@ -54,7 +53,7 @@ English: “{name}” moved to Trash
 German:  „{name}“ in den Papierkorb verschoben
 ```
 
-Numbered placeholders such as `{0}` often come with a note in Crowdin, like `placeholder {0}: application.role`, that tells you what the value is.
+Numbered placeholders such as `{0}` often come with a comment in the catalog, like `placeholder {0}: application.role`, that tells you what the value is.
 
 ### Keep numbered tags around the same words
 
@@ -73,7 +72,7 @@ Some strings change with a number. They use this pattern:
 {0, plural, one {# application ready to import} other {# applications ready to import}}
 ```
 
-Translate the text inside each set of braces, keep `#` where the number goes, and don't translate the keywords `plural`, `one`, and `other`. Crowdin shows the plural categories your language needs.
+Translate the text inside each set of braces, keep `#` where the number goes, and don't translate the keywords `plural`, `one`, and `other`. The `Plural-Forms` line at the top of your language's catalog says which plural categories it needs.
 
 ### Be consistent
 
@@ -83,13 +82,13 @@ Translate the text inside each set of braces, keep `#` where the number goes, an
 
 ## Request a new language
 
-First check whether your language is already listed in the [Crowdin project](https://crowdin.com/project/reactive-resume). If it isn't:
+First check whether your language already has a catalog in `apps/web/locales`. If it doesn't:
 
-1. Open a new issue on [GitHub](https://github.com/reactive-resume/reactive-resume/issues/new/choose).
+1. Open a new issue on [GitHub](https://github.com/owaismultani/nextrole-ai/issues/new/choose).
 2. Title it "Add [language name] translation".
 3. Include the language name and its locale code, such as `ja-JP` for Japanese.
 
-Once a maintainer adds the language, you can start translating it on Crowdin.
+Once a maintainer adds the language, you can translate its catalog in a pull request.
 
 ## Updating catalogs in a checkout
 
@@ -108,12 +107,12 @@ This updates every catalog in `apps/web/locales/*.po` and then runs `pnpm pdf:tr
 
 `pnpm check` and `pnpm build` also regenerate them. Commit the generated files together with the catalog changes. Edit the `.po` files, never the JSON; a test in `tooling/locales` fails when the two drift apart.
 
-Only edit `en-US.po` by extracting it from code. Other catalogs arrive through the Crowdin pull request, so change translations on Crowdin rather than in the repository, or your edit is overwritten by the next sync.
+Only edit `en-US.po` by extracting it from code. Edit other catalogs by hand, as described above.
 
 To add a new locale, a maintainer adds its code to `locales` in `apps/web/lingui.config.ts`, to `localeSchema` in `packages/utils/src/locale.ts`, and to `localeMap` in `apps/web/src/libs/locale.ts`, then runs `pnpm lingui:extract`.
 
 ## Related pages
 
 - [Changing appearance and language](/guides/changing-appearance-and-language): switch the app's language.
-- [Development setup](/contributing/development): run Reactive Resume locally.
-- [Crowdin translator docs](https://support.crowdin.com/for-translators/): how the Crowdin editor works.
+- [Development setup](/contributing/development): run NextRole AI locally.
+- [Glossary](https://github.com/owaismultani/nextrole-ai/blob/main/GLOSSARY.md): what recurring terms mean.

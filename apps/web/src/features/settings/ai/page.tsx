@@ -1,21 +1,25 @@
-import { Trans } from "@lingui/react/macro";
 import { ApiKeysSection } from "./api-keys";
 import { ConnectedAppsSection } from "./connected-apps";
+import { JobSourcesSection } from "./job-sources";
 import { McpSection } from "./mcp";
 import { ProvidersSection } from "./providers";
 import { WebAccessSection } from "./web-access";
-import { PageHeader } from "@/components/layout/page-header";
 
-/** Providers and API keys together: both connect outside tools. */
-export function AiDeveloperSettings() {
+/** Integrations: the AI connections, web search and job sources that writing, coaching and discovery run on. */
+export function IntegrationsSettings() {
 	return (
 		<>
-			<PageHeader
-				title={<Trans>AI &amp; developer</Trans>}
-				description={<Trans>Connect the tools you use for writing, job search and working with your resumes.</Trans>}
-			/>
 			<ProvidersSection />
 			<WebAccessSection />
+			<JobSourcesSection />
+		</>
+	);
+}
+
+/** Developer: programmatic access: API keys, connected apps (OAuth) and the MCP endpoint. */
+export function DeveloperSettings() {
+	return (
+		<>
 			<ApiKeysSection />
 			<ConnectedAppsSection />
 			<McpSection />

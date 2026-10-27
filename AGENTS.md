@@ -1,4 +1,4 @@
-# Reactive Resume: agent instructions
+# NextRole AI: agent instructions
 
 This file applies across the repository. Follow a closer `AGENTS.md` when one exists. Keep this guide focused on agent workflows; user-facing documentation lives in `README.md` and `docs/`. Format guidance: [agents.md](https://agents.md/).
 
@@ -35,13 +35,13 @@ This block is written and re-added by `turbo` before repository-scoped commands 
 
 ## Agent skills
 
-- Issues and specs: GitHub Issues for `reactive-resume/reactive-resume`. See `docs/agents/issue-tracker.md`.
+- Issues and specs: GitHub Issues for `owaismultani/nextrole-ai`. See `docs/agents/issue-tracker.md`.
 - Check `git status --short` before editing. Preserve unrelated changes, including existing edits in this file.
 - Use scripts and configuration as the source of truth when documentation disagrees with them.
 
 ## Overview
 
-Reactive Resume is a free, open-source resume builder for creating, importing, exporting, and sharing resumes, cover letters, and job applications. It is a TypeScript pnpm monorepo managed by Turborepo, with three apps: `apps/web` (React 19 SPA with TanStack Router, TanStack Query, Tailwind CSS, and Vite), `apps/server` (Hono / Node.js), and `apps/mobile` (Expo / React Native iOS and Android app with the native Forme renderer from `packages/forme-native`). oRPC connects browser workflows to server business logic; Better Auth handles authentication; Drizzle accesses PostgreSQL. Forme renders PDFs in the browser and on the server.
+NextRole AI is a free, open-source job search app built on Reactive Resume: scheduled job discovery, tailored resume and cover letter drafts, interview preparation, an application tracker, and the full resume builder for creating, importing, exporting, and sharing resumes and cover letters. It is a TypeScript pnpm monorepo managed by Turborepo, with three apps: `apps/web` (React 19 SPA with TanStack Router, TanStack Query, Tailwind CSS, and Vite), `apps/server` (Hono / Node.js), and `apps/mobile` (Expo / React Native iOS and Android app with the native Forme renderer from `packages/forme-native`). oRPC connects browser workflows to server business logic; Better Auth handles authentication; Drizzle accesses PostgreSQL. Forme renders PDFs in the browser and on the server.
 
 The production Docker image runs a single Node.js process on port 3000; `apps/server` mounts the API/auth/MCP/static routes and serves the built web app. On Vercel, the `frontend` service serves static assets through its CDN and the `backend` service runs the same Hono application in a Node.js Function.
 

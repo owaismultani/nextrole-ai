@@ -36,7 +36,7 @@ function Row({ icon, label, value }: RowProps) {
 const rowClass =
 	"flex h-14 items-center gap-3 px-3.5 font-medium text-base transition-colors duration-quick ease-enter active:bg-press";
 
-/** Phones: the Settings tab opens the root, three rows showing their current values. */
+/** Phones: the Settings tab opens the root, rows showing their current values. */
 export function SettingsRoot() {
 	const { i18n } = useLingui();
 	const { session } = useRouteContext({ from: "/dashboard" });
@@ -73,9 +73,15 @@ export function SettingsRoot() {
 				<Link to="/dashboard/settings/ai" viewTransition={pushTransition} className={rowClass}>
 					<Row
 						icon="sparkle"
-						label={<Trans>AI & developer</Trans>}
+						label={<Trans>Integrations</Trans>}
 						value={provider?.label ?? <Trans>Not set up</Trans>}
 					/>
+				</Link>
+				<Link to="/dashboard/settings/security" viewTransition={pushTransition} className={rowClass}>
+					<Row icon="lock" label={<Trans>Security</Trans>} />
+				</Link>
+				<Link to="/dashboard/settings/developer" viewTransition={pushTransition} className={rowClass}>
+					<Row icon="code" label={<Trans>Developer</Trans>} />
 				</Link>
 			</nav>
 

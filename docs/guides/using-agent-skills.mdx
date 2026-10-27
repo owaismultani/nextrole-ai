@@ -1,13 +1,13 @@
 ---
 title: "Using agent skills"
-description: "Install Reactive Resume's eight agent skills in Claude, Codex, Cursor and other AI agents, and learn which skill to use at each step of a job search."
+description: "Install NextRole AI's eight agent skills in Claude, Codex, Cursor and other AI agents, and learn which skill to use at each step of a job search."
 ---
 
-Reactive Resume publishes eight agent skills that teach an AI agent how to help with a job search: building a resume, deciding what belongs on it, writing bullets, tailoring it to a posting, tracking applications, preparing for and practising interviews, and negotiating an offer. This guide explains what skills are, how to install them, what each one does and which one to use when.
+NextRole AI publishes eight agent skills that teach an AI agent how to help with a job search: building a resume, deciding what belongs on it, writing bullets, tailoring it to a posting, tracking applications, preparing for and practising interviews, and negotiating an offer. This guide explains what skills are, how to install them, what each one does and which one to use when.
 
 <CardGroup cols={2}>
   <Card title="resume-builder" icon="file-plus" href="#resume-builder">
-    Builds a new resume as Reactive Resume JSON you can import.
+    Builds a new resume as NextRole AI JSON you can import.
   </Card>
   <Card title="resume-content-guide" icon="list-checks" href="#resume-content-guide">
     Decides what goes on your resume and audits the one you have.
@@ -40,23 +40,23 @@ Skills, the [MCP server](/guides/using-the-mcp-server) and the in-app [assistant
 
 |                                       | Agent skills                                                    | MCP server                                                                 | In-app assistant                                |
 | ------------------------------------- | --------------------------------------------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------- |
-| What it is                            | Instructions for a workflow                                     | Tools that read and change your Reactive Resume data                       | A chat panel beside your document in the editor |
-| Where it runs                         | Your agent: Claude Code, the Claude apps, Codex, Cursor, others | Any MCP client                                                             | Reactive Resume                                 |
-| Needs a Reactive Resume account       | No                                                              | Yes                                                                        | Yes                                             |
-| Which AI does the work                | Your agent's model                                              | Your client's model; a few tools use the AI provider you set up in the app | The AI provider you connect in Reactive Resume  |
+| What it is                            | Instructions for a workflow                                     | Tools that read and change your NextRole AI data                           | A chat panel beside your document in the editor |
+| Where it runs                         | Your agent: Claude Code, the Claude apps, Codex, Cursor, others | Any MCP client                                                             | NextRole AI                                     |
+| Needs a NextRole AI account           | No                                                              | Yes                                                                        | Yes                                             |
+| Which AI does the work                | Your agent's model                                              | Your client's model; a few tools use the AI provider you set up in the app | The AI provider you connect in NextRole AI      |
 | How it changes your resume or tracker | Through MCP tools, after you approve                            | When the client calls a write tool                                         | Only the edits you accept                       |
 
-Skills work on their own: paste your resume or a job posting and you get text, a table or a JSON file back. When your agent is also connected to the MCP server, the skills use its tools to read your resumes and applications and, after you say yes, write changes back. The skills ask before using a Reactive Resume tool that sends your data to your AI provider, such as match scores, the AI-tailored summary and drafted letters.
+Skills work on their own: paste your resume or a job posting and you get text, a table or a JSON file back. When your agent is also connected to the MCP server, the skills use its tools to read your resumes and applications and, after you say yes, write changes back. The skills ask before using a NextRole AI tool that sends your data to your AI provider, such as match scores, the AI-tailored summary and drafted letters.
 
 ## Install the skills
 
-The skills live in the [`plugins/reactive-resume/skills` folder](https://github.com/reactive-resume/reactive-resume/tree/main/plugins/reactive-resume/skills) of the Reactive Resume repository, one folder per skill. Install all eight if you can: each skill hands off to the others, and when one is missing it does a lighter version of that work itself and tells you so.
+The skills live in the [`plugins/reactive-resume/skills` folder](https://github.com/owaismultani/nextrole-ai/tree/main/plugins/reactive-resume/skills) of the NextRole AI repository, one folder per skill. Install all eight if you can: each skill hands off to the others, and when one is missing it does a lighter version of that work itself and tells you so.
 
 <Note>Keep each skill's folder whole. The `references` folder inside it holds detail the skill reads on demand.</Note>
 
 ### As a plugin (Claude Code and Codex)
 
-The Reactive Resume plugin installs all eight skills and connects the [MCP server](/guides/using-the-mcp-server) in one step. Your agent asks you to sign in to Reactive Resume the first time a skill needs your data.
+The NextRole AI plugin installs all eight skills and connects the [MCP server](/guides/using-the-mcp-server) in one step. Your agent asks you to sign in to NextRole AI the first time a skill needs your data.
 
 <Tabs>
   <Tab title="Claude Code">
@@ -79,7 +79,7 @@ The Reactive Resume plugin installs all eight skills and connects the [MCP serve
   </Tab>
 </Tabs>
 
-The plugin connects to the hosted instance at `https://rxresu.me/mcp`. If you self-host, install the skills on their own (below) and connect your own instance with `npx add-mcp <your-app-url>/mcp --name reactive-resume`.
+The plugin connects to the hosted instance at `https://nextrole.example.com/mcp`. If you self-host, install the skills on their own (below) and connect your own instance with `npx add-mcp <your-app-url>/mcp --name reactive-resume`.
 
 ### With the skills CLI
 
@@ -114,7 +114,7 @@ npx skills add reactive-resume/reactive-resume --skill '*' -a claude-code -g -y
 For the Claude apps, or to copy skills by hand, fetch only the skills folder. The repository is large, so use a sparse clone:
 
 ```sh
-git clone --depth 1 --filter=blob:none --sparse https://github.com/reactive-resume/reactive-resume.git rr
+git clone --depth 1 --filter=blob:none --sparse https://github.com/owaismultani/nextrole-ai.git rr
 git -C rr sparse-checkout set plugins/reactive-resume/skills
 ```
 
@@ -183,15 +183,15 @@ Copy the skill folders into one of these folders, or use the skills CLI with the
 Gemini CLI can also install one skill straight from the repository:
 
 ```sh
-gemini skills install https://github.com/reactive-resume/reactive-resume.git --path plugins/reactive-resume/skills/resume-tailor
+gemini skills install https://github.com/owaismultani/nextrole-ai.git --path plugins/reactive-resume/skills/resume-tailor
 ```
 
 ### Connect the MCP server (optional)
 
-To let the skills read and update your resumes and applications, connect your agent to the Reactive Resume MCP server:
+To let the skills read and update your resumes and applications, connect your agent to the NextRole AI MCP server:
 
 ```sh
-npx add-mcp https://rxresu.me/mcp --name reactive-resume
+npx add-mcp https://nextrole.example.com/mcp --name reactive-resume
 ```
 
 If you self-host, use your own instance's `/mcp` address. Then sign in from your agent; [Using the MCP server](/guides/using-the-mcp-server) has the steps for each client. Without the server, the skills work from what you paste into the chat.
@@ -200,18 +200,18 @@ If you self-host, use your own instance's `/mcp` address. Then sign in from your
 
 ### resume-builder
 
-Builds a complete resume from scratch as Reactive Resume JSON. It asks for your contact details, then each section you want (experience, education, skills, projects and others), then a template and page size (A4 or Letter). It asks for anything missing instead of inventing it, and produces valid JSON with structured dates and formatted descriptions.
+Builds a complete resume from scratch as NextRole AI JSON. It asks for your contact details, then each section you want (experience, education, skills, projects and others), then a template and page size (A4 or Letter). It asks for anything missing instead of inventing it, and produces valid JSON with structured dates and formatted descriptions.
 
-- **Use it when** you're starting from nothing, want your work history turned into Reactive Resume JSON, or have a question about the resume schema, sections, templates or layout.
-- **You get** a JSON file you can [import](/guides/importing-resumes) into Reactive Resume.
+- **Use it when** you're starting from nothing, want your work history turned into NextRole AI JSON, or have a question about the resume schema, sections, templates or layout.
+- **You get** a JSON file you can [import](/guides/importing-resumes) into NextRole AI.
 - **It needs** your real details: names, dates, employers and what you did.
 - **With MCP** it offers to create the resume in your account directly, after you approve.
 
 Try:
 
 - "Build me a resume from scratch. I'm an ICU nurse with six years' experience."
-- "Turn this work history into Reactive Resume JSON I can import."
-- "How do I add a custom section in Reactive Resume JSON?"
+- "Turn this work history into NextRole AI JSON I can import."
+- "How do I add a custom section in NextRole AI JSON?"
 
 ### resume-content-guide
 
@@ -297,7 +297,7 @@ Plays the interviewer for one specific job. Choose the round (recruiter screen, 
 - **Use it when** you say "mock interview me", "interview me for this job", "practice interview", "grill me for this role", "run a behavioral round", "quick recruiter screen" or "system design mock".
 - **You get** practice plus a report: scores per competency with quotes, one priority for next time, and a model answer for your weakest question rebuilt only from what you said. Scores are coaching signals, not a prediction of an offer.
 - **It needs** the job description, or at least the role, level and company. Your resume and a question you dread are optional.
-- **With MCP** it loads the application, the resume version you sent, your stories and any briefing, and after the session offers to log a note and save improved stories. It needs no AI provider in Reactive Resume.
+- **With MCP** it loads the application, the resume version you sent, your stories and any briefing, and after the session offers to log a note and save improved stories. It needs no AI provider in NextRole AI.
 
 Try:
 
@@ -312,7 +312,7 @@ Evaluates and negotiates job offers. It decodes each part of an offer (base, bon
 - **Use it when** you say "I got an offer of…", "is this offer good", "should I negotiate", "how do I counter", "compare my offers", "what is my equity worth", "they asked my salary expectations", "they want an answer by Friday", "can I ask for more time", "should I accept" or "practice the negotiation call".
 - **You get** a decoded offer with questions for the recruiter, your position, a counter email and call lines, a rehearsal, and the final acceptance or decline.
 - **It needs** the offer's numbers or letter (remove ID numbers and your address), the deadline, the country and currency, and what you'd do if you walked away.
-- **With MCP** it reads offer-stage applications, the offer terms you saved in the app and your Career profile, sets a follow-up before the deadline, and logs each step after you confirm it happened. For a side-by-side view, it points you to [Career → Offers](/guides/comparing-job-offers).
+- **With MCP** it reads offer-stage applications, the offer terms you saved in the app and your Career profile, sets a follow-up before the deadline, and logs each step after you confirm it happened. For a side-by-side view, it points you to [Applications → Offers](/guides/comparing-job-offers).
 
 Try:
 
@@ -327,7 +327,7 @@ Your agent picks a skill from your words, so similar requests can go to differen
 | You say                                                               | Skill that runs         | Then                                                                                           |
 | --------------------------------------------------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------- |
 | "Build me a resume from scratch."                                     | resume-builder          | resume-content-guide to check what belongs                                                     |
-| "How do I add a custom section in Reactive Resume JSON?"              | resume-builder          |                                                                                                |
+| "How do I add a custom section in NextRole AI JSON?"                  | resume-builder          |                                                                                                |
 | "Review my resume." / "Audit my resume." (no particular job)          | resume-content-guide    | resume-bullet-writer for the bullets it flags                                                  |
 | "Rewrite my summary." / "Fix my headline." (no particular job)        | resume-content-guide    | With a posting, resume-tailor rewrites both for that job                                       |
 | "Should I put my photo on my CV for a job in Germany?"                | resume-content-guide    |                                                                                                |
@@ -354,7 +354,7 @@ Your agent picks a skill from your words, so similar requests can go to differen
 | "Log my offer from Initech."                                          | job-application-manager | offer-negotiation to judge it                                                                  |
 | "I got an offer of $120k. Is it good?" / "Should I negotiate?"        | offer-negotiation       | job-application-manager to log the deadline                                                    |
 | "They want an answer by Friday. Can I ask for more time?"             | offer-negotiation       |                                                                                                |
-| "Compare my two offers."                                              | offer-negotiation       | [Career → Offers](/guides/comparing-job-offers) for the side-by-side view                      |
+| "Compare my two offers."                                              | offer-negotiation       | [Applications → Offers](/guides/comparing-job-offers) for the side-by-side view                |
 | "The recruiter asked my salary expectations."                         | offer-negotiation       | interview-prep keeps the line in your prep pack                                                |
 | "Practice the negotiation call."                                      | offer-negotiation       | Not mock-interview, which practises interviews only                                            |
 | "Should I accept?" / "Write my acceptance email."                     | offer-negotiation       | job-application-manager to close the rest                                                      |
@@ -413,7 +413,7 @@ Here is how the skills hand off across one search. Each skill suggests the next 
   </Step>
 </Steps>
 
-With the MCP server connected, this context carries over through your Reactive Resume account: the resume copies, the application and its timeline, and the stories and facts you chose to save. Without it, each skill gives you a block of text (a facts ledger, story cards, a tracker table) to paste into your next conversation.
+With the MCP server connected, this context carries over through your NextRole AI account: the resume copies, the application and its timeline, and the stories and facts you chose to save. Without it, each skill gives you a block of text (a facts ledger, story cards, a tracker table) to paste into your next conversation.
 
 ## What every skill does
 
@@ -435,4 +435,4 @@ The skills share these rules. Where a rule applies to only some skills, it names
 - [Managing applications with MCP](/guides/managing-applications-with-mcp): the application tools job-application-manager uses.
 - [Tailoring a resume for a job](/guides/tailoring-a-resume-for-a-job): job copies and cover letters in the app.
 - [Preparing for interview day](/guides/preparing-for-interview-day): briefings, spoken practice and debriefs in the app.
-- [Comparing job offers](/guides/comparing-job-offers): saved offers side by side in **Career → Offers**.
+- [Comparing job offers](/guides/comparing-job-offers): saved offers side by side in **Applications → Offers**.

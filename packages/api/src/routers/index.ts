@@ -7,6 +7,7 @@ import { careerRouter } from "../features/career/router";
 import { coverLettersRouter } from "../features/cover-letters/router";
 import { documentsRouter } from "../features/documents/router";
 import { flagsRouter } from "../features/flags/router";
+import { jobSourcesRouter } from "../features/job-sources/router";
 import { resumeRouter } from "../features/resume/router";
 import { statisticsRouter } from "../features/statistics/router";
 import { storageRouter } from "../features/storage/router";
@@ -22,6 +23,7 @@ export default {
 	coverLetters: coverLettersRouter,
 	documents: documentsRouter,
 	flags: flagsRouter,
+	jobSources: jobSourcesRouter,
 	resume: resumeRouter,
 	statistics: statisticsRouter,
 	storage: storageRouter,

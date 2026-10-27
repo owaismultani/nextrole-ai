@@ -1,6 +1,6 @@
 import type { Application } from "@/features/applications/types";
 import type { MessageContext } from "@/features/assistant/chat";
-import type { WorkspaceTab } from "@reactive-resume/schema/career";
+import type { WorkspaceHint, WorkspaceTab } from "@reactive-resume/schema/career";
 import { useLingui } from "@lingui/react/macro";
 import { useState } from "react";
 import { View, useWindowDimensions } from "react-native";
@@ -14,7 +14,14 @@ import { ModelButton, ModelSheet, ProviderGate, useConversationProvider } from "
 import { useDeleteThread, useThreadTime, useThreadTitle } from "@/features/assistant/threads";
 import { Banner, IconButton, ListRow, Sheet, Text, useTheme } from "@/ui";
 
-type CoachSheetProps = { application: Application; tab: WorkspaceTab; open: boolean; onClose: () => void };
+type CoachSheetProps = {
+	application: Application;
+	tab: WorkspaceTab;
+	/** What the coach is told they are doing: the tab, or the part of Interviews that is open. */
+	hint?: WorkspaceHint | undefined;
+	open: boolean;
+	onClose: () => void;
+};
 
 /** Mount only while open: leaving detaches the stream and discards unsent attachments. Reopening reads history. */
 export function CoachSheet(props: CoachSheetProps) {
@@ -27,15 +34,16 @@ export function CoachSheet(props: CoachSheetProps) {
 					key={`${getAccountScope()}:${props.application.id}`}
 					application={props.application}
 					tab={props.tab}
+					hint={props.hint}
 				/>
 			) : null}
 		</Sheet>
 	);
 }
 
-type ApplicationCoachProps = Pick<CoachSheetProps, "application" | "tab">;
+type ApplicationCoachProps = Pick<CoachSheetProps, "application" | "tab" | "hint">;
 
-function ApplicationCoach({ application, tab }: ApplicationCoachProps) {
+function ApplicationCoach({ application, tab, hint }: ApplicationCoachProps) {
 	const { t } = useLingui();
 	const { space } = useTheme();
 	const { height } = useWindowDimensions();
@@ -61,7 +69,14 @@ function ApplicationCoach({ application, tab }: ApplicationCoachProps) {
 	const remove = useDeleteThread((id) => {
 		if (id === threadId) open("new");
 	});
-	const context: MessageContext = { document: true, posting: true, application: true, memory: true, web: false, tab };
+	const context: MessageContext = {
+		document: true,
+		posting: true,
+		application: true,
+		memory: true,
+		web: false,
+		tab: hint ?? tab,
+	};
 	const company = application.company;
 	const tabName = tabLabel(tab);
 	const privacy = t`Sends your message, earlier messages, this application (posting, notes, documents sent) and Knowledge that's switched on to ${label}.`;

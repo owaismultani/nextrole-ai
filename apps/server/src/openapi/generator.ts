@@ -87,12 +87,12 @@ const healthResponseSchema = {
 export async function generateOpenApiSpec({ appUrl, version }: GenerateOpenApiSpecOptions) {
 	const spec = await openAPIGenerator.generate(openAPIRouter, {
 		info: {
-			title: "Reactive Resume",
+			title: "NextRole AI",
 			version,
 			description:
-				"Reactive Resume API. Mutations do not support Idempotency-Key. Do not automatically retry POST, PUT, PATCH or DELETE requests after a timeout: first read the resource to determine whether the operation succeeded. Existing enum values and response shapes are retained for compatibility.",
-			license: { name: "MIT", url: "https://github.com/reactive-resume/reactive-resume/blob/main/LICENSE" },
-			contact: { name: "Amruth Pillai", email: "amruth@rxresu.me", url: "https://amruthpillai.com" },
+				"NextRole AI API. Mutations do not support Idempotency-Key. Do not automatically retry POST, PUT, PATCH or DELETE requests after a timeout: first read the resource to determine whether the operation succeeded. Existing enum values and response shapes are retained for compatibility.",
+			license: { name: "MIT", url: "https://github.com/owaismultani/nextrole-ai/blob/main/LICENSE" },
+			contact: { name: "NextRole AI", url: "https://github.com/owaismultani/nextrole-ai/issues" },
 		},
 		servers: [{ url: `${appUrl}/api/openapi` }],
 		paths: {
@@ -117,7 +117,10 @@ export async function generateOpenApiSpec({ appUrl, version }: GenerateOpenApiSp
 				},
 			},
 		},
-		externalDocs: { url: "https://docs.rxresu.me", description: "Reactive Resume Documentation" },
+		externalDocs: {
+			url: "https://github.com/owaismultani/nextrole-ai/tree/main/docs",
+			description: "NextRole AI documentation",
+		},
 		commonSchemas: {
 			ResumeData: { schema: writableResumeDataSchema, strategy: "input" },
 		},

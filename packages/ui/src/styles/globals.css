@@ -1,8 +1,9 @@
 @import "tailwindcss" source(none);
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/hanken-grotesk";
-@import "@fontsource-variable/hanken-grotesk/wght-italic.css";
+@import "@fontsource-variable/dm-sans";
+@import "@fontsource-variable/dm-sans/wght-italic.css";
+@import "@fontsource-variable/manrope";
 @import "@fontsource-variable/newsreader/opsz.css";
 @import "@fontsource-variable/newsreader/opsz-italic.css";
 /* Phosphor's web font draws the icons inside resumes (their names are stored in resume data). */
@@ -16,36 +17,39 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Desk & Paper tokens. oklch is the source of truth; the hex values are sRGB approximations.
+ * Desk & Paper tokens (cool indigo palette from the design handoff). oklch is the source of truth; the hex values are sRGB approximations.
  * The resume page (--paper) is white in both themes and never inverts.
  */
 :root {
 	color-scheme: light;
 
-	--bg: oklch(0.975 0.005 95); /* #F8F7F3 app desk */
-	--surface: oklch(0.995 0.002 95); /* #FEFDFC panels, cards */
-	--raised: oklch(1 0 0); /* #FFFFFF menus, dialogs, inputs */
-	--sunken: oklch(0.952 0.006 95); /* #F0EFEB wells, tracks, page canvas */
-	--line: oklch(0.9 0.006 95); /* #DFDEDA dividers */
-	--line-2: oklch(0.82 0.008 95); /* #C5C4BE input borders */
-	--ink: oklch(0.22 0.01 95); /* #1C1B15 primary text */
-	--ink-2: oklch(0.42 0.01 95); /* #4F4D47 secondary text */
-	--ink-3: oklch(0.53 0.01 95); /* #6D6C65 meta, placeholder (minimum for text) */
-	--accent: oklch(0.5 0.1 150); /* #337344 primary action, selection, focus */
-	--accent-hover: oklch(0.44 0.1 150); /* #206133 */
-	--on-accent: oklch(0.99 0.01 150); /* #F7FEF8 */
-	--accent-soft: oklch(0.94 0.035 150); /* #DCF2DF selected background, proposals */
-	--accent-text: oklch(0.42 0.1 150); /* #195C2E */
+	--bg: #f6f7fa; /* app surface */
+	--surface: #ffffff; /* panels, cards */
+	--raised: #ffffff; /* menus, dialogs, inputs */
+	--sunken: #eff2f7; /* wells, tracks, page canvas */
+	--line: #e1e6ef; /* dividers, card borders */
+	--line-2: #bdc7d8; /* input borders */
+	--ink: #202b40; /* primary text */
+	--ink-2: #5e6c83; /* secondary text */
+	--ink-3: #6e7a8f; /* meta, placeholder (minimum for text) */
+	--accent: #5146d9; /* primary action, selection, focus */
+	--accent-hover: #4035bd;
+	--on-accent: #ffffff;
+	--accent-soft: #eeedfc; /* selected background, proposals */
+	--accent-text: #4035bd;
+	--ok: #16724e; /* success, ready, on */
+	--ok-soft: #edf7f1;
+	--ok-text: #16724e;
 	--danger: oklch(0.53 0.17 27); /* #BA3630 */
-	--danger-soft: oklch(0.95 0.03 27); /* #FFE7E4 */
-	--danger-text: oklch(0.48 0.17 27); /* #A92321 */
+	--danger-soft: #fff1f3; /* #FFE7E4 */
+	--danger-text: #ad344a; /* #A92321 */
 	--warn: oklch(0.72 0.14 80); /* #D29922 check issues, stale edits */
-	--warn-soft: oklch(0.95 0.045 85); /* #FCEDCD */
-	--warn-text: oklch(0.48 0.1 70); /* #81520A */
-	--info-soft: oklch(0.95 0.03 250); /* #E0F1FF neutral guidance, assistant question */
-	--info-text: oklch(0.46 0.11 250); /* #1D5B92 */
-	--hover: oklch(0.22 0.01 95 / 0.05);
-	--press: oklch(0.22 0.01 95 / 0.09);
+	--warn-soft: #fff8e9;
+	--warn-text: #865b09; /* #81520A */
+	--info-soft: #edf3fd; /* #E0F1FF neutral guidance, assistant question */
+	--info-text: #315e9f; /* #1D5B92 */
+	--hover: oklch(0.25 0.04 265 / 0.05);
+	--press: oklch(0.25 0.04 265 / 0.09);
 	--scrim: oklch(0.2 0.01 95 / 0.32);
 	--scrim-sheet: oklch(0.2 0.01 95 / 0.18);
 	--paper: #ffffff;
@@ -81,28 +85,31 @@
 .dark {
 	color-scheme: dark;
 
-	--bg: oklch(0.17 0.006 95); /* #100F0C */
-	--surface: oklch(0.2 0.006 95); /* #171613 */
-	--raised: oklch(0.235 0.007 95); /* #1F1E1A */
-	--sunken: oklch(0.145 0.006 95); /* #0B0A08 */
-	--line: oklch(0.29 0.007 95); /* #2C2B27 */
-	--line-2: oklch(0.4 0.008 95); /* #494843 */
-	--ink: oklch(0.95 0.005 95); /* #EFEEEB */
-	--ink-2: oklch(0.79 0.008 95); /* #BCBAB5 */
-	--ink-3: oklch(0.67 0.008 95); /* #979590 */
-	--accent: oklch(0.74 0.12 150); /* #6FC082 */
-	--accent-hover: oklch(0.8 0.12 150); /* #83D494 */
-	--on-accent: oklch(0.18 0.03 150); /* #07150A */
-	--accent-soft: oklch(0.3 0.05 150); /* #1A3520 */
-	--accent-text: oklch(0.82 0.11 150); /* #8FD89E */
+	--bg: #111620;
+	--surface: #1b2332;
+	--raised: #20293a;
+	--sunken: #151c29;
+	--line: #354056;
+	--line-2: #59677f;
+	--ink: #e8edf6;
+	--ink-2: #acb8cd;
+	--ink-3: #a0adc3;
+	--accent: #b3a6ff;
+	--accent-hover: #c6bcff;
+	--on-accent: #211a3a;
+	--accent-soft: #302b4c;
+	--accent-text: #c6bcff;
+	--ok: #88dab2;
+	--ok-soft: #203a31;
+	--ok-text: #88dab2;
 	--danger: oklch(0.62 0.17 27); /* #D9544B */
-	--danger-soft: oklch(0.3 0.06 27); /* #47211D */
-	--danger-text: oklch(0.8 0.11 27); /* #FDA297 */
+	--danger-soft: #3e2935; /* #47211D */
+	--danger-text: #ffa5b5; /* #FDA297 */
 	--warn: oklch(0.8 0.13 85); /* #E4B750 */
-	--warn-soft: oklch(0.31 0.05 80); /* #3E2D10 */
-	--warn-text: oklch(0.86 0.1 85); /* #EFCC83 */
-	--info-soft: oklch(0.3 0.05 250); /* #192F46 */
-	--info-text: oklch(0.82 0.08 250); /* #9DC9F7 */
+	--warn-soft: #342e23;
+	--warn-text: #ecc584; /* #EFCC83 */
+	--info-soft: #25364f; /* #192F46 */
+	--info-text: #a4c4f5; /* #9DC9F7 */
 	--hover: oklch(1 0 0 / 0.06);
 	--press: oklch(1 0 0 / 0.1);
 	--scrim: oklch(0 0 0 / 0.5);
@@ -123,8 +130,10 @@
 }
 
 @theme {
-	--font-display: "Newsreader Variable", Georgia, serif;
-	--font-ui: "Hanken Grotesk Variable", system-ui, sans-serif;
+	/* The app uses one sans family for titles and text; the landing page keeps the serif for its editorial headlines. */
+	--font-display: "Manrope Variable", system-ui, sans-serif;
+	--font-serif-display: "Newsreader Variable", Georgia, serif;
+	--font-ui: "DM Sans Variable", system-ui, sans-serif;
 	--font-sans: var(--font-ui);
 	--font-mono: ui-monospace, monospace;
 
@@ -155,6 +164,9 @@
 	--color-on-accent: var(--on-accent);
 	--color-accent-soft: var(--accent-soft);
 	--color-accent-text: var(--accent-text);
+	--color-ok: var(--ok);
+	--color-ok-soft: var(--ok-soft);
+	--color-ok-text: var(--ok-text);
 	--color-danger: var(--danger);
 	--color-danger-soft: var(--danger-soft);
 	--color-danger-text: var(--danger-text);

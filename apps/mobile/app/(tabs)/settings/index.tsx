@@ -38,7 +38,19 @@ export default function SettingsScreen() {
 					chevron
 					onPress={() => router.push(routes.settings("preferences"))}
 				/>
-				<ListRow title={t`AI & developer`} leading="robot" chevron onPress={() => router.push(routes.settings("ai"))} />
+				<ListRow title={t`Integrations`} leading="robot" chevron onPress={() => router.push(routes.settings("ai"))} />
+				<ListRow
+					title={t`Security`}
+					leading="shield-check"
+					chevron
+					onPress={() => router.push(routes.settings("security"))}
+				/>
+				<ListRow
+					title={t`Developer`}
+					leading="terminal-window"
+					chevron
+					onPress={() => router.push(routes.settings("developer"))}
+				/>
 			</SettingsGroup>
 			<SettingsGroup>
 				<SignOutRow switchServer />

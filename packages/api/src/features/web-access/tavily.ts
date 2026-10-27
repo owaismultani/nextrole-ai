@@ -1,6 +1,6 @@
 import type { ProviderRequest } from "./contracts";
 import z from "zod";
-import { MAX_PAGE_BYTES, WebAccessError } from "./contracts";
+import { MAX_PAGE_BYTES, searchLimit, WebAccessError } from "./contracts";
 import { normalizeSearch, parseResponse, postJson } from "./transport";
 
 const searchSchema = z.object({ results: z.array(z.unknown()).max(100) });
@@ -9,7 +9,7 @@ const itemSchema = z.object({
 	title: z.string(),
 	content: z.string().optional(),
 });
-export async function searchTavily(query: string, { connection, signal }: ProviderRequest) {
+export async function searchTavily(query: string, { connection, signal, search }: ProviderRequest) {
 	const response = parseResponse(
 		searchSchema,
 		await postJson(
@@ -19,7 +19,9 @@ export async function searchTavily(query: string, { connection, signal }: Provid
 			},
 			{
 				query,
-				max_results: 5,
+				max_results: searchLimit(search, "tavily"),
+				// Tavily filters by calendar day, so the day of `since` is included.
+				...(search?.since ? { start_date: search.since.toISOString().slice(0, 10) } : {}),
 				search_depth: "basic",
 				include_answer: false,
 				include_raw_content: false,

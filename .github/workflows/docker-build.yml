@@ -20,7 +20,8 @@ concurrency:
 
 env:
   GHCR_IMAGE: ghcr.io/${{ github.repository }}
-  DOCKER_IMAGE: docker.io/amruthpillai/reactive-resume
+  # Docker Hub mirror, used only when DOCKER_USERNAME and DOCKER_PASSWORD secrets exist.
+  DOCKER_IMAGE: docker.io/${{ github.repository }}
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
@@ -314,11 +315,11 @@ jobs:
           docker buildx imagetools create \
             "${args[@]}" \
             --annotation "index:org.opencontainers.image.licenses=MIT" \
-            --annotation "index:org.opencontainers.image.title=Reactive Resume" \
-            --annotation "index:org.opencontainers.image.description=A free and open-source resume builder." \
-            --annotation "index:org.opencontainers.image.vendor=Amruth Pillai" \
-            --annotation "index:org.opencontainers.image.url=https://rxresu.me" \
-            --annotation "index:org.opencontainers.image.documentation=https://docs.rxresu.me" \
+            --annotation "index:org.opencontainers.image.title=NextRole AI" \
+            --annotation "index:org.opencontainers.image.description=A free and open-source career team, built on Reactive Resume." \
+            --annotation "index:org.opencontainers.image.vendor=NextRole AI" \
+            --annotation "index:org.opencontainers.image.url=https://github.com/${{ github.repository }}" \
+            --annotation "index:org.opencontainers.image.documentation=https://github.com/${{ github.repository }}/tree/main/docs" \
             --annotation "index:org.opencontainers.image.source=https://github.com/${{ github.repository }}" \
             --annotation "index:org.opencontainers.image.version=${{ steps.version.outputs.version }}"
 
@@ -526,13 +527,16 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Wait for matching production backend
-        if: env.UPDATE_CHANNEL == 'production'
+        # Set the PRODUCTION_URL repository variable (for example https://nextrole.example.com) to enable this check.
+        if: env.UPDATE_CHANNEL == 'production' && vars.PRODUCTION_URL != ''
+        env:
+          PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
         run: |
           set -euo pipefail
           matches=0
           for attempt in $(seq 1 60); do
             if curl --fail --silent --show-error --max-time 10 \
-              -H 'Cache-Control: no-cache' "https://rxresu.me/api/health?revision=$COMMIT_SHA&probe=$attempt" \
+              -H 'Cache-Control: no-cache' "$PRODUCTION_URL/api/health?revision=$COMMIT_SHA&probe=$attempt" \
               | jq --exit-status --arg sha "$COMMIT_SHA" \
                 '.service == "reactive-resume" and .status == "healthy" and .revision == $sha' > /dev/null; then
               matches=$((matches + 1))

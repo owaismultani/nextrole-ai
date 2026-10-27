@@ -16,7 +16,7 @@ type ReportViewProps = {
 };
 
 function categoryTone(score: number) {
-	if (score >= 80) return "text-accent-text";
+	if (score >= 80) return "text-ok-text";
 	if (score >= 60) return "text-warn-text";
 	return "text-danger-text";
 }
@@ -106,7 +106,7 @@ function CategorySection({ category, findings }: CategorySectionProps) {
 
 				{findings.length === 0 ? (
 					<div className="flex items-center gap-2 rounded-md border border-dashed p-2.5">
-						<Icon name="check-circle" size={16} className="shrink-0 text-accent-text" />
+						<Icon name="check-circle" size={16} className="shrink-0 text-ok-text" />
 						<span className="text-xs leading-normal text-ink-3">
 							<Trans>Nothing to fix here.</Trans>
 						</span>
@@ -145,7 +145,7 @@ function WritingSection({ tips }: WritingSectionProps) {
 
 				{tips.length === 0 ? (
 					<div className="flex items-center gap-2 rounded-md border border-dashed p-2.5">
-						<Icon name="check-circle" size={16} className="shrink-0 text-accent-text" />
+						<Icon name="check-circle" size={16} className="shrink-0 text-ok-text" />
 						<span className="text-xs leading-normal text-ink-3">
 							<Trans>Nothing to suggest.</Trans>
 						</span>

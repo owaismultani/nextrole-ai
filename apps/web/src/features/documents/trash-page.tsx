@@ -25,7 +25,7 @@ export function TrashPage() {
 			<PageHeader
 				back={
 					<Link
-						to="/dashboard"
+						to="/dashboard/documents"
 						className={buttonVariants({ variant: "ghost", size: "sm", className: "-ms-2.5 w-fit gap-1.5 text-ink-2" })}
 					>
 						<Icon name="arrow-left" size={18} />

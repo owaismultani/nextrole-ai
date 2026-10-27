@@ -1,6 +1,6 @@
 import type { SavedItem } from "../hooks";
-import type { WorkspaceTabProps } from "./shell";
-import type { SavedItemKind, WorkspaceTab } from "@reactive-resume/schema/career";
+import type { GoTarget, WorkspaceTabProps } from "./shell";
+import type { SavedItemKind } from "@reactive-resume/schema/career";
 import type { IconName } from "@reactive-resume/ui/components/icon";
 import { plural, t } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
@@ -9,6 +9,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { AnimatePresence } from "motion/react";
 import { useState } from "react";
+import { resolveWorkspaceTab } from "@reactive-resume/schema/career";
 import { Button, buttonVariants } from "@reactive-resume/ui/components/button";
 import { Icon } from "@reactive-resume/ui/components/icon";
 import { IconButton } from "@reactive-resume/ui/components/icon-button";
@@ -19,7 +20,8 @@ import { formatMoney } from "../offer-compare";
 import { CollapseRow, FilterChip, tabLabel, useCareerTime, withUndo } from "../shared";
 import { orpc } from "@/libs/orpc/client";
 
-const KINDS: { kind: SavedItemKind; icon: IconName; tab: WorkspaceTab | null }[] = [
+/** The tool each kind of saved work belongs to; the interview tools are sections of Interviews. */
+const KINDS: { kind: SavedItemKind; icon: IconName; tab: GoTarget | null }[] = [
 	{ kind: "fit", icon: "list-checks", tab: "fit" },
 	{ kind: "briefing", icon: "clipboard-text", tab: "prepare" },
 	{ kind: "practice", icon: "user-sound", tab: "practise" },
@@ -131,7 +133,7 @@ type SavedRowProps = {
 	applicationId: string;
 	expanded: boolean;
 	onToggle: () => void;
-	onOpen: (tab: WorkspaceTab) => void;
+	onOpen: (tab: GoTarget) => void;
 	onDelete: () => void;
 };
 
@@ -187,11 +189,11 @@ function SavedRow({ item, applicationId, expanded, onToggle, onOpen, onDelete }:
 			<div className="col-start-2 mt-2 flex items-center gap-1 sm:col-start-3 sm:row-start-1 sm:mt-0">
 				{meta?.tab ? (
 					<Button size="sm" variant="secondary" className="h-8" onClick={() => meta.tab && onOpen(meta.tab)}>
-						{t`Open in ${tabLabel(meta.tab)}`}
+						{t`Open in ${tabLabel(resolveWorkspaceTab(meta.tab)?.tab ?? "summary")}`}
 					</Button>
 				) : (
 					<Link
-						to="/dashboard/career/offers"
+						to="/dashboard/applications/offers"
 						search={{ a: item.id }}
 						className={buttonVariants({ size: "sm", variant: "secondary", className: "h-8" })}
 					>

@@ -1,0 +1,801 @@
+<!doctype html>
+<!--
+	The launch video's stage. render.ts opens this page, calls setup() once with the timeline and the filmed clips,
+	then renderAt(t) for every frame and screenshots it. Everything on screen is a pure function of t, so a frame
+	renders the same however long it takes; there are no CSS transitions or timers.
+-->
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>NextRole AI launch video</title>
+		<style>
+			@font-face {
+				font-family: "Bricolage";
+				font-weight: 200 800;
+				font-stretch: 75% 100%;
+				src: url("../../apps/web/node_modules/@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-standard-normal.woff2")
+					format("woff2-variations");
+			}
+			@font-face {
+				font-family: "Geist";
+				font-weight: 100 900;
+				src: url("../../apps/web/node_modules/@fontsource-variable/geist/files/geist-latin-wght-normal.woff2")
+					format("woff2-variations");
+			}
+			@font-face {
+				font-family: "Geist Mono";
+				font-weight: 100 900;
+				src: url("../../apps/web/node_modules/@fontsource-variable/geist-mono/files/geist-mono-latin-wght-normal.woff2")
+					format("woff2-variations");
+			}
+
+			:root {
+				--void: #04050b;
+				--night: #0a0c17;
+				--ink: #f1f2ff;
+				--ink-2: #b6bad6;
+				--ink-3: #8c92b4;
+				--accent: #b3a6ff;
+				--on-accent: #110d2b;
+				--line: rgb(255 255 255 / 0.09);
+			}
+			* {
+				box-sizing: border-box;
+				margin: 0;
+			}
+			html,
+			body {
+				background: var(--void);
+				overflow: hidden;
+			}
+			body {
+				font-family: "Geist", system-ui, sans-serif;
+				color: var(--ink);
+				-webkit-font-smoothing: antialiased;
+			}
+			#stage {
+				position: relative;
+				overflow: hidden;
+				background: var(--void);
+			}
+			#sky {
+				position: absolute;
+				inset: 0;
+			}
+			.abs {
+				position: absolute;
+			}
+
+			/* Brand row */
+			#brand {
+				display: flex;
+				align-items: center;
+				gap: 12px;
+				font-weight: 600;
+				letter-spacing: -0.01em;
+			}
+			#brand svg {
+				display: block;
+			}
+			#brand .ai {
+				font-family: "Geist Mono";
+				font-weight: 500;
+				font-size: 0.62em;
+				letter-spacing: 0.08em;
+				color: var(--accent);
+				border: 1px solid rgb(179 166 255 / 0.35);
+				border-radius: 6px;
+				padding: 2px 6px;
+				margin-left: -2px;
+			}
+			#repo {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				font-family: "Geist Mono";
+				color: var(--ink-3);
+				letter-spacing: 0.01em;
+			}
+			#repo svg {
+				fill: currentColor;
+			}
+
+			/* Captions */
+			.caption {
+				will-change: transform, opacity;
+			}
+			.kicker {
+				font-family: "Geist Mono";
+				font-weight: 500;
+				text-transform: uppercase;
+				letter-spacing: 0.16em;
+				color: var(--accent);
+				display: flex;
+				gap: 14px;
+				align-items: center;
+			}
+			.kicker .count {
+				color: var(--ink-3);
+			}
+			.headline {
+				font-family: "Bricolage", "Arial Narrow", sans-serif;
+				font-weight: 800;
+				font-stretch: 84%;
+				letter-spacing: -0.018em;
+				color: var(--ink);
+				text-wrap: balance;
+			}
+			.headline .w {
+				display: inline-block;
+				white-space: pre;
+			}
+			.sub {
+				color: var(--ink-2);
+				line-height: 1.38;
+				position: relative;
+			}
+			.sub span {
+				position: absolute;
+				left: 0;
+				top: 0;
+			}
+
+			/* Crew list (wide) */
+			#crew {
+				font-family: "Geist Mono";
+				font-size: 14px;
+				letter-spacing: 0.12em;
+				text-transform: uppercase;
+				display: grid;
+				gap: 13px;
+			}
+			#crew div {
+				display: flex;
+				align-items: center;
+				gap: 14px;
+			}
+			#crew i {
+				display: block;
+				height: 2px;
+				border-radius: 2px;
+				background: var(--accent);
+			}
+
+			/* Progress (square) */
+			#progress {
+				display: flex;
+				gap: 6px;
+			}
+			#progress i {
+				display: block;
+				width: 26px;
+				height: 3px;
+				border-radius: 3px;
+				background: rgb(255 255 255 / 0.14);
+				overflow: hidden;
+			}
+			#progress b {
+				display: block;
+				height: 100%;
+				background: var(--accent);
+			}
+
+			/* The browser window */
+			#window {
+				border-radius: 16px;
+				background: #0b0d18;
+				border: 1px solid var(--line);
+				box-shadow:
+					0 0 0 1px rgb(0 0 0 / 0.6),
+					0 50px 120px -20px rgb(0 0 0 / 0.85),
+					0 0 140px -30px rgb(179 166 255 / 0.32);
+				overflow: hidden;
+				transform-origin: 50% 40%;
+			}
+			#bar {
+				display: flex;
+				align-items: center;
+				padding: 0 16px;
+				gap: 8px;
+				border-bottom: 1px solid var(--line);
+				background: #0d0f1c;
+				position: relative;
+			}
+			#bar .dot {
+				width: 11px;
+				height: 11px;
+				border-radius: 50%;
+				background: #262a3d;
+			}
+			#url {
+				position: absolute;
+				left: 50%;
+				top: 50%;
+				transform: translate(-50%, -50%);
+				font-family: "Geist Mono";
+				font-size: 13px;
+				color: var(--ink-3);
+				background: rgb(255 255 255 / 0.045);
+				border: 1px solid rgb(255 255 255 / 0.06);
+				border-radius: 8px;
+				padding: 5px 14px 5px 12px;
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				white-space: nowrap;
+			}
+			#url b {
+				color: var(--ink-2);
+				font-weight: 400;
+			}
+			#viewport {
+				position: relative;
+				overflow: hidden;
+				background: #0b0d18;
+			}
+			.layer {
+				position: absolute;
+				inset: 0;
+				overflow: hidden;
+			}
+			.layer img {
+				position: absolute;
+				left: 0;
+				top: 0;
+				width: 1440px;
+				height: 900px;
+				transform-origin: 0 0;
+			}
+
+			/* End card */
+			#end {
+				inset: 0;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+				text-align: center;
+			}
+			#end .wordmark {
+				font-family: "Bricolage";
+				font-weight: 800;
+				font-stretch: 80%;
+				letter-spacing: -0.035em;
+				line-height: 0.9;
+			}
+			#end .tagline {
+				color: var(--ink-2);
+			}
+			#end .chips {
+				display: flex;
+				gap: 10px;
+				flex-wrap: wrap;
+				justify-content: center;
+			}
+			#end .chip {
+				font-family: "Geist Mono";
+				text-transform: uppercase;
+				letter-spacing: 0.1em;
+				color: var(--ink-2);
+				border: 1px solid var(--line);
+				background: rgb(255 255 255 / 0.03);
+				border-radius: 999px;
+			}
+			#end .cta {
+				display: inline-flex;
+				align-items: center;
+				background: var(--accent);
+				color: var(--on-accent);
+				border-radius: 14px;
+				font-weight: 600;
+				box-shadow: 0 20px 60px -10px rgb(179 166 255 / 0.45);
+			}
+			#end .cta svg {
+				fill: currentColor;
+			}
+			#end .cta .repo {
+				font-family: "Geist Mono";
+				font-weight: 500;
+				border-left: 1px solid rgb(17 13 43 / 0.25);
+			}
+			#end .live {
+				font-family: "Geist Mono";
+				color: var(--ink-3);
+			}
+			#end .live b {
+				color: var(--ink);
+				font-weight: 500;
+			}
+
+			/* Thumbnail */
+			#thumb {
+				inset: 0;
+				display: none;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="stage">
+			<canvas id="sky"></canvas>
+			<div id="window" class="abs">
+				<div id="bar">
+					<span class="dot"></span><span class="dot"></span><span class="dot"></span>
+					<div id="url">
+						<svg width="11" height="12" viewBox="0 0 11 12" fill="none">
+							<rect x="1" y="5" width="9" height="6.4" rx="1.6" fill="#8c92b4" />
+							<path d="M3 5V3.6a2.5 2.5 0 0 1 5 0V5" stroke="#8c92b4" stroke-width="1.3" />
+						</svg>
+						<span>nextroleai.owaism.xyz<b class="path"></b></span>
+					</div>
+				</div>
+				<div id="viewport"></div>
+			</div>
+			<div id="brand" class="abs"></div>
+			<div id="repo" class="abs"></div>
+			<div id="progress" class="abs"></div>
+			<div id="crew" class="abs"></div>
+			<div id="captions" class="abs"></div>
+			<div id="end" class="abs"></div>
+		</div>
+
+		<script>
+			const TILE = (size) =>
+				`<svg width="${size}" height="${size}" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#B3A6FF"/><path d="M20 46V18h7.2l10.6 16.3V18H44v28h-7.1L26.2 29.7V46z" fill="#211A3A"/></svg>`;
+			const GITHUB = (size) =>
+				`<svg width="${size}" height="${size}" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>`;
+
+			// ---- Maths -------------------------------------------------------------------------------------------------
+			const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+			const lerp = (a, b, k) => a + (b - a) * k;
+			const span = (t, a, b) => clamp((t - a) / (b - a));
+			const outCubic = (k) => 1 - (1 - k) ** 3;
+			const outExpo = (k) => (k >= 1 ? 1 : 1 - 2 ** (-10 * k));
+			const inOutCubic = (k) => (k < 0.5 ? 4 * k ** 3 : 1 - (-2 * k + 2) ** 3 / 2);
+			const inOutSine = (k) => -(Math.cos(Math.PI * k) - 1) / 2;
+			const outBack = (k) => 1 + 2.2 * (k - 1) ** 3 + 1.2 * (k - 1) ** 2;
+			function seeded(seed) {
+				return () => {
+					seed = (seed * 1664525 + 1013904223) >>> 0;
+					return seed / 2 ** 32;
+				};
+			}
+
+			// ---- Layouts -----------------------------------------------------------------------------------------------
+			const LAYOUTS = {
+				wide: {
+					width: 1920,
+					height: 1080,
+					window: { x: 676, y: 150, w: 1180, bar: 40 },
+					brand: { x: 96, y: 74, tile: 34, size: 21 },
+					repo: { x: 96, y: 1080 - 92, size: 15, icon: 18 },
+					crew: { x: 96, y: 640 },
+					caption: { x: 96, y: 232, w: 520, kicker: 15, headline: 80, lead: 0.93, sub: 23, gap: 26, subGap: 28 },
+					end: { tile: 104, wordmark: 120, tagline: 34, chip: 15, cta: 26, live: 18 },
+				},
+				square: {
+					width: 1080,
+					height: 1080,
+					window: { x: 56, y: 368, w: 968, h: 752, bar: 36 },
+					brand: { x: 56, y: 52, tile: 30, size: 19 },
+					repo: { x: 1080 - 56, y: 60, size: 14, icon: 16, alignRight: true },
+					progress: { x: 56, y: 106 },
+					// Captions sit on the window: the block grows upwards when a headline needs two lines.
+					caption: {
+						x: 56,
+						bottom: 368 - 30,
+						w: 968,
+						kicker: 14,
+						headline: 66,
+						lead: 0.95,
+						sub: 22,
+						gap: 16,
+						subGap: 16,
+					},
+					end: { tile: 96, wordmark: 104, tagline: 30, chip: 14, cta: 24, live: 17 },
+				},
+			};
+
+			const state = { layout: null, timeline: null, clips: null, base: "", layers: [], decoded: new Map() };
+
+			async function setup({ format, timeline, clips, base }) {
+				await Promise.all(
+					["800 80px Bricolage", "400 20px Geist", "600 20px Geist", "500 14px 'Geist Mono'"].map((font) =>
+						document.fonts.load(font),
+					),
+				);
+				for (const family of ["Bricolage", "Geist", "Geist Mono"])
+					if (!document.fonts.check(`16px "${family}"`)) throw new Error(`Font ${family} did not load`);
+				const L = LAYOUTS[format];
+				Object.assign(state, { format, layout: L, timeline, clips, base });
+				const stage = document.getElementById("stage");
+				stage.style.width = `${L.width}px`;
+				stage.style.height = `${L.height}px`;
+				const sky = document.getElementById("sky");
+				sky.width = L.width * devicePixelRatio;
+				sky.height = L.height * devicePixelRatio;
+				sky.style.width = `${L.width}px`;
+				sky.style.height = `${L.height}px`;
+
+				// Window geometry: the viewport keeps the filmed 16:10 shape unless the layout fixes a height.
+				const W = L.window;
+				const vw = W.w;
+				const vh = W.h ? W.h - W.bar : Math.round(W.w / 1.6);
+				state.viewport = { w: vw, h: vh };
+				const win = document.getElementById("window");
+				Object.assign(win.style, { left: `${W.x}px`, top: `${W.y}px`, width: `${vw}px`, height: `${vh + W.bar}px` });
+				document.getElementById("bar").style.height = `${W.bar}px`;
+				const viewport = document.getElementById("viewport");
+				viewport.style.height = `${vh}px`;
+				if (W.h) win.style.borderRadius = "16px 16px 0 0";
+				state.layers = [0, 1].map(() => {
+					const layer = document.createElement("div");
+					layer.className = "layer";
+					const img = new Image();
+					img.decoding = "sync";
+					layer.append(img);
+					viewport.append(layer);
+					return { layer, img, src: "" };
+				});
+
+				const brand = document.getElementById("brand");
+				Object.assign(brand.style, { left: `${L.brand.x}px`, top: `${L.brand.y}px`, fontSize: `${L.brand.size}px` });
+				brand.innerHTML = `${TILE(L.brand.tile)}<span>NextRole</span><span class="ai">AI</span>`;
+
+				const repo = document.getElementById("repo");
+				repo.style.fontSize = `${L.repo.size}px`;
+				repo.style.top = `${L.repo.y}px`;
+				if (L.repo.alignRight) {
+					repo.style.right = `${L.width - L.repo.x}px`;
+				} else repo.style.left = `${L.repo.x}px`;
+				repo.innerHTML = `${GITHUB(L.repo.icon)}<span>github.com/owaismultani/nextrole-ai</span>`;
+
+				const crew = document.getElementById("crew");
+				if (L.crew) {
+					Object.assign(crew.style, { left: `${L.crew.x}px`, top: `${L.crew.y}px` });
+					crew.innerHTML = timeline.crew
+						.map(
+							(name, index) =>
+								`<div><i></i><span>${String(index + 1).padStart(2, "0")}&nbsp;&nbsp;${name}</span></div>`,
+						)
+						.join("");
+				} else crew.style.display = "none";
+
+				const progress = document.getElementById("progress");
+				if (L.progress) {
+					Object.assign(progress.style, { left: `${L.progress.x}px`, top: `${L.progress.y}px` });
+					progress.innerHTML = timeline.scenes.map(() => "<i><b></b></i>").join("");
+				} else progress.style.display = "none";
+
+				// Captions: one block per scene, words split for the entrance.
+				const captions = document.getElementById("captions");
+				Object.assign(captions.style, {
+					left: `${L.caption.x}px`,
+					top: `${L.caption.y ?? 0}px`,
+					width: `${L.caption.w}px`,
+				});
+				captions.innerHTML = "";
+				state.captions = timeline.scenes.map((scene, index) => {
+					const block = document.createElement("div");
+					block.className = "caption abs";
+					block.style.width = `${L.caption.w}px`;
+					const count = `${String(index + 1).padStart(2, "0")} / ${String(timeline.scenes.length).padStart(2, "0")}`;
+					block.innerHTML =
+						`<div class="kicker" style="font-size:${L.caption.kicker}px"><span>${scene.kicker}</span><span class="count">${count}</span></div>` +
+						`<h1 class="headline" style="font-size:${L.caption.headline}px;line-height:${L.caption.lead};margin-top:${L.caption.gap}px">${scene.headline
+							.split(" ")
+							.map((word) => `<span class="w">${word} </span>`)
+							.join("")}</h1>` +
+						`<div class="sub" style="font-size:${L.caption.sub}px;margin-top:${L.caption.subGap}px">${scene.subs
+							.map((sub) => `<span>${sub.text}</span>`)
+							.join("")}</div>`;
+					captions.append(block);
+					const sub = block.querySelector(".sub");
+					sub.style.width = `${L.caption.w}px`;
+					sub.style.height = `${Math.max(...[...sub.children].map((child) => child.offsetHeight))}px`;
+					if (L.caption.bottom !== undefined) block.style.top = `${L.caption.bottom - block.offsetHeight}px`;
+					return { block, words: [...block.querySelectorAll(".w")], subs: [...sub.children], kicker: block.firstChild };
+				});
+
+				// When each crew member is lit: consecutive scenes that share a member merge into one stretch.
+				state.crewRanges = timeline.crew.map((_, member) => {
+					const ranges = [];
+					timeline.scenes.forEach((scene, index) => {
+						if (!scene.crew.includes(member)) return;
+						const end = index === timeline.scenes.length - 1 ? timeline.endCard : scene.end;
+						const last = ranges[ranges.length - 1];
+						if (last && Math.abs(last.end - scene.start) < 1e-6) last.end = end;
+						else ranges.push({ start: scene.start, end });
+					});
+					return ranges;
+				});
+
+				buildEnd(L);
+				buildSky(L);
+				return true;
+			}
+
+			function pathAt(clipName, time) {
+				const paths = state.clips[clipName].paths;
+				let path = paths[0].path;
+				for (const entry of paths) if (entry.t <= time) path = entry.path;
+				return path;
+			}
+
+			function buildEnd(L) {
+				const E = L.end;
+				const end = document.getElementById("end");
+				end.innerHTML = `
+					<div class="tile">${TILE(E.tile)}</div>
+					<div class="wordmark" style="font-size:${E.wordmark}px;margin-top:${E.tile * 0.36}px">NextRole AI</div>
+					<div class="tagline" style="font-size:${E.tagline}px;margin-top:${E.tagline * 0.7}px">A career team that works while you sleep.</div>
+					<div class="chips" style="margin-top:${E.tagline * 1.2}px">${state.timeline.chips
+						.map(
+							(chip) =>
+								`<span class="chip" style="font-size:${E.chip}px;padding:${E.chip * 0.55}px ${E.chip * 1.1}px">${chip}</span>`,
+						)
+						.join("")}</div>
+					<div class="cta" style="font-size:${E.cta}px;margin-top:${E.cta * 2}px">
+						<span style="display:flex;align-items:center;gap:${E.cta * 0.5}px;padding:${E.cta * 0.62}px ${E.cta * 0.9}px">${GITHUB(E.cta * 1.05)}Star on GitHub</span>
+						<span class="repo" style="padding:${E.cta * 0.62}px ${E.cta * 0.9}px">owaismultani/nextrole-ai</span>
+					</div>
+					<div class="live" style="font-size:${E.live}px;margin-top:${E.live * 1.6}px">Try it free at <b>nextroleai.owaism.xyz</b> · Built on Reactive Resume</div>`;
+				state.end = [...end.children];
+			}
+
+			function buildSky(L) {
+				const random = seeded(7);
+				const count = Math.round((L.width * L.height) / 15000);
+				state.stars = Array.from({ length: count }, () => ({
+					x: random() * L.width,
+					y: random() * L.height,
+					r: 0.5 + random() ** 2 * 1.4,
+					a: 0.12 + random() * 0.45,
+					speed: 4 + random() * 10,
+					phase: random() * Math.PI * 2,
+					tint: random() < 0.25 ? "179,166,255" : random() < 0.12 ? "107,228,255" : "241,242,255",
+				}));
+			}
+
+			function drawSky(t, endK) {
+				const L = state.layout;
+				const canvas = document.getElementById("sky");
+				const g = canvas.getContext("2d");
+				g.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+				g.fillStyle = "#04050b";
+				g.fillRect(0, 0, L.width, L.height);
+				const glow = (x, y, r, color, alpha) => {
+					const gradient = g.createRadialGradient(x, y, 0, x, y, r);
+					gradient.addColorStop(0, `rgba(${color},${alpha})`);
+					gradient.addColorStop(1, `rgba(${color},0)`);
+					g.fillStyle = gradient;
+					g.fillRect(0, 0, L.width, L.height);
+				};
+				const drift = Math.sin(t * 0.18);
+				glow(L.width * (0.18 + drift * 0.03), L.height * 0.12, L.width * 0.62, "120,98,255", 0.16 + endK * 0.06);
+				glow(L.width * 0.92, L.height * (0.95 - drift * 0.04), L.width * 0.5, "107,228,255", 0.06);
+				glow(L.width * 0.5, L.height * 0.55, L.width * 0.4, "179,166,255", endK * 0.12);
+				for (const star of state.stars) {
+					const x = (star.x - t * star.speed + L.width * 4) % L.width;
+					const y = (star.y - t * star.speed * 0.25 + L.height * 4) % L.height;
+					const twinkle = 0.65 + 0.35 * Math.sin(t * 1.3 + star.phase);
+					g.fillStyle = `rgba(${star.tint},${star.a * twinkle * (0.8 + endK * 0.4)})`;
+					g.beginPath();
+					g.arc(x, y, star.r, 0, Math.PI * 2);
+					g.fill();
+				}
+			}
+
+			// ---- Clips and the camera -------------------------------------------------------------------------------------
+			function frameAt(clipName, time) {
+				const frames = state.clips[clipName].frames;
+				let lo = 0;
+				let hi = frames.length - 1;
+				if (time <= frames[0].t) return frames[0].file;
+				while (lo < hi) {
+					const mid = (lo + hi + 1) >> 1;
+					if (frames[mid].t <= time) lo = mid;
+					else hi = mid - 1;
+				}
+				return frames[lo].file;
+			}
+
+			function cameraAt(keys, time) {
+				if (time <= keys[0].t) return keys[0];
+				for (let index = 1; index < keys.length; index++) {
+					const a = keys[index - 1];
+					const b = keys[index];
+					if (time <= b.t) {
+						const k = (b.ease ?? inOutCubic)(span(time, a.t, b.t));
+						return { x: lerp(a.x, b.x, k), y: lerp(a.y, b.y, k), z: lerp(a.z, b.z, k) };
+					}
+				}
+				return keys[keys.length - 1];
+			}
+
+			function place(layer, camera, extraScale = 1) {
+				const { w: vw, h: vh } = state.viewport;
+				const s = Math.max(vw / 1440, vh / 900) * camera.z * extraScale;
+				const cw = 1440 * s;
+				const ch = 900 * s;
+				const tx = clamp(vw / 2 - camera.x * cw, vw - cw, 0);
+				const ty = clamp(vh / 2 - camera.y * ch, vh - ch, 0);
+				layer.img.style.transform = `translate(${tx}px,${ty}px) scale(${s})`;
+			}
+
+			async function show(layer, file) {
+				if (layer.src === file) return;
+				layer.src = file;
+				layer.img.src = `${state.base}/${file}`;
+				await layer.img.decode();
+			}
+
+			// ---- One frame -------------------------------------------------------------------------------------------------
+			async function renderAt(t) {
+				const { timeline, layout: L } = state;
+				const scenes = timeline.scenes;
+				const fade = timeline.crossfade;
+				const endAt = timeline.endCard;
+				const endK = outCubic(span(t, endAt + 0.2, endAt + 1.4));
+				drawSky(t, endK);
+
+				// Which scenes are on screen: the current one, plus the next while it fades in over the boundary.
+				let current = scenes.findIndex((scene) => t < scene.end);
+				if (current === -1) current = scenes.length - 1;
+				const visible = [current];
+				const next = scenes[current + 1];
+				if (next && t > next.start - fade / 2) visible.push(current + 1);
+				const prev = scenes[current - 1];
+				if (prev && t < prev.end + fade / 2) visible.unshift(current - 1);
+
+				const pending = [];
+				let addressed = null;
+				state.layers.forEach((layer, slot) => {
+					const index = visible[slot];
+					if (index === undefined) {
+						layer.layer.style.opacity = "0";
+						return;
+					}
+					const scene = scenes[index];
+					const local = t - scene.start;
+					const camera = cameraAt(scene.camera[state.format], local);
+					const fadeIn = slot === 0 ? 1 : inOutSine(span(t, scene.start - fade / 2, scene.start + fade / 2));
+					layer.layer.style.opacity = String(fadeIn);
+					place(layer, camera, slot === 0 ? 1 : lerp(1.025, 1, outCubic(fadeIn)));
+					pending.push(show(layer, frameAt(scene.clip, scene.in + local)));
+					if (slot === 0 || fadeIn > 0.5) addressed = pathAt(scene.clip, scene.in + local);
+				});
+				document.querySelector("#url .path").textContent = addressed;
+
+				// The window: a short settle at the start, and a pull-back into the end card.
+				const win = document.getElementById("window");
+				const intro = outCubic(span(t, 0, 1.1));
+				const outro = inOutCubic(span(t, endAt - 0.15, endAt + 0.55));
+				win.style.transform = `translateY(${(1 - intro) * 26 + outro * 40}px) scale(${lerp(1.035, 1, intro) * lerp(1, 0.9, outro)})`;
+				win.style.opacity = String(1 - outro);
+				win.style.filter = outro > 0 ? `blur(${outro * 10}px)` : "none";
+
+				// Chrome that leaves for the end card.
+				const chromeK = 1 - inOutCubic(span(t, endAt - 0.3, endAt + 0.2));
+				for (const id of ["brand", "repo", "crew", "progress"])
+					document.getElementById(id).style.opacity = String(chromeK);
+
+				// Captions.
+				state.captions.forEach((caption, index) => {
+					const scene = scenes[index];
+					const leaveAt = index === scenes.length - 1 ? endAt : scene.end;
+					const leave = inOutCubic(span(t, leaveAt - 0.28, leaveAt));
+					const on = t >= scene.start - 0.3 && t <= leaveAt + 0.05;
+					caption.block.style.display = on ? "block" : "none";
+					if (!on) return;
+					caption.block.style.opacity = String(1 - leave);
+					caption.block.style.transform = `translateY(${-leave * 14}px)`;
+					caption.block.style.filter = leave > 0 ? `blur(${leave * 6}px)` : "none";
+					const kickerK = outCubic(span(t, scene.start - 0.2 * (index === 0 ? 1 : 0), scene.start + 0.35));
+					caption.kicker.style.opacity = String(kickerK);
+					caption.kicker.style.transform = `translateX(${(1 - kickerK) * -12}px)`;
+					// The first headline starts before frame 0, so the opening frame already reads.
+					const lead = index === 0 ? 0.42 : 0;
+					caption.words.forEach((word, w) => {
+						const k = outExpo(span(t, scene.start + 0.06 + w * 0.055 - lead, scene.start + 0.62 + w * 0.055 - lead));
+						word.style.opacity = String(k);
+						word.style.transform = `translateY(${(1 - k) * 0.38}em)`;
+						word.style.filter = k < 1 ? `blur(${(1 - k) * 8}px)` : "none";
+					});
+					caption.subs.forEach((sub, s) => {
+						const from = scene.start + scene.subs[s].at;
+						const until = scene.subs[s + 1] ? scene.start + scene.subs[s + 1].at : null;
+						const gone = until === null ? 0 : inOutCubic(span(t, until - 0.25, until));
+						const k = outCubic(span(t, from + (s === 0 ? 0.45 : 0.1), from + (s === 0 ? 0.95 : 0.5))) * (1 - gone);
+						sub.style.opacity = String(k);
+						sub.style.transform = `translateY(${(1 - k) * 8}px)`;
+					});
+				});
+				// Crew list (wide) and progress (square).
+				if (L.crew) {
+					[...document.getElementById("crew").children].forEach((row, index) => {
+						let active = 0;
+						for (const range of state.crewRanges[index])
+							active = Math.max(
+								active,
+								inOutCubic(span(t, range.start - 0.1, range.start + 0.35)) *
+									(1 - inOutCubic(span(t, range.end - 0.1, range.end + 0.25))),
+							);
+						row.style.color = active > 0.5 ? "var(--ink)" : "var(--ink-3)";
+						row.style.opacity = String(lerp(0.42, 1, active));
+						row.querySelector("i").style.width = `${lerp(10, 30, active)}px`;
+						row.querySelector("i").style.background = active > 0.02 ? "var(--accent)" : "rgb(140 146 180 / .6)";
+					});
+				}
+				if (L.progress) {
+					[...document.getElementById("progress").children].forEach((bar, index) => {
+						const scene = scenes[index];
+						bar.firstChild.style.width = `${span(t, scene.start, scene.end) * 100}%`;
+					});
+				}
+
+				// End card.
+				const E = document.getElementById("end");
+				E.style.display = t > endAt ? "flex" : "none";
+				if (t > endAt) {
+					const at = (delay, length = 0.7) => span(t, endAt + delay, endAt + delay + length);
+					const [tile, wordmark, tagline, chips, cta, live] = state.end;
+					const tileK = at(0.25, 0.8);
+					tile.style.opacity = String(outCubic(clamp(tileK * 2)));
+					tile.style.transform = `scale(${lerp(0.55, 1, outBack(tileK))}) rotate(${(1 - outCubic(tileK)) * -8}deg)`;
+					const rise = (el, k, distance = 18) => {
+						el.style.opacity = String(outCubic(k));
+						el.style.transform = `translateY(${(1 - outExpo(k)) * distance}px)`;
+						el.style.filter = k < 1 ? `blur(${(1 - outCubic(k)) * 8}px)` : "none";
+					};
+					rise(wordmark, at(0.5, 0.8), 30);
+					rise(tagline, at(0.8));
+					[...chips.children].forEach((chip, index) => rise(chip, at(1.1 + index * 0.1, 0.6), 12));
+					rise(cta, at(1.55, 0.8), 22);
+					rise(live, at(1.9, 0.7), 10);
+				}
+
+				await Promise.all(pending);
+				return true;
+			}
+
+			// ---- Thumbnail ---------------------------------------------------------------------------------------------------
+			async function renderThumbnail(spec) {
+				const { layout: L } = state;
+				drawSky(spec.sky ?? 3, 0.4);
+				document.getElementById("end").style.display = "none";
+				document.getElementById("crew").style.display = "none";
+				document.getElementById("progress").style.display = "none";
+				for (const caption of state.captions) caption.block.style.display = "none";
+				const block = document.createElement("div");
+				block.className = "abs";
+				Object.assign(block.style, {
+					left: `${spec.caption.x}px`,
+					top: `${spec.caption.y}px`,
+					width: `${spec.caption.w}px`,
+				});
+				block.innerHTML =
+					`<div class="kicker" style="font-size:${spec.caption.kicker}px">${spec.kicker}</div>` +
+					`<h1 class="headline" style="font-size:${spec.caption.headline}px;line-height:.9;margin-top:${spec.caption.kicker * 1.6}px">${spec.headline}</h1>` +
+					`<div class="sub" style="font-size:${spec.caption.sub}px;margin-top:${spec.caption.sub * 1.1}px">${spec.sub}</div>`;
+				document.getElementById("stage").append(block);
+				const win = document.getElementById("window");
+				Object.assign(win.style, spec.window);
+				const viewport = document.getElementById("viewport");
+				state.viewport = {
+					w: Number.parseFloat(spec.window.width),
+					h: Number.parseFloat(spec.window.height) - L.window.bar,
+				};
+				viewport.style.height = `${state.viewport.h}px`;
+				const [layer, other] = state.layers;
+				other.layer.style.opacity = "0";
+				layer.layer.style.opacity = "1";
+				place(layer, spec.camera);
+				document.querySelector("#url .path").textContent = pathAt(spec.clip, spec.time);
+				await show(layer, frameAt(spec.clip, spec.time));
+				return true;
+			}
+
+			Object.assign(window, { setup, renderAt, renderThumbnail });
+		</script>
+	</body>
+</html>

@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/images/nextrole/landing.webp" alt="NextRole AI: A career team that works while you sleep" />
+  <a href="docs/videos/nextrole-ai-demo.mp4"><img src="docs/images/nextrole/landing.webp" alt="NextRole AI: A career team that works while you sleep, beside the resume editor's ATS check. Opens the 30-second demo." /></a>
 
   <h1>NextRole AI</h1>
 
@@ -17,7 +17,7 @@
     ·
     <a href="docs/getting-started.mdx"><strong>Read the docs</strong></a>
     ·
-    <a href="apps/web/public/landing/tour.mp4"><strong>Watch the 60-second tour</strong></a>
+    <a href="docs/videos/nextrole-ai-demo.mp4"><strong>Watch the 30-second demo</strong></a>
   </p>
 
   <p>
@@ -52,6 +52,9 @@ Six specialists, one boss: you.
 | **The Advisor** | Lines offers up against what you said matters, and keeps the unknown terms in plain sight.                                       | The questions to ask before you sign        |
 
 ## See it work
+
+▶ **[Watch the 30-second demo](docs/videos/nextrole-ai-demo.mp4)**: all six specialists at work in the real app. For
+the longer walkthrough, watch the [60-second tour](apps/web/public/landing/tour.mp4).
 
 <table>
   <tr>

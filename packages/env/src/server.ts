@@ -51,6 +51,25 @@ function hasCompleteUserinfo(raw: string): boolean {
 	return authority.slice(0, userinfoEnd).includes(":");
 }
 
+/**
+ * node-postgres currently treats prefer/require/verify-ca as aliases of verify-full, and warns
+ * that its next major release will weaken those modes. Preserve today's certificate and
+ * hostname verification explicitly instead of depending on future library defaults.
+ * Respect an operator's deliberate uselibpqcompat=true setting.
+ */
+function preservePostgresTlsVerification(raw: string): string {
+	const value = new URL(raw);
+	const sslmode = value.searchParams.get("sslmode");
+	if (
+		sslmode !== "prefer" &&
+		sslmode !== "require" &&
+		sslmode !== "verify-ca"
+	) return raw;
+	if (value.searchParams.get("uselibpqcompat") === "true") return raw;
+	value.searchParams.set("sslmode", "verify-full");
+	return value.toString();
+}
+
 export const env = createEnv({
 	server: {
 		// Application
@@ -94,8 +113,8 @@ export const env = createEnv({
 			.default([]),
 
 		// Database
-		DATABASE_URL: z.url({ protocol: /postgres(ql)?/ }),
-		DATABASE_MIGRATION_URL: z.url({ protocol: /postgres(ql)?/ }).optional(),
+		DATABASE_URL: z.url({ protocol: /postgres(ql)?/ }).transform(preservePostgresTlsVerification),
+		DATABASE_MIGRATION_URL: z.url({ protocol: /postgres(ql)?/ }).transform(preservePostgresTlsVerification).optional(),
 		DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(100).default(10),
 		STRICT_SCHEMA_CHECK: z.stringbool().default(false),
 

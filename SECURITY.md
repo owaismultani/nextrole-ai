@@ -1,34 +1,25 @@
 # Security Policy
 
-## Supported Versions
+## Supported versions
 
-Reactive Resume provides security updates for version `5.0.x` and newer.
-Earlier major versions are no longer supported.
+Security fixes land on the `main` branch and in the next published image (`ghcr.io/owaismultani/nextrole-ai`). Run the latest
+release; older images don't receive fixes.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| >= 5.0  | :white_check_mark: |
-| 4.x     | :x:                |
-| < 4.0   | :x:                |
+## Reporting a vulnerability
 
-## Reporting a Vulnerability
+Please report security issues privately, not in a public issue. Use GitHub's
+[private vulnerability reporting](https://github.com/owaismultani/nextrole-ai/security/advisories/new) for this repository.
 
-If you believe you have found a security vulnerability, please report it
-privately instead of opening a public issue.
+Include as much as you can:
 
-Preferred reporting channels:
+- What the vulnerability is and its impact.
+- Steps to reproduce, or a proof of concept.
+- Affected versions, configuration or deployment details.
+- Relevant logs, screenshots or links.
 
-- Use GitHub's private vulnerability reporting for this repository.
-- If that is unavailable, email `amruth@rxresu.me` with the subject
-  `Security Vulnerability: Reactive Resume`.
+You can expect a first response within 7 days. If the report is confirmed, we'll agree on a fix and disclosure timeline
+with you before publishing details.
 
-Please include as much detail as possible, including:
-
-- A description of the vulnerability and its impact.
-- Steps to reproduce or a proof of concept.
-- Affected versions, configuration, or deployment details.
-- Any relevant logs, screenshots, or links.
-
-You can expect an initial response within 7 days. If the report is accepted,
-we will coordinate remediation and disclosure timing with you before publishing
-details publicly.
+NextRole AI is built on [Reactive Resume](https://github.com/reactive-resume/reactive-resume). If the issue is in code
+shared with that project, it may affect Reactive Resume too; please also report it to that project through its own
+security policy.

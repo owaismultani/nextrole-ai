@@ -1,13 +1,13 @@
 ---
 title: "Using the MCP server"
-description: "Connect Claude, Cursor, Codex or any MCP client to Reactive Resume with OAuth or an API key, and see every tool, prompt and resource it offers."
+description: "Connect Claude, Cursor, Codex or any MCP client to NextRole AI with OAuth or an API key, and see every tool, prompt and resource it offers."
 ---
 
-Reactive Resume runs a [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server, so AI clients such as Claude, Cursor and Codex can read and edit your resumes, cover letters and job applications when you ask them to in plain language. This guide shows you how to connect a client and lists everything the server offers.
+NextRole AI runs a [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server, so AI clients such as Claude, Cursor and Codex can read and edit your resumes, cover letters and job applications when you ask them to in plain language. This guide shows you how to connect a client and lists everything the server offers.
 
 ## Before you start
 
-- You need a Reactive Resume account.
+- You need a NextRole AI account.
 - Your MCP client must support remote servers over Streamable HTTP, or be able to run the [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) bridge.
 - Decide how the client signs in:
   - **OAuth (recommended).** You approve the client in your browser. No secret is copied anywhere.
@@ -15,12 +15,12 @@ Reactive Resume runs a [Model Context Protocol (MCP)](https://modelcontextprotoc
 
 ## Find your server address
 
-The server address is your instance's address followed by `/mcp`. On the hosted instance it's `https://rxresu.me/mcp`. You can copy it from **Settings** → **AI & developer**, in the **MCP server** section.
+The server address is your instance's address followed by `/mcp`. On the hosted instance it's `https://nextrole.example.com/mcp`. You can copy it from **Settings** → **AI & developer**, in the **MCP server** section.
 
 <Frame caption="The MCP server section in AI & developer settings">
   <img
     src="/images/guides/using-the-mcp-server/mcp-server-settings.webp"
-    alt="MCP server section showing the address https://rxresu.me/mcp with a Copy button and a Setup guide link"
+    alt="MCP server section showing the address https://nextrole.example.com/mcp with a Copy button and a Setup guide link"
   />
 </Frame>
 
@@ -31,14 +31,14 @@ The server address is your instance's address followed by `/mcp`. On the hosted 
     For coding agents, run:
 
     ```bash
-    npx add-mcp https://rxresu.me/mcp --name reactive-resume
+    npx add-mcp https://nextrole.example.com/mcp --name reactive-resume
     ```
 
-    Otherwise, add a remote MCP server with the address `https://rxresu.me/mcp` and no headers. Client-specific steps are in [Set up popular clients](#set-up-popular-clients).
+    Otherwise, add a remote MCP server with the address `https://nextrole.example.com/mcp` and no headers. Client-specific steps are in [Set up popular clients](#set-up-popular-clients).
 
   </Step>
-  <Step title="Sign in to Reactive Resume">
-    Your client opens a browser window. If you aren't signed in, Reactive Resume asks you to sign in first.
+  <Step title="Sign in to NextRole AI">
+    Your client opens a browser window. If you aren't signed in, NextRole AI asks you to sign in first.
   </Step>
   <Step title="Approve the connection">
     Check the application name under **Connect an application**, read what it will be able to do, and select **Allow access**. Select **Deny** if you don't recognize the application.
@@ -49,7 +49,7 @@ The server address is your instance's address followed by `/mcp`. On the hosted 
 
   </Step>
   <Step title="Return to your client">
-    The browser hands control back to your client, which can now use the Reactive Resume tools.
+    The browser hands control back to your client, which can now use the NextRole AI tools.
   </Step>
 </Steps>
 
@@ -58,7 +58,7 @@ The server address is your instance's address followed by `/mcp`. On the hosted 
 If your client can't do OAuth, send your API key in the `x-api-key` header. For coding agents, `add-mcp` writes the header for you:
 
 ```bash
-npx add-mcp https://rxresu.me/mcp --name reactive-resume --header "x-api-key: YOUR_API_KEY"
+npx add-mcp https://nextrole.example.com/mcp --name reactive-resume --header "x-api-key: YOUR_API_KEY"
 ```
 
 To edit the configuration yourself:
@@ -67,7 +67,7 @@ To edit the configuration yourself:
 {
   "mcpServers": {
     "reactive-resume": {
-      "url": "https://rxresu.me/mcp",
+      "url": "https://nextrole.example.com/mcp",
       "headers": { "x-api-key": "YOUR_API_KEY" }
     }
   }
@@ -81,7 +81,7 @@ If your client only runs local commands, use `mcp-remote` as a bridge. It needs 
   "mcpServers": {
     "reactive-resume": {
       "command": "npx",
-      "args": ["mcp-remote", "https://rxresu.me/mcp", "--header", "x-api-key:YOUR_API_KEY"]
+      "args": ["mcp-remote", "https://nextrole.example.com/mcp", "--header", "x-api-key:YOUR_API_KEY"]
     }
   }
 }
@@ -97,7 +97,7 @@ If your client only runs local commands, use `mcp-remote` as a bridge. It needs 
 For coding agents, the open-source [`add-mcp`](https://github.com/neon-solutions/add-mcp) CLI adds the server to each agent's configuration in one step. It needs [Node.js](https://nodejs.org), detects the agents you use and lets you choose:
 
 ```bash
-npx add-mcp https://rxresu.me/mcp --name reactive-resume
+npx add-mcp https://nextrole.example.com/mcp --name reactive-resume
 ```
 
 - `-a` picks an agent, for example `-a claude-code -a cursor -a codex`. It supports [over 20 agents](https://github.com/neon-solutions/add-mcp#supported-agents), including Claude Code, Codex, Cursor, VS Code, Gemini CLI, OpenCode, Windsurf and Zed.
@@ -108,11 +108,11 @@ Then sign in from your agent, as described below.
 
 <AccordionGroup>
   <Accordion title="Claude (web, desktop and mobile)">
-    Add a custom connector with the URL `https://rxresu.me/mcp`, then connect it and approve access in the browser. See Anthropic's guide to [custom connectors](https://claude.com/docs/connectors/custom/remote-mcp).
+    Add a custom connector with the URL `https://nextrole.example.com/mcp`, then connect it and approve access in the browser. See Anthropic's guide to [custom connectors](https://claude.com/docs/connectors/custom/remote-mcp).
   </Accordion>
   <Accordion title="Claude Code">
     ```bash
-    npx add-mcp https://rxresu.me/mcp --name reactive-resume -a claude-code -g
+    npx add-mcp https://nextrole.example.com/mcp --name reactive-resume -a claude-code -g
     ```
 
     Then run `/mcp` inside Claude Code and choose **reactive-resume** to sign in. Leave out `-g` to add it to the project's `.mcp.json` instead.
@@ -120,7 +120,7 @@ Then sign in from your agent, as described below.
   </Accordion>
   <Accordion title="Cursor">
     ```bash
-    npx add-mcp https://rxresu.me/mcp --name reactive-resume -a cursor
+    npx add-mcp https://nextrole.example.com/mcp --name reactive-resume -a cursor
     ```
 
     This adds the server to `.cursor/mcp.json` in your project; add `-g` for `~/.cursor/mcp.json` and all projects. Cursor offers to sign in when it first connects. To use an API key instead, add `--header "x-api-key: YOUR_API_KEY"`.
@@ -128,7 +128,7 @@ Then sign in from your agent, as described below.
   </Accordion>
   <Accordion title="Codex">
     ```bash
-    npx add-mcp https://rxresu.me/mcp --name reactive-resume -a codex -g
+    npx add-mcp https://nextrole.example.com/mcp --name reactive-resume -a codex -g
     codex mcp login reactive-resume
     ```
 
@@ -136,12 +136,12 @@ Then sign in from your agent, as described below.
 
   </Accordion>
   <Accordion title="Other clients">
-    Run `npx add-mcp https://rxresu.me/mcp --name reactive-resume` and choose your agent from the list. If your client isn't listed, use the server address with its remote MCP (Streamable HTTP) option. If it asks for a transport, choose HTTP. If it can't do OAuth, send the `x-api-key` header.
+    Run `npx add-mcp https://nextrole.example.com/mcp --name reactive-resume` and choose your agent from the list. If your client isn't listed, use the server address with its remote MCP (Streamable HTTP) option. If it asks for a transport, choose HTTP. If it can't do OAuth, send the `x-api-key` header.
   </Accordion>
 </AccordionGroup>
 
 <Note>
-  Self-hosting? Replace `https://rxresu.me` with your own address everywhere on this page, for example
+  Self-hosting? Replace `https://nextrole.example.com` with your own address everywhere on this page, for example
   `https://resume.example.com/mcp`.
 </Note>
 
@@ -226,7 +226,7 @@ The server keeps the original 43 tool names and adds API-derived tools for the r
 | `tailor_resume_for_application`     | Makes a private copy of the linked resume with a summary rewritten for the job by your AI provider, and links the copy to the application. |
 | `draft_application_message`         | Drafts a cover letter (saved as a new letter) or a recruiter follow-up with your AI provider.                                              |
 
-The last four tools send data to the AI provider you set up in Reactive Resume and need a tested default provider. See [Connecting an AI provider](/guides/using-ai).
+The last four tools send data to the AI provider you set up in NextRole AI and need a tested default provider. See [Connecting an AI provider](/guides/using-ai).
 
 ### Additional API workflows
 

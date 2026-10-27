@@ -1,6 +1,7 @@
 import { RouterProvider } from "@tanstack/react-router";
 import ReactDOM from "react-dom/client";
 import { followReducedMotion } from "./libs/motion";
+import { injectVercelInsights } from "./libs/vercel-insights";
 import { getRouter } from "./router";
 import "./index.css";
 
@@ -22,3 +23,5 @@ document.head.querySelectorAll('title, meta[name="description"], meta[name="robo
 if (rootElement.hasChildNodes()) await router.load();
 
 ReactDOM.createRoot(rootElement).render(<RouterProvider router={router} />);
+
+void injectVercelInsights();

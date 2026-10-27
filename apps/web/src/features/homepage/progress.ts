@@ -43,6 +43,34 @@ export function stageAt(boxes: StageBox[], viewportHeight: number): number {
 	return first && first.top > middle ? first.stage : lastStage;
 }
 
+/** Where a block of copy sits, measured against the viewport. */
+export type CopyBox = { top: number; bottom: number };
+
+/**
+ * How much of the band at the top of the screen, `zone` pixels tall, is covered by copy: 0 when it's clear, 1 once
+ * any block of copy fills half of it. On phones the field rides in that band, so it fades as the copy rises through.
+ */
+export function coverAt(boxes: CopyBox[], zone: number): number {
+	let cover = 0;
+	for (const box of boxes) {
+		const overlap = Math.min(box.bottom, zone) - Math.max(box.top, 0);
+		cover = Math.max(cover, overlap / (zone / 2));
+	}
+	return Math.min(1, cover);
+}
+
+/** Measures every `[data-copy]` block under the root, from its first child's top to its last child's bottom. */
+export function readCopy(root: ParentNode): CopyBox[] {
+	const blocks = Array.from(root.querySelectorAll<HTMLElement>("[data-copy]"));
+
+	return blocks.flatMap((block) => {
+		const first = block.firstElementChild;
+		const last = block.lastElementChild;
+		if (!first || !last) return [];
+		return [{ top: first.getBoundingClientRect().top, bottom: last.getBoundingClientRect().bottom }];
+	});
+}
+
 /** Measures every `[data-stage]` section under the root, in page order. */
 export function readStages(root: ParentNode): StageBox[] {
 	const sections = Array.from(root.querySelectorAll<HTMLElement>("[data-stage]"));

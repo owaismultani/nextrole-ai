@@ -2,13 +2,11 @@ import type { ReactNode } from "react";
 import { t } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { Link } from "@tanstack/react-router";
-import { cn } from "@reactive-resume/utils/style";
-import { SCENE } from "./scroll";
-import { Brand, labelClass } from "./ui";
+import { githubUrl } from "./header";
+import { Brand } from "./ui";
 
-const githubUrl = "https://github.com/reactive-resume/reactive-resume";
 const licenseUrl = `${githubUrl}/blob/main/LICENSE`;
-const linkClass = "text-ink transition-colors hover:text-accent-text";
+const linkClass = "text-nr-ink-2 transition-colors hover:text-nr-ink";
 
 type FooterLink = { label: string; href: string } | { label: string; to: "/ats-checker" | "/dashboard/overview" };
 
@@ -17,22 +15,21 @@ const getColumns = (): { id: string; title: string; links: FooterLink[] }[] => [
 		id: "product",
 		title: t`Product`,
 		links: [
-			{ label: t`Discover`, href: "#discover" },
-			{ label: t`How it works`, href: "#control" },
-			{ label: t`Templates`, href: "#builder" },
+			{ label: t`The crew`, href: "#crew" },
+			{ label: t`Tour`, href: "#tour" },
+			{ label: t`Pricing`, href: "#free" },
 			{ label: t`ATS checker`, to: "/ats-checker" },
-			{ label: t`Get started`, to: "/dashboard/overview" },
+			{ label: t`Start free`, to: "/dashboard/overview" },
 		],
 	},
 	{
 		id: "resources",
 		title: t`Resources`,
 		links: [
-			{ label: t`About`, href: "https://docs.rxresu.me/getting-started" },
 			{ label: t`Documentation`, href: "https://docs.rxresu.me" },
 			{ label: t`Changelog`, href: "https://docs.rxresu.me/changelog" },
+			{ label: t`Self-hosting`, href: "https://docs.rxresu.me/self-hosting/docker" },
 			{ label: t`Source code`, href: githubUrl },
-			{ label: t`Self-hosting`, href: "https://docs.rxresu.me" },
 		],
 	},
 	{
@@ -42,9 +39,6 @@ const getColumns = (): { id: string; title: string; links: FooterLink[] }[] => [
 			{ label: t`Join Discord`, href: "https://discord.gg/jSVSJyWd2k" },
 			{ label: t`Subreddit`, href: "https://reddit.com/r/reactiveresume" },
 			{ label: t`Translations`, href: "https://crowdin.com/project/reactive-resume" },
-			{ label: t`Contact`, href: "mailto:amruth@rxresu.me" },
-			{ label: "LinkedIn", href: "https://www.linkedin.com/company/reactive-resume" },
-			{ label: "Amruth Pillai · X", href: "https://x.com/KingOKings" },
 			{ label: t`Report an issue`, href: `${githubUrl}/issues` },
 		],
 	},
@@ -73,48 +67,31 @@ function FooterLinkItem({ link }: { link: FooterLink }): ReactNode {
 	);
 }
 
-/** 13 Footer, ending on the NextRole wordmark rising into view, cropped by the page's edge. */
 export function LandingFooter() {
 	return (
-		<footer data-scene={SCENE.footer} className="relative overflow-hidden border-t border-line">
-			<div className="mx-auto grid max-w-[1440px] grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-x-8 gap-y-10 px-(--gutter) pt-16">
+		<footer className="border-nr-line bg-nr-void/80 relative border-t backdrop-blur-md">
+			<div className="mx-auto grid max-w-[1280px] grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-x-8 gap-y-10 px-(--gutter) pt-14 pb-12">
 				<div className="col-span-2 flex min-w-0 flex-col gap-3.5">
-					<Brand size="footer" />
-					<div className="flex flex-col gap-1 font-ui text-[13px] leading-normal text-ink-3">
+					<Brand />
+					<div className="text-nr-ink-3 flex flex-col gap-1 text-[13px]">
 						<p>
 							<Trans>
 								Built on{" "}
-								<a
-									href={githubUrl}
-									className="text-accent-text underline underline-offset-[3px] transition-colors hover:text-accent-hover"
-								>
+								<a href={githubUrl} className="text-nr-accent underline underline-offset-[3px]">
 									Reactive Resume
-								</a>
-								, by the community, for the community.
-							</Trans>
-						</p>
-						<p>
-							<Trans>
-								Licensed under{" "}
-								<a
-									href={licenseUrl}
-									className="text-accent-text underline underline-offset-[3px] transition-colors hover:text-accent-hover"
-								>
-									MIT
-								</a>
+								</a>{" "}
+								by a community of contributors.
 							</Trans>
 						</p>
 						<p>v{__APP_VERSION__}</p>
 					</div>
 				</div>
-
 				{getColumns().map((column) => (
-					<nav
-						key={column.id}
-						aria-labelledby={`footer-${column.id}`}
-						className="flex flex-col gap-2.5 font-ui text-sm"
-					>
-						<h2 id={`footer-${column.id}`} className={cn(labelClass, "mb-1 text-ink-3")}>
+					<nav key={column.id} aria-labelledby={`footer-${column.id}`} className="flex flex-col gap-2.5 text-sm">
+						<h2
+							id={`footer-${column.id}`}
+							className="font-landing-mono text-nr-ink-3 mb-1 text-[11px] tracking-[.1em] uppercase"
+						>
 							{column.title}
 						</h2>
 						<ul className="flex flex-col gap-2.5">
@@ -126,15 +103,6 @@ export function LandingFooter() {
 						</ul>
 					</nav>
 				))}
-			</div>
-
-			{/* It fades in by sliding up out of the mask's faded bottom; an opacity fade would fail contrast checks. */}
-			<div aria-hidden="true" className="@container mx-auto mt-14 max-w-[1440px] px-(--gutter)">
-				<div className="h-[19cqw] overflow-hidden [mask-image:linear-gradient(to_bottom,#000_45%,transparent_100%)]">
-					<div className="[transform:translateY(calc((1-clamp(0,(var(--p)-.1)/.8,1))*60%))] pt-[.1em] font-display text-[22cqw] leading-[.84] font-extrabold tracking-[-.065em] whitespace-nowrap text-ink select-none [transition:transform_.35s_var(--ease)]">
-						Next<span className="text-accent-text">Role</span>
-					</div>
-				</div>
 			</div>
 		</footer>
 	);

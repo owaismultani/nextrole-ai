@@ -88,21 +88,25 @@ motion:
   exit: 70% of the entering duration
   movement-easing: cubic-bezier(0.77, 0, 0.175, 1)
 marketing:
-  brand: { name: NextRole AI, credit: "Built on Reactive Resume", mark: "N tile, accent fill, Manrope 800" }
+  brand: { name: NextRole AI, credit: "Built on Reactive Resume", mark: "N tile, accent fill" }
+  theme: "dark only; tokens namespaced nr- in landing.css"
   typography:
-    headline: { fontFamily: Manrope, fontWeight: 800, letterSpacing: -0.045em, fontSize: "clamp(32px, 4.4vw, 68px)" }
-    hero: { fontFamily: Manrope, fontWeight: 800, fontSize: "clamp(44px, 6.2vw, 104px)", lineHeight: 0.95 }
-    lead: { fontFamily: DM Sans, fontSize: "16–19px", lineHeight: 1.55 }
-    label: { fontFamily: DM Sans, fontSize: 11.5px, fontWeight: 700, letterSpacing: 0.1em, textTransform: uppercase }
-    paper: { fontFamily: Newsreader, use: "demo resume and cover letter pages only" }
-    wordmark: { fontFamily: Manrope, fontSize: 22cqw, lineHeight: 0.84, fontWeight: 800, letterSpacing: -0.065em }
+    display:
+      { fontFamily: Bricolage Grotesque Variable, fontWeight: 800, fontStretch: "78–85%", letterSpacing: -0.03em }
+    hero: { fontSize: "clamp(54px, 8vw, 128px)", lineHeight: 0.86 }
+    headline: { fontSize: "clamp(38px, 4.8vw, 70px)", lineHeight: 0.92 }
+    body: { fontFamily: Geist Variable, fontSize: "16–18px", lineHeight: 1.62 }
+    kicker: { fontFamily: Geist Mono Variable, fontSize: 12px, letterSpacing: 0.1em, textTransform: uppercase }
+    paper: { fontFamily: Newsreader, use: "the tailored-resume excerpt only" }
   colors:
-    receipt: "#FDFCF8"
-    bulb-glass: "oklch(0.95 0.11 92)"
-    bulb-filament: "oklch(0.7 0.16 60)"
-    keyword-highlight: "oklch(0.9 0.06 280)"
-  motion:
-    pull-easing: cubic-bezier(0.3, 1.7, 0.5, 1)
+    void: "#04050B"
+    ink: "#F1F2FF"
+    ink-2: "#B6BAD6"
+    ink-3: "#8C92B4"
+    accent: "#B3A6FF"
+    on-accent: "#110D2B"
+    spectrum: ["#6BE4FF", "#B3A6FF", "#FF7AD9", "#FFC46B"]
+  field: { points: "22,000 (9,000 below 900px)", formations: 10, pixelRatio: "≤ 2 (≤ 1.5 on phones)" }
 ---
 
 ## Overview
@@ -217,65 +221,59 @@ The shared `theme` cookie stores `light`, `dark`, or `system` (the default). Sys
 
 ## Marketing site
 
-The public homepage in `apps/web/src/features/homepage` presents **NextRole AI**, built on Reactive Resume. It uses the app's tokens, themes and components' visual language: cards, chips and stage dots as the app draws them. Documents on paper keep Newsreader; everything else uses the app's families. `landing.css` holds only what the page adds: the receipt font, the theme cord's and language list's animations, and a few utilities.
+The public homepage in `apps/web/src/features/homepage` presents **NextRole AI**, built on Reactive Resume. It is a dark world of its own, separate from the app's tokens: `landing.css` defines `nr-` colours, three landing font families and a few utilities (`nr-pane`, `nr-spectrum`, `nr-veil`, `nr-fallback`). It stays dark whatever the app theme; there is no theme switch on the page.
 
 ### Story
 
-One scroll-driven story: "Your next role, found and prepared."
+"A career team that works while you sleep." The product is sold as a crew of six specialists (Scout, Writer, Editor, Coach, Tracker, Advisor) that prepare everything and leave each decision to the visitor.
 
-| #   | Section   | Shows                                                                                                   |
-| --- | --------- | ------------------------------------------------------------------------------------------------------- |
-| 00  | Hero      | The Overview on a morning: the search runs, a role lands, its drafts get written, an interview appears. |
-| 01  | Baseline  | The baseline resume on paper, setup's checklist ticking off, then facts and a story.                    |
-| 02  | Discover  | One run told openly: results, already known, rejected and why, then the roles kept.                     |
-| 03  | Prepare   | The tailored copy with matched phrases lit, the cover letter, and the review panel.                     |
-| 04  | Your turn | The board the visitor moves themselves, a follow-up draft, interview prep and the coach.                |
-| 05  | Builder   | The resume builder underneath: a fan of templates and the editor's features.                            |
-| 06  | Control   | The eight pipeline steps, the last two marked "Yours", and six promises.                                |
+| Stage | Section              | Copy                                                                | Field formation                                      |
+| ----- | -------------------- | ------------------------------------------------------------------- | ---------------------------------------------------- |
+| 0     | Hero, Crew           | The promise; the six specialists and what each hands you            | A three-armed galaxy (the job market) around a core  |
+| 1     | Know you             | Facts, five-part stories, preferences, import                       | A crystal lattice, facts gathered at its joints      |
+| 2     | Scout                | Eleven job boards, followed companies, web search; Fit              | A terrain of postings swept by a scan ring           |
+| 3     | Write                | Tailored resume, cover letter and answers; accuracy guards          | Three resume pages, each with its own phrases lit    |
+| 4     | Studio               | The Reactive Resume builder: templates, fonts, ATS check, assistant | A curved wall, one page per template                 |
+| 5     | Coach                | Briefings, practice aloud, debriefs                                 | A sphere that ripples like a voice, with sound rings |
+| 6     | Track                | Board, calendar, insights, recruiter replies, offers                | Board columns in the app's stage colours             |
+| 7     | Everywhere           | iPhone and Android, languages, MCP, WebMCP, APIs                    | A globe with one light per language, and an orbit    |
+| 8     | Rules, Tour, Pricing | Six promises; the recorded tour; free, not freemium                 | A protective ring, dimmed behind the copy            |
+| 9     | Finale               | "Your next role is out there. Send the crew."                       | The N mark                                           |
 
-Then Numbers, Languages, Support, Questions, Closing and the footer.
-
-Copy must match what the product does. The system prepares drafts and stops; it never applies or sends anything in the visitor's name. AI features use the visitor's own key, and discovery needs a web search connection. Say both plainly.
+Copy must match what the product does. The system prepares drafts and stops; it never applies or sends anything in the visitor's name. AI features use the visitor's own key. Figures come from the code where they can (`templateSchema`, `localeSchema`); example figures in panes are labelled as fictional.
 
 ### Brand and type
 
-- **Mark:** an "N" in an accent tile beside the "NextRole" wordmark and an "AI" badge, as in the app's sidebar (`Brand` in `ui.tsx`). The header and footer use it; the footer and hero credit Reactive Resume.
-- **Headlines:** Manrope 800 with tight tracking (`headlineClass`). Emphasis is a phrase in `accent-text`, not italics.
-- **Body:** DM Sans (`leadClass`). **Labels:** 11.5px uppercase DM Sans at weight 700 (`labelClass`).
-- **Paper:** the demo resume (`sheet.tsx`) and cover letter use `--font-serif-display`, so documents stay in Newsreader.
-- **Wordmark:** "Next" in `ink` and "Role" in `accent-text`, Manrope 800 at 22cqw, rising out of a masked container as the footer enters. Decorative (`aria-hidden`).
+- **Mark:** an "N" in an accent tile beside the "NextRole" wordmark and an "AI" badge (`Brand` in `ui.tsx`).
+- **Headlines:** Bricolage Grotesque 800, condensed with `font-stretch`, tight tracking (`headlineClass`). One phrase per headline at most takes `nr-spectrum`, the page's only decorative type treatment.
+- **Body:** Geist (`leadClass`). **Kickers and metadata:** Geist Mono, uppercase for kickers (`kickerClass`, `monoClass`).
+- **Paper:** the tailored-resume excerpt keeps Newsreader (`font-serif-display`), so documents still read as documents.
 
 ### Controls
 
-- One primary CTA, "Set up your search", in the header, hero and closing section, linking to `/dashboard/overview`. Pills in DM Sans 600 at 38px, 54px and 56px.
-- Scene navigation appears from 1240px: a pill per scene, `accent-soft` with `accent-text` when active.
-- The GitHub link appears from 1024px with a live compact star count; the accessible name carries the full count.
-- The theme control is the fixed pull cord at the top end corner (92px at rest, 112px on hover, 124px during a pull, 450ms spring). It toggles the shared theme after 170ms and sways every seven seconds until first pulled. The bulb glows in dark mode.
+- One primary action, "Start free", in the header, hero and finale, linking to `/dashboard/overview`. Secondary actions are glass (`GhostLink`).
+- The header is a floating glass bar with the section links (from 900px), the live GitHub star count (from 1024px) and "Start free".
+- The journey rail lists the seven acts at the start edge from 1320px and marks the current one.
+- The tour's chapters are buttons that seek the video.
 
-### Motion
+### The particle field
 
-Pinned scenes contain a sticky `100svh` stage. Scroll progress is `p = clamp(0, −top / max(1, height − viewportHeight), 1)`; `scroll.ts` writes it to `--p` through one animation-frame-throttled scroll listener. Each pinned scene also has step thresholds (`SCENE_STEPS`); React hears only the step, and `Reveal` fades and lifts content in when its step arrives. Unpinned sections (the template fan, the pipeline line, the footer wordmark) derive motion from `--p` in CSS.
+`stage.tsx` renders a fixed, decorative canvas and imports `scene.ts` (three.js) after the page has painted. `formations.ts` builds ten formations of the same point count from a seeded generator, so the field looks the same on every visit. `progress.ts` turns the `[data-stage]` sections into a continuous stage: a section holds its stage for its first half and blends into the next over its second, unless the next section shares its stage.
 
-| Scene     | Below 900px | From 900px |
-| --------- | ----------- | ---------- |
-| Hero      | 200vh       | 240vh      |
-| Baseline  | 260vh       | 300vh      |
-| Discover  | 280vh       | 320vh      |
-| Prepare   | 280vh       | 320vh      |
-| Your turn | 280vh       | 320vh      |
+- One `Points` draw call. The vertex shader morphs between the current pair of formations with a per-point delay and a mid-flight burst, ripples the coach's sphere and sweeps the scout's scan ring; colours blend with the positions. An iridescent fresnel core sits inside formations with a centre.
+- Each stage has a pose (position beside its copy, rotation, scale, core, dim, nebula colours); poses mirror in RTL. Phones centre the field above the copy at a smaller scale.
+- Rendering stops while the tab is hidden. Without WebGL, or if the context is lost, `nr-fallback` paints a still gradient instead.
+- Reduced motion: the field jumps to each stage's pose with no drift, spin or pointer parallax; CSS animations stop and smooth scrolling is off.
 
-The background is a dot grid in `line`, fading down the screen, under a soft accent wash; dark mode adds an accent glow that follows the cursor. All of it is decorative.
+### Assets
 
-Reduced motion sets every scene to its end state and lets pinned sections take their content's height. Scroll scrubbing, the cord's sway and the count animations stop. The Languages rotation has a pause control and stays still with reduced motion.
-
-Below 900px each pinned scene shows only its caption's first paragraph and drops secondary cards so the stage fits; short viewports (`short:`, under 720px tall) hide more.
+- **Tour:** `public/landing/tour.{webm,mp4}` with `tour-poster.webp`, recorded from the real app on a seeded, fictional account (`tooling/landing/record-tour.ts`). No sound. Chapters in `closing.tsx` must match the recording's timings.
 
 ### Content and delivery
 
-- Prerender the homepage and public ATS checker per locale at build time through `prerender.tsx` and `apps/web/vite.config.ts`. The app is a client-rendered SPA; `apps/server/src/static/web.ts` serves the generated HTML and adds canonical, Open Graph, `hreflang`, and structured data. Keep headings and body copy in the initial HTML.
-- Include title and description metadata and `SoftwareApplication` structured data with a zero-price offer.
-- Use one `h1`, section headings, landmarks, and a skip link. Animated character treatments expose the complete string once to assistive technology. Nothing relies on hover alone.
-- Translate copy, accessible labels, and demo resume text through Lingui. Names and addresses may stay literal; the Languages display intentionally preserves native words and language names. Allow text expansion and RTL layouts.
+- Prerender the homepage and public ATS checker per locale at build time through `prerender.tsx` and `apps/web/vite.config.ts`. `apps/server/src/static/web.ts` serves the generated HTML and adds canonical, Open Graph, `hreflang`, and `SoftwareApplication` structured data with a zero-price offer and a feature list. Keep headings and body copy in the initial HTML.
+- Use one `h1`, section headings, landmarks and a skip link.
+- Translate copy and accessible labels through Lingui. Names of fictional people, companies and job boards stay literal. Allow text expansion and RTL layouts.
 
 ## Do and don't
 

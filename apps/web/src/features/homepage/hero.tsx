@@ -1,206 +1,167 @@
-import type { ReactNode } from "react";
 import { t } from "@lingui/core/macro";
-import { useLingui } from "@lingui/react";
 import { Trans } from "@lingui/react/macro";
-import { Icon } from "@reactive-resume/ui/components/icon";
+import { templateSchema } from "@reactive-resume/schema/templates";
+import { localeSchema } from "@reactive-resume/utils/locale";
 import { cn } from "@reactive-resume/utils/style";
-import { SCENE, useStep } from "./scroll";
-import { Chip, CompanyTile, CtaLink, headlineClass, labelClass, leadClass, MockCard, Reveal } from "./ui";
+import { STAGE } from "./progress";
+import { GhostLink, headlineClass, kickerClass, leadClass, StartLink } from "./ui";
 
-/** The hero's steps: the morning search runs, a role lands, its documents are written, an interview is booked. */
-const STEP = { searching: 1, found: 2, writing: 3, ready: 4, interview: 5 } as const;
-
-type ActionRow = { company: string; role: string; meta: string; action: string };
-
-function ActionItem({ row, status }: { row: ActionRow; status?: ReactNode }) {
-	return (
-		<div className="flex items-center gap-3 border-b border-line py-3 last:border-b-0">
-			<CompanyTile name={row.company} />
-			<div className="min-w-0 flex-1">
-				<p className="truncate font-ui text-[14px] font-semibold text-ink">{row.role}</p>
-				<p className="truncate font-ui text-[12.5px] text-ink-3">
-					{row.company} · {row.meta}
-				</p>
-			</div>
-			{status}
-			<span className="hidden h-8 shrink-0 items-center rounded-lg border border-line-2 px-3 font-ui text-[13px] font-semibold text-ink min-[480px]:inline-flex">
-				{row.action}
-			</span>
-		</div>
-	);
-}
-
-/**
- * The Overview, as the app shows it in the morning. Scrolling runs the day forward: the scheduled search runs, a new
- * role is saved, its tailored resume and cover letter are written, and an interview appears under Coming up.
- */
-function OverviewMock() {
-	const { i18n } = useLingui();
-	const step = useStep(SCENE.hero);
-	const searched = step >= STEP.found;
-	const time = i18n.date(new Date(2026, 9, 22, 8, 0), { hour: "numeric", minute: "2-digit" });
-
-	const fieldnote: ActionRow = {
-		company: "Fieldnote",
-		role: t`Senior Product Designer`,
-		meta: t`Remote, EU`,
-		action: t`Review`,
-	};
-	const rows: ActionRow[] = [
-		{ company: "Northwind", role: t`Lead Product Designer`, meta: t`Lisbon · Hybrid`, action: t`Review` },
-		{ company: "Meridian", role: t`Design Systems Lead`, meta: t`Follow-up due today`, action: t`Follow up` },
+/** The opening: the promise, the two ways in, and the facts that make it easy to say yes. */
+export function Hero() {
+	const languages = localeSchema.options.length;
+	const facts = [
+		t`No credit card, no premium tier`,
+		t`Web, iPhone and Android`,
+		t`${languages} languages`,
+		t`MIT licensed`,
 	];
 
 	return (
-		<div aria-hidden="true" className="relative w-full max-w-[620px]">
-			<MockCard className="overflow-hidden">
-				<div
-					className={cn(
-						"flex items-center gap-3 border-b px-5 py-3.5 transition-colors duration-standard",
-						searched ? "border-ok/20 bg-ok-soft" : "border-line bg-sunken",
-					)}
-				>
-					<span
-						className={cn(
-							"grid size-8 place-items-center rounded-lg bg-surface",
-							searched ? "text-ok-text" : "text-accent-text",
-						)}
+		<section
+			id="top"
+			data-stage={STAGE.hero}
+			aria-labelledby="hero-title"
+			className="relative grid min-h-[118vh] max-[900px]:min-h-0"
+		>
+			<div className="mx-auto w-full max-w-[1280px] px-(--gutter)">
+				<div className="sticky top-[16vh] grid max-w-[700px] gap-[26px] pt-[4vh] pb-6 max-[900px]:static max-[900px]:pt-[42svh] max-[900px]:pb-[8vh] min-[1320px]:ms-24">
+					<p className={kickerClass}>
+						<Trans>
+							NextRole AI <span className="text-nr-ink-3">· free and open source</span>
+						</Trans>
+					</p>
+					<h1
+						id="hero-title"
+						className="font-landing-display text-nr-ink text-[clamp(54px,8vw,128px)] leading-[.86] font-extrabold tracking-[-.035em] text-balance [font-stretch:78%]"
 					>
-						<Icon
-							name={searched ? "check-circle" : "magnifying-glass"}
-							size={18}
-							className={cn(step === STEP.searching && "motion-safe:animate-pulse")}
-						/>
-					</span>
-					<div className="min-w-0 flex-1 font-ui">
-						<p className="truncate text-[13.5px] font-semibold text-ink">
-							{searched
-								? t`Discovery found 3 new roles`
-								: step === STEP.searching
-									? t`Searching 4 queries…`
-									: t`Next search at ${time}`}
-						</p>
-						<p className="truncate text-[12px] text-ink-3">
-							{searched
-								? t`40 results checked · 18 already known · 19 rejected`
-								: t`Every 6 hours · from your preferences`}
-						</p>
+						<Trans>
+							A career team that works{" "}
+							<span className="nr-spectrum motion-safe:animate-nr-spectrum">while you sleep.</span>
+						</Trans>
+					</h1>
+					<p className={leadClass}>
+						<Trans>
+							NextRole AI scouts roles on your schedule, tailors a resume, letter and answers for each one, coaches you
+							through the interview and helps you weigh the offer. It runs on your own AI key and stops at every
+							decision, so you make it.
+						</Trans>
+					</p>
+					<div className="flex flex-wrap gap-3">
+						<StartLink size="lg" />
+						<GhostLink href="#tour">
+							<span aria-hidden="true">▶</span>
+							<Trans>Watch it work · 1:00</Trans>
+						</GhostLink>
 					</div>
+					<ul className="text-nr-ink-3 flex flex-wrap gap-x-[18px] gap-y-2 text-[13.5px]">
+						{facts.map((fact) => (
+							<li
+								key={fact}
+								className="before:bg-nr-accent flex items-center gap-2 before:size-[5px] before:rounded-full before:shadow-[0_0_10px_var(--color-nr-accent)]"
+							>
+								{fact}
+							</li>
+						))}
+					</ul>
 				</div>
-
-				<div className="px-5 pt-4 pb-2">
-					<div className="flex items-center justify-between">
-						<p className="font-display text-[17px] font-bold tracking-[-.02em] text-ink">{t`Your next actions`}</p>
-						<span className="font-ui text-[12px] text-ink-3">{searched ? t`3 to review` : t`2 to review`}</span>
-					</div>
-					<div
-						className="grid [grid-template-rows:0fr] transition-[grid-template-rows] duration-emphasized ease-enter data-on:[grid-template-rows:1fr]"
-						data-on={searched || undefined}
-					>
-						<div className="min-h-0 overflow-hidden">
-							<ActionItem
-								row={fieldnote}
-								status={
-									<Chip tone={step >= STEP.ready ? "ok" : "info"} className="max-[420px]:hidden">
-										{step >= STEP.ready ? (
-											<>
-												<Icon name="check" size={13} />
-												{t`Resume + letter ready`}
-											</>
-										) : (
-											<>
-												<Icon name="pencil-line" size={13} />
-												{t`Writing drafts…`}
-											</>
-										)}
-									</Chip>
-								}
-							/>
-						</div>
-					</div>
-					{rows.map((row, index) => (
-						<ActionItem
-							key={row.company}
-							row={row}
-							status={
-								index === 0 ? (
-									<Chip tone="ok" className="max-[420px]:hidden">
-										{t`Ready`}
-									</Chip>
-								) : (
-									<Chip tone="warn" className="max-[420px]:hidden">
-										{t`Follow-up`}
-									</Chip>
-								)
-							}
-						/>
-					))}
-				</div>
-			</MockCard>
-
-			<Reveal
-				on={step >= STEP.interview}
-				className="absolute end-[-2vw] top-[calc(100%-28px)] w-[min(300px,70%)] max-[900px]:hidden"
-			>
-				<MockCard className="p-4 shadow-e3">
-					<p className={cn(labelClass, "text-ink-3")}>{t`Coming up`}</p>
-					<div className="mt-2.5 flex items-center gap-3">
-						<span className="grid size-12 shrink-0 place-items-center rounded-xl border border-accent/20 bg-accent-soft font-display leading-none text-accent-text">
-							<span className="text-[19px] font-extrabold">{i18n.number(29)}</span>
-						</span>
-						<div className="min-w-0 font-ui">
-							<p className="truncate text-[14px] font-semibold text-ink">{t`Portfolio interview`}</p>
-							<p className="truncate text-[12.5px] text-ink-3">{t`Fieldnote · 45 min`}</p>
-						</div>
-					</div>
-					<div className="mt-3 flex flex-wrap gap-1.5">
-						<Chip tone="ok">{t`Briefing ready`}</Chip>
-						<Chip tone="neutral">{t`Practice not started`}</Chip>
-					</div>
-				</MockCard>
-			</Reveal>
-		</div>
+			</div>
+		</section>
 	);
 }
 
-/**
- * 00 Hero, "Your next role, found and prepared." The headline, the promise and the call to action sit beside the
- * Overview, which runs a morning forward as the visitor scrolls. The copy paints first, with no dependency on the
- * scroll engine.
- */
-export function Hero() {
+/** Meet the crew: the whole product at a glance, one specialist per part of the job search. */
+export function Crew() {
+	const templates = templateSchema.options.length;
+	const crew = [
+		{
+			href: "#scout",
+			role: t`The Scout`,
+			act: "02",
+			title: t`Finds roles worth your time`,
+			body: t`Searches 11 job boards, the companies you follow and the open web on your schedule, and tells you why it passed on the rest.`,
+			gives: t`A shortlist, with a fit check for each role`,
+		},
+		{
+			href: "#write",
+			role: t`The Writer`,
+			act: "03",
+			title: t`Writes like you on your best day`,
+			body: t`Tailors your resume, cover letter and form answers to each posting, using only experience you've confirmed.`,
+			gives: t`Drafts ready to review, never sent`,
+		},
+		{
+			href: "#studio",
+			role: t`The Editor`,
+			act: "04",
+			title: t`Makes every page look the part`,
+			body: t`${templates} templates, about 500 fonts and an ATS check that points to the exact line. Its suggestions wait for your yes.`,
+			gives: t`A resume both software and people can read`,
+		},
+		{
+			href: "#coach",
+			role: t`The Coach`,
+			act: "05",
+			title: t`Gets you ready to walk in`,
+			body: t`Briefs you before each interview, listens while you practise out loud, and turns every debrief into material for the next round.`,
+			gives: t`A 30-minute plan for every interview`,
+		},
+		{
+			href: "#track",
+			role: t`The Tracker`,
+			act: "06",
+			title: t`Remembers everything, so you don't`,
+			body: t`One board for every application, with interviews on your calendar, follow-up reminders and replies drafted for recruiters.`,
+			gives: t`Your next step on every application`,
+		},
+		{
+			href: "#track",
+			role: t`The Advisor`,
+			act: "06",
+			title: t`Helps you say yes to the right offer`,
+			body: t`Lines offers up against what you said matters, and keeps the unknown terms in plain sight.`,
+			gives: t`The questions to ask before you sign`,
+		},
+	];
+
 	return (
-		<section
-			id="top"
-			data-scene={SCENE.hero}
-			data-pin
-			aria-labelledby="hero-title"
-			className="relative h-[200vh] motion-reduce:h-auto min-[900px]:h-[240vh]"
-		>
-			<div className="sticky top-0 mx-auto grid h-svh max-w-[1440px] grid-rows-[auto_minmax(0,1fr)] items-center gap-8 px-(--gutter) pt-[92px] pb-8 motion-reduce:static motion-reduce:h-auto min-[900px]:grid-cols-[minmax(0,6fr)_minmax(0,6fr)] min-[900px]:grid-rows-1 min-[900px]:gap-[5vw] min-[900px]:pt-16 min-[900px]:pb-0">
-				<div className="flex flex-col items-start gap-5 min-[900px]:gap-7">
-					<p className={cn(labelClass, "flex items-center gap-2 text-accent-text")}>
-						<Icon name="sparkle" size={15} />
-						{t`Your job search, on autopilot. Your call, every time.`}
+		<section id="crew" data-stage={STAGE.hero} aria-labelledby="crew-title" className="relative pt-[6vh] pb-[22vh]">
+			<div className="mx-auto max-w-[1280px] px-(--gutter)">
+				<div className="mb-[30px] grid max-w-[640px] gap-3.5">
+					<p className={kickerClass}>{t`Meet your crew`}</p>
+					<h2 id="crew-title" className={headlineClass}>
+						{t`Six specialists. One boss: you.`}
+					</h2>
+					<p className={leadClass}>
+						{t`Each one takes a part of the job search off your plate and hands you finished work to review. Nobody acts in your name.`}
 					</p>
-					<h1 id="hero-title" className={cn(headlineClass, "text-[clamp(44px,6.2vw,104px)] leading-[.95]")}>
-						<Trans>
-							Your next role, <span className="text-accent-text">found and prepared.</span>
-						</Trans>
-					</h1>
-					<p className={cn(leadClass, "max-[900px]:short:hidden max-w-[32em]")}>
-						{t`NextRole AI searches for roles on your schedule, drafts a tailored resume and cover letter for each one, and gets you ready for the interview. You review everything and apply yourself.`}
-					</p>
-					<div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-						<CtaLink size="hero" />
-						<p className="font-ui text-[13px] leading-normal text-ink-3">
-							{t`Free and open source · Built on Reactive Resume`}
-						</p>
-					</div>
 				</div>
-				<div className="max-[900px]:short:hidden flex h-full min-h-0 items-start justify-center min-[900px]:items-center">
-					<OverviewMock />
-				</div>
+				<ul className="grid grid-cols-1 gap-3 min-[560px]:grid-cols-2 min-[980px]:grid-cols-3">
+					{crew.map((member) => (
+						<li key={member.role} className="flex">
+							<a
+								href={member.href}
+								className={cn(
+									"nr-pane flex w-full flex-col gap-2 p-[22px] transition-[translate,border-color] duration-standard ease-enter",
+									"hover:border-nr-line-2 motion-safe:hover:-translate-y-[3px]",
+								)}
+							>
+								<span className="font-landing-mono text-nr-ink-3 flex justify-between text-[11px] leading-none tracking-[.1em] uppercase">
+									{member.role}
+									<span>{t`Act ${member.act}`}</span>
+								</span>
+								<h3 className="font-landing-display text-nr-ink text-[28px] leading-none font-extrabold tracking-[-.02em] [font-stretch:85%]">
+									{member.title}
+								</h3>
+								<p className="text-nr-ink-2 text-[14.5px]">{member.body}</p>
+								<p className="border-nr-line font-landing-mono text-nr-ink-2 mt-auto border-t pt-3.5 text-[12.5px] leading-[1.45]">
+									<span className="text-nr-accent mb-0.5 block text-[10.5px] tracking-[.1em] uppercase">{t`Hands you`}</span>
+									{member.gives}
+								</p>
+							</a>
+						</li>
+					))}
+				</ul>
+				<p className="font-landing-mono text-nr-ink-3 mt-[18px] text-[13px]">{t`They prepare. You decide. Nothing leaves without you.`}</p>
 			</div>
 		</section>
 	);

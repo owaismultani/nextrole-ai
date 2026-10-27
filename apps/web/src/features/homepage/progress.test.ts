@@ -1,0 +1,28 @@
+import { describe, expect, it } from "vitest";
+import { lastStage, stageAt } from "./progress";
+
+// A 1000px viewport, so the middle of the screen is at 500px.
+const viewport = 1000;
+
+describe("stage at", () => {
+	it("holds a section's stage for its first half", () => {
+		const boxes = [{ stage: 2, top: 100, bottom: 1700, next: 3 }];
+		expect(stageAt(boxes, viewport)).toBe(2);
+	});
+
+	it("blends into the next stage over a section's second half", () => {
+		// The middle of the screen is three quarters of the way down the section.
+		const boxes = [{ stage: 2, top: -700, bottom: 900, next: 3 }];
+		expect(stageAt(boxes, viewport)).toBeCloseTo(2.5);
+	});
+
+	it("doesn't blend when the next section shares the stage", () => {
+		const boxes = [{ stage: 8, top: -700, bottom: 900, next: 8 }];
+		expect(stageAt(boxes, viewport)).toBe(8);
+	});
+
+	it("starts at the first stage above the page and ends at the last below it", () => {
+		expect(stageAt([{ stage: 0, top: 600, bottom: 1600, next: 1 }], viewport)).toBe(0);
+		expect(stageAt([{ stage: 0, top: -3000, bottom: -2000, next: 1 }], viewport)).toBe(lastStage);
+	});
+});

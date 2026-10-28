@@ -11,7 +11,6 @@ import { Button } from "@reactive-resume/ui/components/button";
 import { Checkbox } from "@reactive-resume/ui/components/checkbox";
 import { Icon } from "@reactive-resume/ui/components/icon";
 import { toast } from "@reactive-resume/ui/components/toast";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@reactive-resume/ui/components/tooltip";
 import { cn } from "@reactive-resume/utils/style";
 import { D2, EASE, EXIT } from "@/libs/motion";
 

@@ -59,7 +59,7 @@ test("round-trips a JSON backup and splits a legacy embedded letter on import", 
 	await page.waitForURL(/\/builder\/.+/);
 	await expect(page.getByText("Dear Globex team,")).toHaveCount(0);
 
-	await page.goto("/dashboard");
+	await page.goto("/dashboard/documents");
 	await page.getByRole("tab", { name: /^Letters/ }).click();
 	await expect(page.getByRole("heading", { name: /— Letter to Globex$/ })).toHaveCount(1);
 });

@@ -13,7 +13,7 @@ import { orpc } from "@/libs/orpc/client";
 type InlineFactProps = { label: string; value: string | null; onSave: (value: string | null) => void };
 
 /** A fact that edits in place: click to type, Enter or leaving saves, Esc cancels. */
-export function InlineFact({ label, value, onSave }: InlineFactProps) {
+function InlineFact({ label, value, onSave }: InlineFactProps) {
 	const id = useId();
 	const [draft, setDraft] = useState<string | null>(null);
 

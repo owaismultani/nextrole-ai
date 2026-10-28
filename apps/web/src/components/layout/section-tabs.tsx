@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { Link, useMatchRoute } from "@tanstack/react-router";
 import { Tabs, TabsList, TabsTrigger } from "@reactive-resume/ui/components/tabs";
 
-export type SectionTab = {
+type SectionTab = {
 	to: LinkProps["to"];
 	/** The path that makes this tab current, when it differs from `to` (a tab whose address has optional parts). */
 	match?: string;

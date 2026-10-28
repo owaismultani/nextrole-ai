@@ -13,6 +13,8 @@
   <p>
     <a href="https://nextroleai.owaism.xyz"><strong>Try the live app</strong></a>
     ·
+    <a href="https://dev.to/owaismultani/i-built-an-ai-job-hunter-that-runs-while-i-sleep-3an7"><strong>Read the build story</strong></a>
+    ·
     <a href="#quick-start"><strong>Self-host it</strong></a>
     ·
     <a href="docs/getting-started.mdx"><strong>Read the docs</strong></a>
@@ -37,6 +39,8 @@ connect, so you choose the model and pay only for what you use.
 
 It is built on [Reactive Resume](https://github.com/reactive-resume/reactive-resume), the open-source resume builder by
 Amruth Pillai and its contributors, so the full resume editor, templates and exports come with it.
+
+> **Why I built this:** [I built an AI job hunter that runs while I sleep. The hard part wasn’t the AI.](https://dev.to/owaismultani/i-built-an-ai-job-hunter-that-runs-while-i-sleep-3an7) — the story behind NextRole AI, the engineering challenges, and why reliable automation matters.
 
 ## Meet the crew
 

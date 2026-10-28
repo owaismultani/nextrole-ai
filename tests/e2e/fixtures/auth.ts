@@ -14,6 +14,9 @@ export async function registerViaUi(page: Page, account: E2EAccount, callbackURL
 	await page.getByLabel("Email Address", { exact: true }).fill(account.email);
 	await page.getByLabel("Password", { exact: true }).fill(account.password);
 	await page.getByRole("button", { name: "Sign up" }).click();
+	// E2E tests exercise the app after signup, not the optional first-run wizard.
+	// Mark setup skipped through the real authenticated API, never bypassing the production route guard.
+	await assertAuthResponse(await page.request.post("/api/openapi/career/setup/skip", { data: {} }));
 	await page.getByRole("button", { name: "Continue" }).click();
 	await page.waitForURL(/\/dashboard/);
 }
@@ -62,6 +65,7 @@ export async function createAuthenticatedContext(
 	baseURL: string,
 ): Promise<BrowserContext> {
 	await registerViaApi(request, account, baseURL);
+	await assertAuthResponse(await request.post("/api/openapi/career/setup/skip", { data: {} }));
 
 	return browser.newContext({
 		baseURL,

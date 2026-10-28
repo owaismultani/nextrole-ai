@@ -81,7 +81,7 @@ const addDays = (date: string, days: number) =>
 	new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
 
 /** A repeating schedule's first run after `now`, keeping its wall-clock time in `timeZone`. */
-export function rollForward(at: Date, intervalDays: number, timeZone: string, now = new Date()) {
+function rollForward(at: Date, intervalDays: number, timeZone: string, now = new Date()) {
 	if (at > now) return at;
 	const { date, time } = toZoned(at, timeZone);
 	const steps = Math.max(1, Math.ceil((now.getTime() - at.getTime()) / (intervalDays * 86_400_000)));

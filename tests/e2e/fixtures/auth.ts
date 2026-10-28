@@ -14,6 +14,8 @@ export async function registerViaUi(page: Page, account: E2EAccount, callbackURL
 	await page.getByLabel("Email Address", { exact: true }).fill(account.email);
 	await page.getByLabel("Password", { exact: true }).fill(account.password);
 	await page.getByRole("button", { name: "Sign up" }).click();
+	// Sign-up is asynchronous; wait for the authenticated success screen before calling a protected API.
+	await page.getByRole("heading", { name: "You've got mail!" }).waitFor();
 	// E2E tests exercise the app after signup, not the optional first-run wizard.
 	// Mark setup skipped through the real authenticated API, never bypassing the production route guard.
 	await assertAuthResponse(await page.request.post("/api/openapi/career/setup/skip", { data: {} }));

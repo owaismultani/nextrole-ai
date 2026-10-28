@@ -60,11 +60,7 @@ function hasCompleteUserinfo(raw: string): boolean {
 function preservePostgresTlsVerification(raw: string): string {
 	const value = new URL(raw);
 	const sslmode = value.searchParams.get("sslmode");
-	if (
-		sslmode !== "prefer" &&
-		sslmode !== "require" &&
-		sslmode !== "verify-ca"
-	) return raw;
+	if (sslmode !== "prefer" && sslmode !== "require" && sslmode !== "verify-ca") return raw;
 	if (value.searchParams.get("uselibpqcompat") === "true") return raw;
 	value.searchParams.set("sslmode", "verify-full");
 	return value.toString();
@@ -114,7 +110,10 @@ export const env = createEnv({
 
 		// Database
 		DATABASE_URL: z.url({ protocol: /postgres(ql)?/ }).transform(preservePostgresTlsVerification),
-		DATABASE_MIGRATION_URL: z.url({ protocol: /postgres(ql)?/ }).transform(preservePostgresTlsVerification).optional(),
+		DATABASE_MIGRATION_URL: z
+			.url({ protocol: /postgres(ql)?/ })
+			.transform(preservePostgresTlsVerification)
+			.optional(),
 		DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(100).default(10),
 		STRICT_SCHEMA_CHECK: z.stringbool().default(false),
 

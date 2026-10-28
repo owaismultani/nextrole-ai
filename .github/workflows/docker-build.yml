@@ -470,7 +470,7 @@ jobs:
 
   mobile-update:
     needs: merge
-    if: ${{ !cancelled() && needs.merge.result == 'success' && needs.merge.outputs.mobile_channel != '' }}
+    if: ${{ !cancelled() && needs.merge.result == 'success' && needs.merge.outputs.mobile_channel != '' && vars.EXPO_UPDATES_ENABLED == 'true' }}
     runs-on: ${{ vars.USE_BLACKSMITH == 'true' && 'blacksmith-2vcpu-ubuntu-2404' || 'ubuntu-latest' }}
     timeout-minutes: 20
     permissions:

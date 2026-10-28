@@ -76,7 +76,7 @@ const CONNECTIONS: Record<string, string> = { tavily: "Tavily", exa: "Exa", fire
 export const connectionName = (provider: string | null | undefined) => (provider ? (CONNECTIONS[provider] ?? "") : "");
 
 /** How a web role's page was read: by the built-in reader, or by the search connection when that couldn't. */
-export const readerName = (readVia: string | null | undefined) =>
+const readerName = (readVia: string | null | undefined) =>
 	readVia === "builtin" ? t`the built-in reader` : connectionName(readVia);
 
 /**
@@ -120,7 +120,7 @@ export function runSources(report: {
 /** What a source did in a run: "12 of 40 kept", or why it didn't run. */
 export const sourceOutcome = (source: { status: string; found: number; kept: number; reason: string | null }) =>
 	source.status === "ok" ? t`${source.kept} of ${source.found} kept` : failureLabel(source.reason);
-export const sourceSite = (source: string) => SITES[source.split(":")[0] ?? source];
+const sourceSite = (source: string) => SITES[source.split(":")[0] ?? source];
 
 /** A source's credit: its name, linked to its site when its terms ask for that. */
 export function SourceCredit({ source, className }: { source: string; className?: string }) {
@@ -189,7 +189,7 @@ function countryName(code: string, locale: string) {
 	}
 }
 
-export const filterReasonLabel = (reason: FilterReason): string =>
+const filterReasonLabel = (reason: FilterReason): string =>
 	({
 		title: t`Title doesn't match`,
 		excluded: t`Excluded word`,
@@ -201,7 +201,7 @@ export const filterReasonLabel = (reason: FilterReason): string =>
 		company: t`Excluded company`,
 	})[reason];
 
-export const failureLabel = (reason: string | null): string =>
+const failureLabel = (reason: string | null): string =>
 	reason === "needs-key"
 		? t`needs a key`
 		: reason === "country"

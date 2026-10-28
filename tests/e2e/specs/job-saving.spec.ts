@@ -27,7 +27,11 @@ test("fresh account prepares a linked blank resume and snapshots it on submissio
 	await expect(attachment).toBeOK();
 	await page.goto(`/dashboard/applications/${job.id}/answers`);
 	await page.getByRole("button", { name: "Mark as applied", exact: true }).click();
-	await expect.poll(async () => (await (await page.request.get(`/api/openapi/applications/${job.id}`)).json()).status).toBe("applied");
+	const readStatus = async () => {
+		const response = await page.request.get(`/api/openapi/applications/${job.id}`);
+		return (await response.json()).status;
+	};
+	await expect.poll(readStatus).toBe("applied");
 	const applied = await (await page.request.get(`/api/openapi/applications/${job.id}`)).json();
 	expect(applied).toMatchObject({ status: "applied", resumeId });
 	expect(applied.sentResumeVersionId).toBeTruthy();
@@ -71,7 +75,11 @@ test("save, manually prepare a copy, and confirm submitted documents without ser
 
 	await page.goto(`/dashboard/applications/${job.id}/answers`);
 	await page.getByRole("button", { name: "Mark as applied", exact: true }).click();
-	await expect.poll(async () => (await (await page.request.get(`/api/openapi/applications/${job.id}`)).json()).status).toBe("applied");
+	const readStatus = async () => {
+		const response = await page.request.get(`/api/openapi/applications/${job.id}`);
+		return (await response.json()).status;
+	};
+	await expect.poll(readStatus).toBe("applied");
 	const applied = await (await page.request.get(`/api/openapi/applications/${job.id}`)).json();
 	expect(applied.status).toBe("applied");
 	expect(applied.appliedAt).toBeTruthy();

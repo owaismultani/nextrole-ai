@@ -153,7 +153,7 @@ describe("PostgreSQL TLS modes", () => {
 		const { env } = await import("./server");
 		expect(new URL(env.DATABASE_URL).searchParams.get("sslmode")).toBe("verify-full");
 		expect(new URL(env.DATABASE_URL).searchParams.get("application_name")).toBe("nextrole");
-		expect(new URL(env.DATABASE_MIGRATION_URL!).searchParams.get("sslmode")).toBe("verify-full");
+		expect(new URL(env.DATABASE_MIGRATION_URL ?? "").searchParams.get("sslmode")).toBe("verify-full");
 	});
 
 	it("leaves strict and local connection URLs unchanged", async () => {

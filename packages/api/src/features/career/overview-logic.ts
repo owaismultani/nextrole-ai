@@ -91,9 +91,9 @@ export function sumReports(reports: CareerRunReport[]) {
 
 // ---- The stage map ----
 
-export const STAGE_KEYS = ["schedule", "search", "read", "filter", "save", "prepare", "review", "apply"] as const;
+const STAGE_KEYS = ["schedule", "search", "read", "filter", "save", "prepare", "review", "apply"] as const;
 export type StageKey = (typeof STAGE_KEYS)[number];
-export type StageState = "ok" | "running" | "waiting" | "warn" | "failed" | "off" | "idle" | "yours";
+type StageState = "ok" | "running" | "waiting" | "warn" | "failed" | "off" | "idle" | "yours";
 export type Stage = {
 	key: StageKey;
 	state: StageState;
@@ -198,8 +198,8 @@ export function stageMap(input: StageInput): Stage[] {
 
 // ---- The "is everything working" checklist ----
 
-export type CheckKey = "schedule" | "next-run" | "search" | "ai" | "baseline" | "limit" | "last-run" | "repeating";
-export type CheckStatus = "ok" | "warn" | "fail" | "info";
+type CheckKey = "schedule" | "next-run" | "search" | "ai" | "baseline" | "limit" | "last-run" | "repeating";
+type CheckStatus = "ok" | "warn" | "fail" | "info";
 export type Check = { key: CheckKey; status: CheckStatus; at: Date | null; value: number | null };
 
 export type CheckInput = {
@@ -267,7 +267,7 @@ export function firstResponsesSince(applications: OverviewApplication[], since: 
 
 // ---- What to do next ----
 
-export type ActionKind = "issue" | "followup" | "stale" | "ready";
+type ActionKind = "issue" | "followup" | "stale" | "ready";
 export type Action = {
 	kind: ActionKind;
 	applicationId: string;

@@ -5,7 +5,7 @@
  */
 import { Color, Euler, IcosahedronGeometry, Vector3 } from "three";
 
-export type Formation = { positions: Float32Array; colors: Float32Array };
+type Formation = { positions: Float32Array; colors: Float32Array };
 
 /** Pixels of the N mark, in the unit square centred on zero, split into the tile's outline and the letter. */
 export type MarkPixels = { frame: [number, number][]; letter: [number, number][] };

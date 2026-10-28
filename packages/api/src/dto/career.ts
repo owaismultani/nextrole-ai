@@ -93,7 +93,7 @@ export const careerAutomationSchema = z.object({
 		.nullable(),
 });
 
-export const careerPreparationStepSchema = z.object({
+const careerPreparationStepSchema = z.object({
 	id: z.string(),
 	kind: preparationKindSchema,
 	status: preparationStatusSchema,
@@ -142,7 +142,7 @@ const careerRunDocumentSchema = z
 	.object({ stepId: z.string(), status: preparationStatusSchema, outputId: z.string().nullable() })
 	.nullable();
 
-export const careerRunJobSchema = z.object({
+const careerRunJobSchema = z.object({
 	opportunityId: z.string(),
 	role: z.string(),
 	company: z.string(),
@@ -339,7 +339,7 @@ export const careerSearchPreviewSchema = z.array(
 	z.object({ title: z.string(), url: z.string(), description: z.string() }),
 );
 
-export const careerEventSchema = z.object({
+const careerEventSchema = z.object({
 	id: z.string(),
 	at: z.date(),
 	kind: careerEventKindSchema,

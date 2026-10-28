@@ -28,7 +28,7 @@ export const NOW = "now";
 export const BASELINE = "baseline";
 
 /** Something to compare against besides History's versions, such as the baseline a tailored resume came from. */
-export type CompareSide = { id: string; label: string };
+type CompareSide = { id: string; label: string };
 
 /** How History reads a document at a version, or now, for Compare. */
 export type CompareSource =

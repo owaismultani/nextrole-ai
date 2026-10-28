@@ -35,7 +35,7 @@ function stageSince(application: Pick<Application, "status" | "activity" | "appl
 const daysBetween = (from: Date, to: Date) => Math.max(0, Math.floor((to.getTime() - from.getTime()) / DAY_MS));
 
 /** Whole days the application has spent in its current stage. */
-export const daysInStage = (application: Pick<Application, "status" | "activity" | "appliedAt">, now = new Date()) =>
+const daysInStage = (application: Pick<Application, "status" | "activity" | "appliedAt">, now = new Date()) =>
 	daysBetween(stageSince(application), now);
 
 export function getNextStep(application: NextStepSource, now = new Date()): NextStep {

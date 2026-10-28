@@ -36,7 +36,7 @@ export type JobPosting = {
 
 export type SourceKey = Record<string, string>;
 
-export type SearchRequest = {
+type SearchRequest = {
 	query: string;
 	filters: DiscoveryFilters;
 	/** Roughly how many results to ask for; sources page until they have it or run out. */
@@ -59,7 +59,7 @@ export type JobSearchAdapter = {
 	search: (request: SearchRequest) => Promise<JobPosting[]>;
 };
 
-export type BoardRequest = { query: string; signal: AbortSignal };
+type BoardRequest = { query: string; signal: AbortSignal };
 
 export type CompanyBoardAdapter = {
 	kind: CompanyBoard;

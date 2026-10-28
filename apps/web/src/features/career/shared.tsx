@@ -11,7 +11,6 @@ import { Button } from "@reactive-resume/ui/components/button";
 import { Checkbox } from "@reactive-resume/ui/components/checkbox";
 import { Icon } from "@reactive-resume/ui/components/icon";
 import { toast } from "@reactive-resume/ui/components/toast";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@reactive-resume/ui/components/tooltip";
 import { cn } from "@reactive-resume/utils/style";
 import { D2, EASE, EXIT } from "@/libs/motion";
 
@@ -307,40 +306,6 @@ export function FilterChip({ pressed, onClick, children, className }: FilterChip
 		>
 			{children}
 		</button>
-	);
-}
-
-type ContextChipProps = {
-	pressed: boolean;
-	onPressedChange: (pressed: boolean) => void;
-	label: string;
-	tooltip: string;
-	/** Shown when off instead of `add`; Web research uses `public`. */
-	offIcon?: IconName;
-};
-
-/** Composer context switches: on is sunken with a check, off is quiet with add. */
-export function ContextChip({ pressed, onPressedChange, label, tooltip, offIcon = "plus" }: ContextChipProps) {
-	return (
-		<Tooltip>
-			<TooltipTrigger
-				render={
-					<button
-						type="button"
-						aria-pressed={pressed}
-						onClick={() => onPressedChange(!pressed)}
-						className={cn(
-							"touch-target inline-flex h-7 items-center gap-1 rounded-sm border px-[9px] text-xs font-medium transition-[background-color,border-color,color] duration-quick",
-							pressed ? "border-line-2 bg-sunken text-ink" : "border-line text-ink-3 hover:text-ink-2",
-						)}
-					/>
-				}
-			>
-				<Icon name={pressed ? "check" : offIcon} size={16} />
-				{label}
-			</TooltipTrigger>
-			<TooltipContent>{tooltip}</TooltipContent>
-		</Tooltip>
 	);
 }
 

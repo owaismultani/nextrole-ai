@@ -87,7 +87,13 @@ printf '%s\\n' "$line"
 		);
 		const result = spawnSync("bash", ["-eu", "-c", script], {
 			encoding: "utf8",
-			env: { ...process.env, PATH: `${directory}:${process.env.PATH}`, FIXTURE: directory, COMMIT_SHA: commit },
+			env: {
+				...process.env,
+				PATH: `${directory}:${process.env.PATH}`,
+				FIXTURE: directory,
+				COMMIT_SHA: commit,
+				PRODUCTION_URL: "https://example.test",
+			},
 		});
 		expect(result.status, result.stderr).toBe(status);
 		expect(Number(readFileSync(join(directory, "count"), "utf8"))).toBe(probes);

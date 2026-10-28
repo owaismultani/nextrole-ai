@@ -148,12 +148,15 @@ describe("redis url userinfo", () => {
 
 describe("PostgreSQL TLS modes", () => {
 	it.each(["prefer", "require", "verify-ca"])("uses strict verification for legacy sslmode=%s", async (sslmode) => {
-		vi.stubEnv("DATABASE_URL", `postgresql://user:password@db.example/app?sslmode=${sslmode}&application_name=nextrole`);
+		vi.stubEnv(
+			"DATABASE_URL",
+			`postgresql://user:password@db.example/app?sslmode=${sslmode}&application_name=nextrole`,
+		);
 		vi.stubEnv("DATABASE_MIGRATION_URL", `postgresql://user:password@db.example/app?sslmode=${sslmode}`);
 		const { env } = await import("./server");
 		expect(new URL(env.DATABASE_URL).searchParams.get("sslmode")).toBe("verify-full");
 		expect(new URL(env.DATABASE_URL).searchParams.get("application_name")).toBe("nextrole");
-		expect(new URL(env.DATABASE_MIGRATION_URL!).searchParams.get("sslmode")).toBe("verify-full");
+		expect(new URL(env.DATABASE_MIGRATION_URL ?? "").searchParams.get("sslmode")).toBe("verify-full");
 	});
 
 	it("leaves strict and local connection URLs unchanged", async () => {

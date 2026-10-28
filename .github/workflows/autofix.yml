@@ -44,10 +44,19 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Remove Unused Dependencies
-        run: pnpm knip --fix
+        run: |
+          pnpm knip --fix
+          pnpm install --no-frozen-lockfile --ignore-scripts
 
       - name: Lint and Format
         run: pnpm check
 
-      - name: Autofix
-        uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a # v1.3.4
+      # No external autofix.ci installation is required. CI must not silently
+      # discard formatter/Knip changes; contributors commit the generated diff.
+      - name: Verify formatting and dependency fixes are committed
+        run: |
+          if ! git diff --quiet --exit-code; then
+            echo "::error::Knip or formatting produced uncommitted changes. Run 'pnpm knip --fix && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm check' locally and commit the result."
+            git diff --stat
+            exit 1
+          fi

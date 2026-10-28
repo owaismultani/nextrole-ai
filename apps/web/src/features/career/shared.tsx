@@ -310,40 +310,6 @@ export function FilterChip({ pressed, onClick, children, className }: FilterChip
 	);
 }
 
-type ContextChipProps = {
-	pressed: boolean;
-	onPressedChange: (pressed: boolean) => void;
-	label: string;
-	tooltip: string;
-	/** Shown when off instead of `add`; Web research uses `public`. */
-	offIcon?: IconName;
-};
-
-/** Composer context switches: on is sunken with a check, off is quiet with add. */
-export function ContextChip({ pressed, onPressedChange, label, tooltip, offIcon = "plus" }: ContextChipProps) {
-	return (
-		<Tooltip>
-			<TooltipTrigger
-				render={
-					<button
-						type="button"
-						aria-pressed={pressed}
-						onClick={() => onPressedChange(!pressed)}
-						className={cn(
-							"touch-target inline-flex h-7 items-center gap-1 rounded-sm border px-[9px] text-xs font-medium transition-[background-color,border-color,color] duration-quick",
-							pressed ? "border-line-2 bg-sunken text-ink" : "border-line text-ink-3 hover:text-ink-2",
-						)}
-					/>
-				}
-			>
-				<Icon name={pressed ? "check" : offIcon} size={16} />
-				{label}
-			</TooltipTrigger>
-			<TooltipContent>{tooltip}</TooltipContent>
-		</Tooltip>
-	);
-}
-
 /** Names exactly what an AI action sends, and where. `cost` adds the provider-may-charge callout. */
 export function PrivacyLine({
 	children,

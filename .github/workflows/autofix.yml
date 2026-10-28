@@ -44,7 +44,9 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Remove Unused Dependencies
-        run: pnpm knip --fix
+        run: |
+          pnpm knip --fix
+          pnpm install --no-frozen-lockfile --ignore-scripts
 
       - name: Lint and Format
         run: pnpm check

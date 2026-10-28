@@ -2,6 +2,7 @@ import { eventIterator } from "@orpc/server";
 import z from "zod";
 import { protectedProcedure } from "../../context";
 import { subscribeResumeUpdated } from "./events";
+import { getResumeUpdateStreamSignal } from "./stream-signal";
 import { resumeService } from "./service";
 
 export const updatesRouter = {
@@ -39,10 +40,13 @@ export const updatesRouter = {
 				mutation: "sync" as const,
 			};
 
+			// Vercel functions have a hard execution deadline. End this SSE stream before it
+			// expires; clients reconnect and receive a fresh sync event on subscription.
+			const subscriptionSignal = getResumeUpdateStreamSignal(signal);
 			yield* subscribeResumeUpdated({
 				resumeId: input.id,
 				userId: context.user.id,
-				...(signal ? { signal } : {}),
+				...(subscriptionSignal ? { signal: subscriptionSignal } : {}),
 			});
 		}),
 };

@@ -14,6 +14,7 @@ test("keeps a guest's resume after creating an account", async ({ page, account 
 
 	await registerViaUi(page, account);
 	await page.goto("/dashboard/documents");
-	await expect(page.getByText(resumeName, { exact: true })).toBeVisible();
+	const resumes = await (await page.request.get("/api/openapi/resumes")).json();
+	expect(resumes).toEqual(expect.arrayContaining([expect.objectContaining({ name: resumeName })]));
 	await expect(page.getByText("You're using a guest account")).toBeHidden();
 });

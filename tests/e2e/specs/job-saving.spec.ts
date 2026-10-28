@@ -1,9 +1,7 @@
 import { createSampleResumeFromDashboard } from "../fixtures/resume";
 import { expect, test } from "../fixtures/test";
 
-test("fresh account prepares a linked blank resume and snapshots it on submission", async ({
-	authPage: page,
-}) => {
+test("fresh account prepares a linked blank resume and snapshots it on submission", async ({ authPage: page }) => {
 	await page.goto("/dashboard/applications");
 	await page.getByRole("button", { name: "Save job", exact: true }).first().click();
 	const save = page.getByRole("dialog", { name: "Save a job", exact: true });

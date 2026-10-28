@@ -2,8 +2,8 @@ import { eventIterator } from "@orpc/server";
 import z from "zod";
 import { protectedProcedure } from "../../context";
 import { subscribeResumeUpdated } from "./events";
-import { getResumeUpdateStreamSignal } from "./stream-signal";
 import { resumeService } from "./service";
+import { getResumeUpdateStreamSignal } from "./stream-signal";
 
 export const updatesRouter = {
 	subscribe: protectedProcedure

@@ -1,7 +1,8 @@
 import { RouterProvider } from "@tanstack/react-router";
 import ReactDOM from "react-dom/client";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { followReducedMotion } from "./libs/motion";
-import { injectVercelInsights } from "./libs/vercel-insights";
 import { getRouter } from "./router";
 import "./index.css";
 
@@ -22,6 +23,10 @@ document.head.querySelectorAll('title, meta[name="description"], meta[name="robo
 // for the route to load; otherwise the prerendered page would give way to a loading screen before coming back.
 if (rootElement.hasChildNodes()) await router.load();
 
-ReactDOM.createRoot(rootElement).render(<RouterProvider router={router} />);
-
-void injectVercelInsights();
+ReactDOM.createRoot(rootElement).render(
+	<>
+		<RouterProvider router={router} />
+		<Analytics />
+		<SpeedInsights />
+	</>,
+);

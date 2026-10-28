@@ -726,6 +726,12 @@ export function useResumeUpdateSubscription({ resumeId, onUpdate, onError }: Res
 				onError?.(error);
 				retryTimer = window.setTimeout(() => setRetryNonce((value) => value + 1), 2500);
 			},
+			// A serverless SSE stream ends cleanly before its execution deadline. Reconnect
+			// after completion too, not just after failures, so cross-tab updates continue.
+			onSuccess: () => {
+				if (didCancel) return;
+				retryTimer = window.setTimeout(() => setRetryNonce((value) => value + 1), 2500);
+			},
 		});
 
 		return () => {

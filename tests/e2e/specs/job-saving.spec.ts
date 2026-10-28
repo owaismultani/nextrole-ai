@@ -1,7 +1,7 @@
 import { createSampleResumeFromDashboard } from "../fixtures/resume";
 import { expect, test } from "../fixtures/test";
 
-test("fresh account prepares a linked blank resume and selects only submitted attachments", async ({
+test("fresh account prepares a linked blank resume and snapshots it on submission", async ({
 	authPage: page,
 }) => {
 	await page.goto("/dashboard/applications");
@@ -25,15 +25,11 @@ test("fresh account prepares a linked blank resume and selects only submitted at
 		data: { resumeFileUrl: "https://example.com/draft.pdf", resumeFileName: "Draft.pdf" },
 	});
 	await expect(attachment).toBeOK();
-	await page.goto("/dashboard/applications");
-	await page.getByText("Engineer", { exact: true }).first().click();
+	await page.goto(`/dashboard/applications/${job.id}/answers`);
 	await page.getByRole("button", { name: "Mark as applied", exact: true }).click();
-	const confirm = page.getByRole("dialog", { name: "Mark as applied", exact: true });
-	await confirm.getByLabel("Submitted attached resume: Draft.pdf").uncheck();
-	await confirm.getByRole("button", { name: "Confirm applied" }).click();
-	await expect(confirm).not.toBeVisible();
+	await expect.poll(async () => (await (await page.request.get(`/api/openapi/applications/${job.id}`)).json()).status).toBe("applied");
 	const applied = await (await page.request.get(`/api/openapi/applications/${job.id}`)).json();
-	expect(applied).toMatchObject({ status: "applied", resumeId, resumeFileUrl: null, resumeFileName: null });
+	expect(applied).toMatchObject({ status: "applied", resumeId });
 	expect(applied.sentResumeVersionId).toBeTruthy();
 });
 
@@ -73,17 +69,12 @@ test("save, manually prepare a copy, and confirm submitted documents without ser
 	});
 	expect((await (await page.request.get(`/api/openapi/resumes/${baseId}`)).json()).data).toEqual(original.data);
 
-	await page.goto("/dashboard/applications");
-	await page.getByText("Engineer", { exact: true }).first().click();
+	await page.goto(`/dashboard/applications/${job.id}/answers`);
 	await page.getByRole("button", { name: "Mark as applied", exact: true }).click();
-	const confirm = page.getByRole("dialog", { name: "Mark as applied", exact: true });
-	await confirm.getByLabel("Application date").fill("2026-09-25");
-	await confirm.getByLabel("Resume submitted (optional)").selectOption(copyId);
-	await confirm.getByRole("button", { name: "Confirm applied" }).click();
-	await expect(confirm).not.toBeVisible();
+	await expect.poll(async () => (await (await page.request.get(`/api/openapi/applications/${job.id}`)).json()).status).toBe("applied");
 	const applied = await (await page.request.get(`/api/openapi/applications/${job.id}`)).json();
 	expect(applied.status).toBe("applied");
-	expect(applied.appliedAt).toContain("2026-09-25");
+	expect(applied.appliedAt).toBeTruthy();
 	expect(applied.sentResumeVersionId).toBeTruthy();
 	const working = await (await page.request.get(`/api/openapi/resumes/${copyId}`)).json();
 	const edited = await page.request.put(`/api/openapi/resumes/${copyId}`, {
@@ -122,8 +113,8 @@ test("unreadable link preserves fields and source while offering immediate paste
 	await expect(dialog).not.toBeVisible();
 	const jobs = await (await page.request.get("/api/openapi/applications")).json();
 	expect(jobs[0]).toMatchObject({ sourceUrl: source, jobDescription: "Complete manual description", status: "saved" });
-	await page.getByRole("button", { name: "Open workspace", exact: true }).click();
-	const external = page.getByRole("link", { name: "View posting", exact: true });
+	await page.goto(`/dashboard/applications/${jobs[0].id}/summary`);
+	const external = page.getByRole("link", { name: "Original posting", exact: true });
 	await expect(external).toHaveAttribute("href", source);
 	const popup = page.waitForEvent("popup");
 	await external.click();

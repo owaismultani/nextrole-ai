@@ -11,10 +11,10 @@ import { applyFilters } from "./filter";
 import { SourceError } from "./http";
 import { companyBoards, SEARCHES_BY_QUERY, searchSources } from "./registry";
 
-export type CollectedPosting = { posting: JobPosting; decision: FilterDecision };
+type CollectedPosting = { posting: JobPosting; decision: FilterDecision };
 
 /** A followed board read in full, so its saved roles that are no longer listed can be closed. */
-export type ReadBoard = { board: string; urls: Set<string> };
+type ReadBoard = { board: string; urls: Set<string> };
 
 export type Collected = {
 	postings: CollectedPosting[];

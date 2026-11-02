@@ -4,8 +4,22 @@ import { Button } from "@reactive-resume/ui/components/button";
 import { Icon } from "@reactive-resume/ui/components/icon";
 import { cn } from "@reactive-resume/utils/style";
 
-function Dialog({ ...props }: DialogPrimitive.Root.Props) {
-	return <DialogPrimitive.Root data-slot="dialog" {...props} />;
+/** iPhone and iPad, including iPadOS reporting itself as a Mac. Every iOS browser runs WebKit. */
+function isAppleTouchDevice() {
+	if (typeof navigator === "undefined") return false;
+	return (
+		/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+	);
+}
+
+/**
+ * On iOS the dialog traps focus without locking page scroll: WebKit's scroll lock shifts the viewport under a fixed
+ * popup, so taps on its fields miss (Base UI notes the same iOS lock issues). The backdrop still covers the page.
+ */
+function Dialog({ modal, ...props }: DialogPrimitive.Root.Props) {
+	return (
+		<DialogPrimitive.Root data-slot="dialog" modal={modal ?? (isAppleTouchDevice() ? "trap-focus" : true)} {...props} />
+	);
 }
 
 function DialogTrigger({ ...props }: DialogPrimitive.Trigger.Props) {
@@ -41,7 +55,7 @@ type DialogContentProps = DialogPrimitive.Popup.Props & {
 	instant?: boolean;
 };
 
-/** Centered, 16px radius, fades and scales in from 98% over 200ms. Use for decisions, not for tasks beside the page. */
+/** Centered with margins rather than a transform (WebKit mis-targets taps in transformed fixed popups), 16px radius, fades and scales in from 98% over 200ms. Use for decisions, not for tasks beside the page. */
 function DialogContent({
 	className,
 	children,
@@ -56,7 +70,7 @@ function DialogContent({
 			<DialogPrimitive.Popup
 				data-slot="dialog-content"
 				className={cn(
-					"fixed inset-s-1/2 top-1/2 z-[60] grid max-h-[calc(100svh-2rem)] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto overscroll-contain rounded-2xl bg-raised p-6 text-sm text-ink shadow-e3 transition-[opacity,scale] duration-standard ease-enter outline-none data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-ending-style:duration-[calc(var(--d2)*0.7)] data-starting-style:scale-[0.98] data-starting-style:opacity-0 sm:max-w-[480px] rtl:translate-x-1/2",
+					"fixed inset-0 z-[60] m-auto grid h-fit max-h-[calc(100svh-2rem)] w-full max-w-[calc(100%-2rem)] gap-4 overflow-y-auto overscroll-contain rounded-2xl bg-raised p-6 text-sm text-ink shadow-e3 transition-[opacity,scale] duration-standard ease-enter outline-none data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-ending-style:duration-[calc(var(--d2)*0.7)] data-starting-style:scale-[0.98] data-starting-style:opacity-0 sm:max-w-[480px]",
 					instant && "transition-none",
 					className,
 				)}
